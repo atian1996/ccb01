@@ -1,0 +1,2762 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Shield,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Bell,
+  User,
+  LogOut,
+  FileText,
+  Award,
+  HelpCircle,
+  Phone,
+  Mail,
+  MapPin,
+  Search,
+  Play,
+  CheckCircle2,
+  Calendar,
+  Building2,
+  GraduationCap,
+  ExternalLink,
+  X,
+  Download,
+  ArrowRight,
+  Sparkles,
+  BookOpen,
+  AlertTriangle,
+  Terminal,
+  LayoutDashboard,
+  Trophy,
+  Volume2,
+  Newspaper,
+  Film,
+  MessageSquare,
+  CreditCard,
+  Landmark,
+  QrCode,
+} from 'lucide-react';
+import {
+  BANNER_SLIDES,
+  COMPETITION_TRACKS,
+  NOTICE_ITEMS,
+  NEWS_ITEMS,
+  MOMENT_CATEGORIES,
+  MOMENT_ITEMS,
+  FAQ_ITEMS,
+  CERTIFICATE_RECORDS,
+  UNIVERSITY_PARTNERS,
+  LEADERSHIP_ORGS,
+  INITIAL_COMPETITION_CATALOG,
+  type CompetitionCatalogItem,
+  computeCompetitionStatus,
+  getCompetitionStatusLabel,
+  type CompetitionTrack,
+  type NoticeItem,
+  type MomentCategory,
+  type CertificateRecord,
+  type RegistrationSubmission,
+  type LeadershipOrg,
+} from './data/competitionData';
+import {
+  BannerIllustration,
+  TrackCoverIllustration,
+  FeaturedNewsIllustration,
+  MomentCardVisual,
+  CertificateTrophyIllustration,
+  UniversityCrest,
+} from './components/VisualArtwork';
+import {
+  StandaloneAuthPage,
+  StandaloneUserCenterPage,
+  type AuditLogEntry,
+  type UserProfileData,
+} from './components/AuthAndUserCenter';
+import {
+  CompetitionDirectoryPage,
+  CompetitionDetailPage,
+  AdminDashboardPage,
+} from './components/CatalogAndAdminPages';
+import {
+  TeamRegistrationFormPage,
+  INITIAL_CAPTAIN_TEAMS,
+  INITIAL_PARTICIPATED_TEAMS,
+  PLATFORM_DIRECTORY_USERS,
+  isTeamOwnedByUser,
+  getEffectiveUserStatus,
+  type CaptainTeamRecord,
+  type ParticipatedTeamRecord,
+  type PlatformDirectoryUser,
+} from './components/TeamRegistrationSystem';
+import {
+  INITIAL_REGISTRATION_CONFIGS,
+  type EventRegistrationConfig,
+} from './components/AdminRegistrationManagement';
+import {
+  INITIAL_INSTITUTIONS,
+  INITIAL_MANAGED_NEWS,
+  INITIAL_MANAGED_MOMENTS,
+  type InstitutionRecord,
+  type ManagedNewsItem,
+  type ManagedMomentItem,
+  FrontendNoticesPage,
+  FrontendNoticeDetailPage,
+  FrontendHelpCenterPage,
+  FrontendNewsPage,
+  FrontendNewsDetailPage,
+  FrontendMomentsPage,
+  FrontendMomentDetailPage,
+  GlobalSiteSearchModal,
+} from './components/InstitutionAndContentManagement';
+
+export default function App() {
+  // --- Page Routing View State ('home' | 'directory' | 'competition-detail' | 'registration-form' | 'notices' | 'notice-detail' | 'news' | 'news-detail' | 'moments' | 'moment-detail' | 'help' | 'auth' | 'user-center' | 'admin') ---
+  const [currentView, setCurrentView] = useState<
+    | 'home'
+    | 'directory'
+    | 'competition-detail'
+    | 'registration-form'
+    | 'notices'
+    | 'notice-detail'
+    | 'news'
+    | 'news-detail'
+    | 'moments'
+    | 'moment-detail'
+    | 'help'
+    | 'auth'
+    | 'user-center'
+    | 'admin'
+  >('home');
+  const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register' | 'forgot'>('login');
+  const [userCenterInitialTab, setUserCenterInitialTab] = useState<
+    'profile' | 'certification' | 'registrations' | 'competitions'
+  >('profile');
+
+  // --- 后台【院校管理】、【内容管理 -> 赛事新闻 / 赛事动态】与前台实时共享状态 ---
+  const [institutions, setInstitutions] = useState<InstitutionRecord[]>(INITIAL_INSTITUTIONS);
+  const [platformUsers, setPlatformUsers] = useState<PlatformDirectoryUser[]>(
+    PLATFORM_DIRECTORY_USERS
+  );
+  const [managedNews, setManagedNews] = useState<ManagedNewsItem[]>(INITIAL_MANAGED_NEWS);
+  const [managedMoments, setManagedMoments] = useState<ManagedMomentItem[]>(
+    INITIAL_MANAGED_MOMENTS
+  );
+  const [initialSelectedNoticeId, setInitialSelectedNoticeId] = useState<string | null>(null);
+  const [initialSelectedNewsId, setInitialSelectedNewsId] = useState<string | null>(null);
+  const [initialSelectedMomentId, setInitialSelectedMomentId] = useState<string | null>(null);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState<boolean>(false);
+
+  // 合并后台管理的新闻/动态与首页静态精选条目，使首页点击任意条目也可无缝进入二级详情页
+  const allFrontendNews = useMemo<ManagedNewsItem[]>(() => {
+    const existingIds = new Set(managedNews.map((n) => n.id));
+    const homeFallback: ManagedNewsItem[] = NEWS_ITEMS.filter((n) => !existingIds.has(n.id)).map(
+      (n) => ({
+        id: n.id,
+        title: n.title,
+        tags: n.isFeaturedCover ? ['赛事新闻', '权威报道'] : ['赛事新闻', '赛制解读'],
+        coverImage: n.isFeaturedCover
+          ? 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=960&q=80'
+          : undefined,
+        summary: n.summary,
+        source: n.source,
+        content: n.content.join('\n\n'),
+        publishStatus: 'published',
+        publishTime: `${n.date} 10:00`,
+        isPinned: n.isFeaturedCover,
+        viewsCount: 9680,
+      })
+    );
+    return [...managedNews, ...homeFallback];
+  }, [managedNews]);
+
+  const allFrontendMoments = useMemo<ManagedMomentItem[]>(() => {
+    const existingIds = new Set(managedMoments.map((m) => m.id));
+    const coverPool = [
+      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1591115765373-5207764f72e7?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
+    ];
+    const homeFallback: ManagedMomentItem[] = MOMENT_ITEMS.filter(
+      (m) => !existingIds.has(m.id)
+    ).map((m, idx) => ({
+      id: m.id,
+      title: m.title,
+      category: m.category,
+      mediaType: m.mediaType,
+      coverImage: coverPool[idx % coverPool.length],
+      summary: m.summary,
+      source: m.authorOrTeam,
+      content: m.content.join('\n\n'),
+      videoUrl:
+        m.mediaType === 'video'
+          ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+          : undefined,
+      videoDuration: m.duration || (m.mediaType === 'video' ? '04:28' : undefined),
+      videoHighlights: m.videoHighlights,
+      publishStatus: 'published',
+      publishTime: `${m.date} 14:00`,
+      isPinned: false,
+      viewsCount: 8420,
+    }));
+    return [...managedMoments, ...homeFallback];
+  }, [managedMoments]);
+
+  const enabledSchoolNames = useMemo(
+    () => institutions.filter((inst) => inst.platformStatus === 'enabled').map((inst) => inst.name),
+    [institutions]
+  );
+
+  // --- 赛事目录、后台赛事管理与【报名管理】配置共享状态 ---
+  const [competitions, setCompetitions] = useState<CompetitionCatalogItem[]>(
+    INITIAL_COMPETITION_CATALOG
+  );
+  const [registrationConfigs, setRegistrationConfigs] = useState<EventRegistrationConfig[]>(
+    INITIAL_REGISTRATION_CONFIGS
+  );
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>(
+    INITIAL_COMPETITION_CATALOG[0].id
+  );
+
+  // --- 报名表填写页 & 我的报名（队长视角 + 队员/老师视角）状态 ---
+  const [captainTeams, setCaptainTeams] = useState<CaptainTeamRecord[]>(INITIAL_CAPTAIN_TEAMS);
+  const [participatedTeams, setParticipatedTeams] = useState<ParticipatedTeamRecord[]>(
+    INITIAL_PARTICIPATED_TEAMS
+  );
+  const [regInitialSubTrack, setRegInitialSubTrack] = useState<string | undefined>(undefined);
+  const [editingDraftTeam, setEditingDraftTeam] = useState<CaptainTeamRecord | null>(null);
+
+  // --- Auth & User Profile State（平台默认打开后为已登录状态） ---
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<UserProfileData>({
+    username: 'linyuanhang',
+    name: '林远航',
+    role: 'student',
+    roleLabel: '参赛学生',
+    university: '北京航空航天大学',
+    majorOrDept: '网络空间安全学院',
+    studentId: 'BY2406118',
+    email: 'linyuanhang@buaa.edu.cn',
+    phone: '13810246921',
+    isVerified: true,
+    realNameStatus: 'verified',
+    realNameVerifiedAt: '2026-10-15 10:00:00',
+    identityType: 'student',
+    academicStatus: 'verified',
+    academicVerifiedAt: '2026-10-15',
+    lastLoginIp: '202.112.128.45',
+    lastLoginLocation: '北京市海淀区',
+    currentLoginIp: '202.112.128.45',
+    currentLoginLocation: '北京市海淀区',
+  });
+
+  // 前台个人中心修改资料或完成实名/学籍认证时，实时同步回写全平台用户总表 platformUsers
+  const handleUpdateCurrentUser = (updated: UserProfileData) => {
+    const prevUsername = currentUser.username;
+    const prevPhone = currentUser.phone;
+    const prevEmail = currentUser.email;
+    setCurrentUser(updated);
+    setPlatformUsers((prev) =>
+      prev.map((u) => {
+        if (
+          (u.username || '').toLowerCase() === prevUsername.toLowerCase() ||
+          (prevPhone && u.phone === prevPhone) ||
+          (prevEmail && u.email.toLowerCase() === prevEmail.toLowerCase())
+        ) {
+          const nextIdentity = updated.identityType || u.identityType || 'student';
+          const isRealVerified = updated.realNameStatus === 'verified';
+          const isAcadVerified = updated.academicStatus === 'verified';
+          const nextBaseRole = isAcadVerified
+            ? nextIdentity === 'teacher'
+              ? '教师'
+              : '学生'
+            : u.baseRole || '普通用户';
+          return {
+            ...u,
+            username: updated.username,
+            realName: isRealVerified ? updated.name : u.realName,
+            name: isRealVerified && updated.name ? updated.name : updated.username,
+            phone: updated.phone,
+            email: updated.email,
+            university: updated.university || u.university,
+            identityType: nextIdentity,
+            baseRole: nextBaseRole,
+            isRealNameVerified: isRealVerified,
+            isAcademicOrTeacherVerified: isAcadVerified,
+          };
+        }
+        return u;
+      })
+    );
+  };
+
+  // 后台【用户管理】修改当前登录用户信息、停用或删除账号时，实时联动前台登录态与个人资料
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const matched = platformUsers.find(
+      (u) => (u.username || '').toLowerCase() === currentUser.username.toLowerCase()
+    );
+    if (!matched) return;
+    if (matched.isDeleted || getEffectiveUserStatus(matched) === '停用') {
+      setIsLoggedIn(false);
+      if (currentView === 'user-center' || currentView === 'registration-form') {
+        setCurrentView('home');
+      }
+      return;
+    }
+    const nextRealName =
+      matched.realName && matched.realName !== '-' ? matched.realName : currentUser.name;
+    if (
+      matched.phone !== currentUser.phone ||
+      matched.email !== currentUser.email ||
+      (matched.university && matched.university !== currentUser.university) ||
+      (matched.isRealNameVerified && nextRealName !== currentUser.name)
+    ) {
+      setCurrentUser((prev) => ({
+        ...prev,
+        name: matched.isRealNameVerified ? nextRealName : prev.name,
+        phone: matched.phone,
+        email: matched.email,
+        university: matched.university || prev.university,
+      }));
+    }
+  }, [platformUsers, isLoggedIn, currentUser.username, currentUser.phone, currentUser.email, currentUser.university, currentUser.name, currentView]);
+
+  // 指标2：历史密码记录库（用于找回密码时校验新密码不能与原密码及最近N次历史密码相同）
+  const [passwordHistory, setPasswordHistory] = useState<string[]>([
+    'Sec2026Pass',
+    'XxCup2025Abc',
+    'Buaa2024Sec',
+  ]);
+
+  // 指标20：静默操作日志记录库
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([
+    {
+      id: 'log-init-1',
+      operator: 'linyuanhang',
+      ip: '202.112.128.45',
+      location: '北京市海淀区',
+      time: '2026-10-28 09:15:02',
+      device: 'Windows 11 / Chrome 130.0',
+      action: '教育部学信网在线验证码核验',
+      result: '成功',
+      detail: '学籍验证码 A982-7310-5529-1840 自动核验通过',
+    },
+    {
+      id: 'log-init-2',
+      operator: 'tsinghua_admin',
+      ip: '166.111.4.100',
+      location: '北京市海淀区',
+      time: '2026-10-28 08:40:19',
+      device: 'macOS / Safari 18.0',
+      action: '高校管理员双因子(2FA)登录',
+      result: '成功',
+      detail: '通过密码+动态6位验证码完成管理端登录',
+    },
+  ]);
+
+  const handleAddAuditLog = (entry: Omit<AuditLogEntry, 'id' | 'time'>) => {
+    const now = new Date();
+    const timeStr = `2026-10-28 ${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes()
+    ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    setAuditLogs((prev) => [{ ...entry, id: `log-${Date.now()}-${Math.random()}`, time: timeStr }, ...prev]);
+  };
+
+  // 指标2：异地登录站内弹窗提醒状态
+  const [abnormalLocationModal, setAbnormalLocationModal] = useState<{
+    lastIp: string;
+    lastLoc: string;
+    currIp: string;
+    currLoc: string;
+    email: string;
+  } | null>(null);
+
+  // 未完成实名/学籍认证时点击“立即报名”的拦截弹窗
+  const [unverifiedInterceptModal, setUnverifiedInterceptModal] = useState<CompetitionTrack | null>(null);
+  // 点击拦截逻辑③：已在该赛事下有队伍 -> 弹窗提示已有队伍，并提供【前往我的报名】按钮
+  const [existingTeamInterceptModal, setExistingTeamInterceptModal] = useState<{
+    competitionId: string;
+    competitionTitle: string;
+    teamName: string;
+    roleDesc: string;
+    selectedSubTrackName?: string;
+  } | null>(null);
+
+  const [notifications, setNotifications] = useState([
+    {
+      id: 'notif-1',
+      title: '【重要】队伍资格审核被驳回通知',
+      desc: '您发起的「北航凌云密算战队」已被高校管理员驳回（原因：指导教师跨校不合规），请前往【我的报名】修改成员并重新提交。',
+      time: '5分钟前',
+      unread: true,
+    },
+    {
+      id: 'notif-2',
+      title: '收到 3 条新的战队入队邀请',
+      desc: '周子航、王博远、宋知行分别邀请您加入参赛战队，请前往【个人中心 -> 我的报名 -> 我参与的】及时处理。',
+      time: '18分钟前',
+      unread: true,
+    },
+    {
+      id: 'notif-3',
+      title: '队员拒绝入队提醒',
+      desc: '「北航天枢攻防战队」中的受邀队员 张子轩（队员A）已拒绝入队邀请，请及时补充邀请替补队员。',
+      time: '1小时前',
+      unread: true,
+    },
+    {
+      id: 'notif-4',
+      title: '学籍认证已通过审核',
+      desc: '您的教育部学籍在线验证码已核验通过，现可创建或加入战队。',
+      time: '2小时前',
+      unread: false,
+    },
+    {
+      id: 'notif-5',
+      title: '线上靶场连通性测试提醒',
+      desc: '网络安全攻防实战赛将于11月18日开放赛前热身靶场，请提前下载客户端。',
+      time: '昨天',
+      unread: false,
+    },
+    {
+      id: 'notif-6',
+      title: '先导赛电子证书已签发',
+      desc: '2026大模型与人工智能安全先导赛获奖证书现已支持在线编号核验（如：XXCUP-2026-09218）。',
+      time: '2天前',
+      unread: false,
+    },
+  ]);
+
+  const [myRegistrations, setMyRegistrations] = useState<RegistrationSubmission[]>([
+    {
+      id: 'reg-init-1',
+      trackId: 'track-ai-2026',
+      trackTitle: '2026“XX杯”全国网数智安全大赛 · 大模型与人工智能安全先导赛',
+      teamName: '北航智盾先锋队',
+      university: '北京航空航天大学',
+      captainName: '林远航',
+      studentId: 'BY2406118',
+      phone: '13810246921',
+      email: 'linyuanhang@buaa.edu.cn',
+      memberCount: 3,
+      advisorName: '赵振宇 教授',
+      submittedAt: '2026-06-12 14:30',
+      status: '已通过初审',
+    },
+  ]);
+
+  // --- Header Dropdown States ---
+  const [helpDropdownOpen, setHelpDropdownOpen] = useState(false);
+  const [bellDropdownOpen, setBellDropdownOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  // --- Module 1: Banner Carousel State ---
+  const [currentBannerIdx, setCurrentBannerIdx] = useState(0);
+  const [bannerPaused, setBannerPaused] = useState(false);
+  const [countdown, setCountdown] = useState({ days: 18, hours: 14, minutes: 36, seconds: 42 });
+
+  useEffect(() => {
+    if (bannerPaused) return;
+    const timer = setInterval(() => {
+      setCurrentBannerIdx((prev) => (prev + 1) % BANNER_SLIDES.length);
+    }, 5500);
+    return () => clearInterval(timer);
+  }, [bannerPaused]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return { days: Math.max(0, prev.days - 1), hours: 23, minutes: 59, seconds: 59 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // --- Module 4: Moments Carousel & Category Tab State（联动后台内容管理 -> 赛事动态已发布数据） ---
+  const [activeMomentTab, setActiveMomentTab] = useState<'全部动态' | MomentCategory>('全部动态');
+  const [momentStartIndex, setMomentStartIndex] = useState(0);
+
+  const publishedHomeMoments = useMemo(() => {
+    const variantPool: Array<
+      'arena' | 'defense' | 'hackathon' | 'team' | 'expert' | 'behind' | 'award' | 'interview'
+    > = ['arena', 'defense', 'hackathon', 'team', 'expert', 'behind', 'award', 'interview'];
+    const sorted = [...managedMoments]
+      .filter((m) => m.publishStatus === 'published')
+      .sort((a, b) => Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned)));
+    return sorted.map((m, idx) => {
+      const staticMatch = MOMENT_ITEMS.find((sm) => sm.id === m.id);
+      return {
+        id: m.id,
+        title: m.title,
+        category: m.category,
+        mediaType: m.mediaType,
+        date: m.publishTime.split(' ')[0] || m.publishTime,
+        visualVariant: staticMatch?.visualVariant || variantPool[idx % variantPool.length],
+      };
+    });
+  }, [managedMoments]);
+
+  const orderedMoments = useMemo(() => {
+    if (activeMomentTab === '全部动态') {
+      return publishedHomeMoments;
+    }
+    const primary = publishedHomeMoments.filter((m) => m.category === activeMomentTab);
+    const others = publishedHomeMoments.filter((m) => m.category !== activeMomentTab).slice(0, 4);
+    return [...primary, ...others];
+  }, [activeMomentTab, publishedHomeMoments]);
+
+  const handleMomentTabChange = (cat: '全部动态' | MomentCategory) => {
+    setActiveMomentTab(cat);
+    setMomentStartIndex(0);
+  };
+
+  const maxMomentStartIndex = Math.max(0, orderedMoments.length - 5);
+
+  // --- Module 5: FAQ Accordion & Certificate Query State ---
+  const [openFaqId, setOpenFaqId] = useState<string>('');
+  const [certIdentity, setCertIdentity] = useState<string>('');
+  const [certNumber, setCertNumber] = useState<string>('');
+  const [certQueryError, setCertQueryError] = useState<string | null>(null);
+  const [certSearchResult, setCertSearchResult] = useState<{
+    searched: boolean;
+    query: string;
+    records: CertificateRecord[];
+  } | null>(null);
+
+  // --- Module 6: Universities View Mode (Marquee vs Manual Step) ---
+  const [uniAutoScroll, setUniAutoScroll] = useState<boolean>(false);
+  const [uniManualOffset, setUniManualOffset] = useState<number>(0);
+
+  // --- Active Modals State ---
+  const [allUniversitiesModalOpen, setAllUniversitiesModalOpen] = useState(false);
+  const [selectedOrgModal, setSelectedOrgModal] = useState<LeadershipOrg | null>(null);
+
+  // --- Handlers ---
+  const scrollToSection = (elementId: string) => {
+    setHelpDropdownOpen(false);
+    if (currentView !== 'home') {
+      setCurrentView('home');
+      setTimeout(() => {
+        const el = document.getElementById(elementId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 60);
+      return;
+    }
+    const el = document.getElementById(elementId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // 点击赛事卡片或Banner进入对应赛事详情页（二级页面）
+  const handleNavigateToTrackDetail = (track: CompetitionTrack) => {
+    const matchedComp =
+      competitions.find((c) => c.id === track.catalogId) ||
+      competitions.find((c) => c.title.includes(track.title) || track.title.includes(c.title)) ||
+      competitions[0];
+    setSelectedCompetitionId(matchedComp.id);
+    setCurrentView('competition-detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 在「赛事详情页」点击“立即报名” -> 严格执行4步点击拦截逻辑（校验顺序：①未登录 -> ②未实名/学籍认证 -> ③已在该赛事下有队伍 -> ④进入报名表单填写页）
+  const handleCatalogCompetitionRegister = (
+    comp: CompetitionCatalogItem,
+    selectedSubTrackName?: string
+  ) => {
+    // ① 未登录 -> 拦截跳转登录页
+    if (!isLoggedIn) {
+      setAuthInitialTab('login');
+      setCurrentView('auth');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    // ② 个人未实名/学籍认证 -> 拦截引导去认证
+    if (!currentUser.isVerified) {
+      const calcStatus = computeCompetitionStatus(comp.startDate, comp.endDate);
+      const statusLabel = getCompetitionStatusLabel(calcStatus);
+      setUnverifiedInterceptModal({
+        id: comp.id,
+        catalogId: comp.id,
+        title: comp.title,
+        category: comp.customTags.join(' · ') || '官方认证赛事',
+        startDate: comp.startDate,
+        endDate: comp.endDate,
+        organizer: comp.organizer || '“XX杯”全国网数智安全大赛组委会',
+        coOrganizer: '国家信息安全工程技术研究中心',
+        status:
+          calcStatus === 'ongoing'
+            ? 'registering'
+            : calcStatus === 'upcoming'
+            ? 'upcoming'
+            : 'ended',
+        statusLabel,
+        visualType: comp.coverTheme,
+        prizePool: '¥ 500,000',
+        teamSize: '1 - 4 人/队',
+        targetGroup: '全国高等院校全日制在校学生',
+        summary: comp.summary,
+        schedule: [],
+        requirements: [],
+        registeredTeamsCount: 520,
+      });
+      return;
+    }
+    // ③ 已在该赛事下有队伍 -> 弹窗提示已有队伍，并提供【前往我的报名】按钮
+    const isDefaultDemoStudent =
+      currentUser.username === 'linyuanhang' || currentUser.name === '林远航';
+    const existingAsCaptain = captainTeams.find(
+      (t) => t.competitionId === comp.id && isTeamOwnedByUser(t, currentUser)
+    );
+    const existingAsMember = isDefaultDemoStudent
+      ? participatedTeams.find(
+          (p) =>
+            p.competitionId === comp.id &&
+            (p.status === 'joined' ||
+              p.status === 'team_pending_review' ||
+              p.status === 'team_approved')
+        )
+      : undefined;
+    if (existingAsCaptain || existingAsMember) {
+      setExistingTeamInterceptModal({
+        competitionId: comp.id,
+        competitionTitle: comp.title,
+        teamName: existingAsCaptain ? existingAsCaptain.teamName : existingAsMember!.teamName,
+        roleDesc: existingAsCaptain ? '队长（我发起的队伍）' : existingAsMember!.myRoleInTeam,
+        selectedSubTrackName,
+      });
+      return;
+    }
+
+    // ④ 全部通过 -> 进入“报名表单填写页”
+    setSelectedCompetitionId(comp.id);
+    setRegInitialSubTrack(selectedSubTrackName);
+    setEditingDraftTeam(null);
+    setCurrentView('registration-form');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBannerAction = (slide: (typeof BANNER_SLIDES)[number]) => {
+    if (slide.targetType === 'track') {
+      const found = COMPETITION_TRACKS.find((t) => t.id === slide.targetId) || COMPETITION_TRACKS[0];
+      handleNavigateToTrackDetail(found);
+    } else if (slide.targetType === 'notice') {
+      const found = NOTICE_ITEMS.find((n) => n.id === slide.targetId) || NOTICE_ITEMS[0];
+      setInitialSelectedNoticeId(found.id);
+      setCurrentView('notice-detail');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (slide.targetType === 'verify') {
+      scrollToSection('utility-service-section');
+    }
+  };
+
+  const handleCertificateSearch = (
+    e?: React.FormEvent,
+    preset?: { identity?: string; certNo?: string }
+  ) => {
+    if (e) e.preventDefault();
+    const idVal = (preset?.identity !== undefined ? preset.identity : certIdentity).trim();
+    const noVal = (preset?.certNo !== undefined ? preset.certNo : certNumber).trim();
+
+    if (preset) {
+      if (preset.identity !== undefined) setCertIdentity(preset.identity);
+      if (preset.certNo !== undefined) setCertNumber(preset.certNo);
+    }
+
+    if (!idVal && !noVal) {
+      setCertQueryError('请填写姓名/身份证号或证书编号进行查询');
+      return;
+    }
+    setCertQueryError(null);
+
+    const matched = CERTIFICATE_RECORDS.filter((rec) => {
+      const matchId =
+        !idVal ||
+        rec.holderName.toLowerCase().includes(idVal.toLowerCase()) ||
+        rec.idCard.toLowerCase() === idVal.toLowerCase() ||
+        rec.idCard.toLowerCase().includes(idVal.toLowerCase());
+      const matchNo =
+        !noVal ||
+        rec.certId.toLowerCase() === noVal.toLowerCase() ||
+        rec.certId.toLowerCase().includes(noVal.toLowerCase());
+      return matchId && matchNo;
+    });
+
+    const queryLabel = [idVal, noVal].filter(Boolean).join(' / ');
+    setCertSearchResult({
+      searched: true,
+      query: queryLabel,
+      records: matched,
+    });
+  };
+
+  const unreadCount = notifications.filter((n) => n.unread).length;
+  const publishedHomeNews = useMemo(() => {
+    const list = [...managedNews]
+      .filter((n) => n.publishStatus === 'published')
+      .sort((a, b) => Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned)));
+    return list.map((n) => ({
+      id: n.id,
+      title: n.title,
+      summary: n.summary,
+      source: n.source,
+      date: n.publishTime.split(' ')[0] || n.publishTime,
+      isFeaturedCover: n.isPinned,
+    }));
+  }, [managedNews]);
+  const featuredNews =
+    publishedHomeNews.find((n) => n.isFeaturedCover) || publishedHomeNews[0] || NEWS_ITEMS[0];
+  const listNews = publishedHomeNews.filter((n) => n.id !== featuredNews.id).slice(0, 4);
+
+  // =========================================================================
+  // 独立页面路由 1：注册 / 登录 / 找回密码 独立页面
+  // =========================================================================
+  if (currentView === 'auth') {
+    return (
+      <StandaloneAuthPage
+        initialTab={authInitialTab}
+        onBackHome={() => {
+          setCurrentView('home');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onLoginSuccess={(user, redirectTarget, options) => {
+          setCurrentUser(user);
+          setIsLoggedIn(true);
+          if (redirectTarget === 'user-center') {
+            setUserCenterInitialTab('profile');
+          }
+          setCurrentView(redirectTarget);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+
+          if (options?.abnormalLocationAlert) {
+            setAbnormalLocationModal({
+              lastIp: user.lastLoginIp,
+              lastLoc: user.lastLoginLocation,
+              currIp: user.currentLoginIp,
+              currLoc: user.currentLoginLocation,
+              email: user.email,
+            });
+            setNotifications((prev) => [
+              {
+                id: `notif-loc-${Date.now()}`,
+                title: '【安全告警】异地登录提醒（指标2）',
+                desc: `检测到您的账号于 ${user.currentLoginLocation} (${user.currentLoginIp}) 登录，与常用地(${user.lastLoginLocation})不符，已同步发送告警邮件。`,
+                time: '刚刚',
+                unread: true,
+              },
+              ...prev,
+            ]);
+          }
+        }}
+        auditLogs={auditLogs}
+        onAddAuditLog={handleAddAuditLog}
+        passwordHistory={passwordHistory}
+        onAddPasswordHistory={(newPwd) =>
+          setPasswordHistory((prev) => [newPwd, ...prev.filter((p) => p !== newPwd)].slice(0, 5))
+        }
+        platformUsers={platformUsers}
+        onUpdatePlatformUsers={setPlatformUsers}
+      />
+    );
+  }
+
+  // =========================================================================
+  // 独立页面路由 2：【个人中心】独立页面（个人信息 / 用户认证 / 我的报名 / 安全审计）
+  // =========================================================================
+  if (currentView === 'user-center') {
+    const isDefaultDemoStudent =
+      currentUser.username === 'linyuanhang' || currentUser.name === '林远航';
+    return (
+      <StandaloneUserCenterPage
+        user={currentUser}
+        initialTab={userCenterInitialTab}
+        onUpdateUser={handleUpdateCurrentUser}
+        onBackHome={() => {
+          setCurrentView('home');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onLogout={() => {
+          setIsLoggedIn(false);
+          setCurrentView('home');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        registrations={myRegistrations}
+        captainTeams={captainTeams}
+        onUpdateCaptainTeams={setCaptainTeams}
+        participatedTeams={isDefaultDemoStudent ? participatedTeams : []}
+        onUpdateParticipatedTeams={setParticipatedTeams}
+        onContinueEditDraft={(team) => {
+          setSelectedCompetitionId(team.competitionId);
+          setRegInitialSubTrack(team.subTrackName);
+          setEditingDraftTeam(team);
+          setCurrentView('registration-form');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onAddAuditLog={handleAddAuditLog}
+        enabledSchools={enabledSchoolNames}
+        competitions={competitions}
+        platformUsers={platformUsers}
+        registrationConfigs={registrationConfigs}
+        onViewCompetitionDetail={(compId) => {
+          setSelectedCompetitionId(compId);
+          setCurrentView('competition-detail');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    );
+  }
+
+  // =========================================================================
+  // 独立页面路由 2.5：【运营管理后台】独立页面（左侧导航栏 + 赛事管理 + 报名管理 + 内容管理 + 系统管理）
+  // =========================================================================
+  if (currentView === 'admin') {
+    return (
+      <AdminDashboardPage
+        competitions={competitions}
+        onUpdateCompetitions={(nextList) => setCompetitions(nextList)}
+        registrationConfigs={registrationConfigs}
+        onUpdateRegistrationConfigs={setRegistrationConfigs}
+        captainTeams={captainTeams}
+        onUpdateCaptainTeams={setCaptainTeams}
+        institutions={institutions}
+        onUpdateInstitutions={setInstitutions}
+        platformUsers={platformUsers}
+        onUpdatePlatformUsers={setPlatformUsers}
+        managedNews={managedNews}
+        onUpdateManagedNews={setManagedNews}
+        managedMoments={managedMoments}
+        onUpdateManagedMoments={setManagedMoments}
+        onAddAuditLog={handleAddAuditLog}
+        onSendSystemNotification={(title, desc) => {
+          setNotifications((prev) => [
+            {
+              id: `notif-admin-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              title,
+              desc,
+              time: '刚刚',
+              unread: true,
+            },
+            ...prev,
+          ]);
+        }}
+        onBackToFrontend={() => {
+          setCurrentView('directory');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onPreviewCompetitionInFrontend={(comp) => {
+          setSelectedCompetitionId(comp.id);
+          setCurrentView('competition-detail');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        adminName={currentUser.name || currentUser.username}
+        adminUsername={currentUser.username || 'admin'}
+        auditLogs={auditLogs}
+      />
+    );
+  }
+
+  const activeCatalogCompetition =
+    competitions.find((c) => c.id === selectedCompetitionId) || competitions[0];
+  const activeRegistrationConfig = registrationConfigs.find(
+    (rc) => rc.eventId === activeCatalogCompetition?.id
+  );
+
+  // =========================================================================
+  // 独立页面路由 3：大赛前台（首页 / 赛事目录 / 赛事详情页）
+  // =========================================================================
+  return (
+    <div className="min-h-screen flex flex-col bg-[#F2F6FC] text-[#0F172A]">
+      {/* 全局导航栏（顶部） */}
+      <header className="sticky top-0 z-40 bg-white border-b border-blue-100/80 shadow-[0_2px_10px_rgba(22,100,255,0.04)]">
+        <div className="max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
+          {/* 左侧：LOGO + 导航菜单（贴合UI设计图左对齐紧凑布局） */}
+          <div className="flex items-center gap-8 lg:gap-12">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentView('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="flex items-center gap-2.5 text-left group cursor-pointer shrink-0 focus:outline-none"
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8F2FF] to-[#CFE4FF] border border-[#99C2FF] flex items-center justify-center text-[#1664FF] shadow-2xs group-hover:scale-105 transition-transform">
+                <Shield className="w-5 h-5 fill-[#1664FF]/15" />
+              </div>
+              <div className="leading-tight">
+                <div className="text-xs font-extrabold text-[#1664FF] tracking-tight">
+                  第五届“XX杯”
+                </div>
+                <div className="text-sm sm:text-base font-black tracking-tight text-[#0D3B8C] whitespace-nowrap">
+                  网数智安全大赛(防护赛)
+                </div>
+              </div>
+            </button>
+
+            {/* 导航菜单：首页、赛事目录、通知公告、赛事动态、赛事新闻、帮助中心 */}
+            <nav className="hidden md:flex items-center gap-7 lg:gap-8 text-sm font-medium text-slate-700 h-16">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentView('home');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  currentView === 'home'
+                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
+                    : 'hover:text-[#1664FF]'
+                }`}
+              >
+                首页
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentView('directory');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  currentView === 'directory' || currentView === 'competition-detail'
+                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
+                    : 'hover:text-[#1664FF]'
+                }`}
+              >
+                赛事目录
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInitialSelectedNoticeId(null);
+                  setCurrentView('notices');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  currentView === 'notices' || currentView === 'notice-detail'
+                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
+                    : 'hover:text-[#1664FF]'
+                }`}
+              >
+                通知公告
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInitialSelectedMomentId(null);
+                  setCurrentView('moments');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  currentView === 'moments' || currentView === 'moment-detail'
+                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
+                    : 'hover:text-[#1664FF]'
+                }`}
+              >
+                赛事动态
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInitialSelectedNewsId(null);
+                  setCurrentView('news');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  currentView === 'news' || currentView === 'news-detail'
+                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
+                    : 'hover:text-[#1664FF]'
+                }`}
+              >
+                赛事新闻
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentView('help');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  currentView === 'help'
+                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
+                    : 'hover:text-[#1664FF]'
+                }`}
+              >
+                帮助中心
+              </button>
+            </nav>
+          </div>
+
+          {/* 右侧：全站搜索入口 + 通知铃铛 + 用户头像下拉 / 登录注册胶囊按钮 */}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => setGlobalSearchOpen(true)}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F2F6FC] hover:bg-[#E6F0FF] text-slate-600 hover:text-[#1664FF] border border-blue-100 text-xs font-medium transition-colors cursor-pointer"
+              title="站内全局检索（新闻/公告/动态）"
+            >
+              <Search className="w-3.5 h-3.5 text-[#1664FF]" />
+              <span>全站检索</span>
+            </button>
+            {!isLoggedIn ? (
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthInitialTab('login');
+                    setCurrentView('auth');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-[#1664FF] flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="登录入口"
+                >
+                  <User className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthInitialTab('login');
+                    setCurrentView('auth');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-4 py-1.5 text-xs sm:text-sm font-semibold text-white bg-[#1664FF] hover:bg-[#0E4FD6] rounded-full shadow-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <span>登录 | 注册</span>
+                  <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5">
+                {/* 通知铃铛（消息提示） */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBellDropdownOpen((prev) => !prev);
+                      setUserDropdownOpen(false);
+                    }}
+                    className="relative p-2 rounded-full text-slate-600 hover:text-[#1664FF] hover:bg-blue-50 transition-colors cursor-pointer"
+                    aria-label="消息通知"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[#F53F3F] text-white text-[10px] font-bold flex items-center justify-center font-mono-num">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {bellDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
+                      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800">
+                          系统消息通知 ({unreadCount}条未读)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
+                          }
+                          className="text-xs text-[#1664FF] hover:underline cursor-pointer"
+                        >
+                          全部标为已读
+                        </button>
+                      </div>
+                      <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                        {notifications.map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() =>
+                              setNotifications((prev) =>
+                                prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
+                              )
+                            }
+                            className={`p-3.5 text-left hover:bg-blue-50/50 transition-colors cursor-pointer ${
+                              item.unread ? 'bg-blue-50/30' : ''
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-slate-900">{item.title}</span>
+                              <span className="text-[11px] text-slate-400 shrink-0">{item.time}</span>
+                            </div>
+                            <p className="text-xs text-slate-600 mt-1 leading-relaxed">{item.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 用户头像与蓝底胶囊菜单按钮 */}
+                <div className="relative flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserDropdownOpen((prev) => !prev);
+                      setBellDropdownOpen(false);
+                    }}
+                    className="w-8 h-8 rounded-full bg-slate-200/80 hover:bg-blue-100 text-slate-600 hover:text-[#1664FF] flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="个人中心菜单"
+                  >
+                    <User className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserDropdownOpen((prev) => !prev);
+                      setBellDropdownOpen(false);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1664FF] hover:bg-[#0E4FD6] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                  >
+                    <span className="whitespace-nowrap">
+                      {currentUser.name || currentUser.username}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 opacity-90" />
+                  </button>
+
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-slate-200 shadow-xl py-1.5 z-50">
+                      <div className="px-4 py-2.5 border-b border-slate-100">
+                        <div className="text-xs font-bold text-slate-900">
+                          {currentUser.name || currentUser.username}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                          {currentUser.academicStatus === 'verified' && currentUser.university
+                            ? currentUser.university
+                            : '未完成学籍/教师认证'}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          setUserCenterInitialTab('profile');
+                          setCurrentView('user-center');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-[#1664FF] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <User className="w-4 h-4 text-[#1664FF]" />
+                        <span>个人中心</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          setUserCenterInitialTab('registrations');
+                          setCurrentView('user-center');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-[#1664FF] flex items-center justify-between cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <FileText className="w-4 h-4 text-[#1664FF]" />
+                          <span>我的报名</span>
+                        </span>
+                        <span className="text-[11px] font-mono-num text-[#1664FF] font-bold">
+                          {captainTeams.filter((t) => isTeamOwnedByUser(t, currentUser)).length +
+                            (currentUser.username === 'linyuanhang' ||
+                            currentUser.name === '林远航'
+                              ? participatedTeams.length
+                              : 0)}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          setUserCenterInitialTab('competitions');
+                          setCurrentView('user-center');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-[#1664FF] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Trophy className="w-4 h-4 text-[#1664FF]" />
+                        <span>我的竞赛</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          setCurrentView('admin');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-[#1664FF] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-[#1664FF]" />
+                        <span>进入后台</span>
+                      </button>
+                      <div className="my-1 border-t border-slate-100" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          setIsLoggedIn(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>退出</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {currentView === 'notices' ? (
+        <FrontendNoticesPage
+          noticesList={NOTICE_ITEMS}
+          onSelectNotice={(noticeId) => {
+            setInitialSelectedNoticeId(noticeId);
+            setCurrentView('notice-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'notice-detail' ? (
+        <FrontendNoticeDetailPage
+          noticesList={NOTICE_ITEMS}
+          selectedNoticeId={initialSelectedNoticeId || NOTICE_ITEMS[0]?.id || ''}
+          onSelectNotice={(noticeId) => {
+            setInitialSelectedNoticeId(noticeId);
+            setCurrentView('notice-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onBackToList={() => {
+            setCurrentView('notices');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onBackHome={() => {
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'help' ? (
+        <FrontendHelpCenterPage
+          faqList={FAQ_ITEMS}
+          onBackHome={() => {
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'news' ? (
+        <FrontendNewsPage
+          newsList={managedNews}
+          onSelectNews={(newsId) => {
+            setInitialSelectedNewsId(newsId);
+            setCurrentView('news-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'news-detail' ? (
+        <FrontendNewsDetailPage
+          newsList={allFrontendNews}
+          selectedNewsId={initialSelectedNewsId || managedNews[0]?.id || ''}
+          onSelectNews={(newsId) => {
+            setInitialSelectedNewsId(newsId);
+            setCurrentView('news-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onBackToList={() => {
+            setCurrentView('news');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onBackHome={() => {
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'moments' ? (
+        <FrontendMomentsPage
+          momentsList={managedMoments}
+          onSelectMoment={(momentId) => {
+            setInitialSelectedMomentId(momentId);
+            setCurrentView('moment-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'moment-detail' ? (
+        <FrontendMomentDetailPage
+          momentsList={allFrontendMoments}
+          selectedMomentId={initialSelectedMomentId || managedMoments[0]?.id || ''}
+          onSelectMoment={(momentId) => {
+            setInitialSelectedMomentId(momentId);
+            setCurrentView('moment-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onBackToList={() => {
+            setCurrentView('moments');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onBackHome={() => {
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'directory' ? (
+        <CompetitionDirectoryPage
+          competitions={competitions}
+          onSelectCompetition={(comp) => {
+            setSelectedCompetitionId(comp.id);
+            setCurrentView('competition-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'competition-detail' && activeCatalogCompetition ? (
+        <CompetitionDetailPage
+          competition={activeCatalogCompetition}
+          registrationConfig={activeRegistrationConfig}
+          onBackToDirectory={() => {
+            setCurrentView('directory');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onRegisterClick={handleCatalogCompetitionRegister}
+        />
+      ) : currentView === 'registration-form' && activeCatalogCompetition ? (
+        <TeamRegistrationFormPage
+          competition={activeCatalogCompetition}
+          registrationConfig={activeRegistrationConfig}
+          initialSubTrackName={regInitialSubTrack}
+          currentUser={currentUser}
+          existingTeam={editingDraftTeam}
+          platformUsers={platformUsers}
+          onBack={() => {
+            if (editingDraftTeam) {
+              setEditingDraftTeam(null);
+              setUserCenterInitialTab('registrations');
+              setCurrentView('user-center');
+            } else {
+              setCurrentView('competition-detail');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onSaveDraft={(draftTeam) => {
+            setCaptainTeams((prev) => {
+              const exists = prev.some((t) => t.id === draftTeam.id);
+              return exists
+                ? prev.map((t) => (t.id === draftTeam.id ? draftTeam : t))
+                : [draftTeam, ...prev];
+            });
+            handleAddAuditLog({
+              operator: currentUser.username,
+              ip: currentUser.currentLoginIp,
+              location: currentUser.currentLoginLocation,
+              device: 'Windows 11 / Chrome 130.0',
+              action: `暂存报名队伍草稿（${draftTeam.teamName}）`,
+              result: '成功',
+              detail: `赛事：${draftTeam.competitionTitle}，状态设为「组建中」，未下发通知`,
+            });
+            setEditingDraftTeam(null);
+            setUserCenterInitialTab('registrations');
+            setCurrentView('user-center');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onSendInvitations={(invitingTeam) => {
+            setCaptainTeams((prev) => {
+              const exists = prev.some((t) => t.id === invitingTeam.id);
+              return exists
+                ? prev.map((t) => (t.id === invitingTeam.id ? invitingTeam : t))
+                : [invitingTeam, ...prev];
+            });
+            setNotifications((prev) => [
+              {
+                id: `notif-inv-${Date.now()}`,
+                title: `【组队邀请已发出】${invitingTeam.teamName}`,
+                desc: `已向名单中的 ${invitingTeam.members.length} 名队员与 ${invitingTeam.advisors.length} 名指导教师发送站内信与短信通知，队伍状态已变更为「邀请中」。`,
+                time: '刚刚',
+                unread: true,
+              },
+              ...prev,
+            ]);
+            handleAddAuditLog({
+              operator: currentUser.username,
+              ip: currentUser.currentLoginIp,
+              location: currentUser.currentLoginLocation,
+              device: 'Windows 11 / Chrome 130.0',
+              action: `发出组队邀请（${invitingTeam.teamName}）`,
+              result: '成功',
+              detail: `赛事：${invitingTeam.competitionTitle}，赛道：${invitingTeam.subTrackName}，状态变更为「邀请中」`,
+            });
+            setEditingDraftTeam(null);
+            setUserCenterInitialTab('registrations');
+            setCurrentView('user-center');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : (
+        <>
+          {/* 模块一：全宽浅色科技感 3D 护盾 Banner 轮播（严格还原 UI 设计图风格） */}
+          <section
+            className="relative w-full h-[380px] sm:h-[430px] xl:h-[460px] overflow-hidden select-none bg-[#DCEBFF]"
+            onMouseEnter={() => setBannerPaused(true)}
+            onMouseLeave={() => setBannerPaused(false)}
+          >
+            {BANNER_SLIDES.map((slide, index) => {
+              const isActive = index === currentBannerIdx;
+              return (
+                <div
+                  key={slide.id}
+                  onClick={() => handleBannerAction(slide)}
+                  className={`absolute inset-0 transition-opacity duration-500 cursor-pointer ${
+                    isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                  }`}
+                >
+                  <BannerIllustration theme={slide.visualTheme} />
+
+                  <div className="relative z-20 max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
+                    <div className="max-w-2xl">
+                      {/* 顶部科技装饰条与赛事周期标识 */}
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="w-10 h-1.5 rounded-full bg-[#1664FF]" />
+                          <span className="text-xs font-bold text-[#1664FF] tracking-wider">
+                            {slide.kicker}
+                          </span>
+                          <span className="text-xs font-mono-num text-[#1D4ED8]/75">
+                            ({slide.displayPeriod})
+                          </span>
+                        </div>
+                        <div className="w-64 sm:w-80 h-2.5 border-t-2 border-l-2 border-r-2 border-[#4B94FF]/60" />
+                      </div>
+
+                      {/* 3D 立体冰蓝大标题 */}
+                      <div className="space-y-1 mb-3">
+                        <div
+                          className="text-4xl sm:text-5xl lg:text-[56px] font-black tracking-wider leading-[1.08] bg-gradient-to-b from-[#093687] via-[#1664FF] to-[#2B7BFF] bg-clip-text text-transparent"
+                          style={{
+                            filter: 'drop-shadow(0 3px 0 rgba(255,255,255,0.95)) drop-shadow(0 8px 16px rgba(22,100,255,0.18))',
+                          }}
+                        >
+                          “XX杯”
+                        </div>
+                        <h1
+                          className="text-3xl sm:text-5xl lg:text-[54px] font-black tracking-wide leading-[1.12] bg-gradient-to-b from-[#0A3B8C] via-[#1664FF] to-[#3B82F6] bg-clip-text text-transparent"
+                          style={{
+                            filter: 'drop-shadow(0 3px 0 rgba(255,255,255,0.95)) drop-shadow(0 8px 16px rgba(22,100,255,0.18))',
+                          }}
+                        >
+                          网数智安全大赛
+                        </h1>
+                      </div>
+
+                      {/* 英文全称装饰副标 */}
+                      <div className="text-[10px] sm:text-xs font-extrabold tracking-[0.26em] text-[#1D4ED8] uppercase mb-3">
+                        GREAT WALL CUP CYBER SECURITY COMPETITION
+                      </div>
+
+                      {/* 当前轮播页核心说明文字 */}
+                      <p className="text-xs sm:text-sm text-[#1E3A8A]/85 font-medium line-clamp-2 max-w-xl mb-4">
+                        {slide.title} —— {slide.subtitle}
+                      </p>
+
+                      {slide.visualTheme === 'countdown' && (
+                        <div
+                          className="inline-flex items-center gap-2.5 mb-4 px-3.5 py-1.5 rounded-lg bg-white/75 backdrop-blur-xs border border-blue-200 shadow-2xs"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="text-xs font-bold text-[#0D3B8C]">距初赛报名截止：</span>
+                          <div className="flex items-center gap-1 font-mono-num text-xs">
+                            <span className="bg-[#1664FF] text-white px-2 py-0.5 rounded font-bold">
+                              {String(countdown.days).padStart(2, '0')}天
+                            </span>
+                            <span className="text-[#1664FF] font-bold">:</span>
+                            <span className="bg-[#1664FF] text-white px-2 py-0.5 rounded font-bold">
+                              {String(countdown.hours).padStart(2, '0')}时
+                            </span>
+                            <span className="text-[#1664FF] font-bold">:</span>
+                            <span className="bg-[#1664FF] text-white px-2 py-0.5 rounded font-bold">
+                              {String(countdown.minutes).padStart(2, '0')}分
+                            </span>
+                            <span className="text-[#1664FF] font-bold">:</span>
+                            <span className="bg-[#0958D9] text-white px-2 py-0.5 rounded font-bold">
+                              {String(countdown.seconds).padStart(2, '0')}秒
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 底部口号横幅 + 快捷操作按钮 */}
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="inline-flex items-center gap-2.5 text-sm sm:text-lg font-extrabold text-[#15459E] tracking-wider">
+                          <span className="text-[#4B94FF] font-black tracking-tighter">&lt;&lt;</span>
+                          <span>守护网络安全</span>
+                          <span>筑牢安全防线</span>
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1664FF]/15 text-[#1664FF]">
+                            <Shield className="w-3.5 h-3.5 fill-[#1664FF]/30" />
+                          </span>
+                          <span className="text-[#4B94FF] font-black tracking-tighter">&gt;&gt;</span>
+                        </div>
+
+                        <div
+                          className="flex items-center gap-2.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleBannerAction(slide)}
+                            className="px-4 py-1.5 text-xs font-bold text-white bg-[#1664FF] hover:bg-[#0E4FD6] rounded-full shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>{slide.ctaText}</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                          {slide.secondaryCtaText && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInitialSelectedNoticeId(NOTICE_ITEMS[0].id);
+                                setCurrentView('notice-detail');
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className="px-3.5 py-1.5 text-xs font-semibold text-[#1664FF] bg-white/85 hover:bg-white border border-blue-200 rounded-full transition-colors cursor-pointer"
+                            >
+                              {slide.secondaryCtaText}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* 左右切换箭头 */}
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentBannerIdx(
+                  (prev) => (prev - 1 + BANNER_SLIDES.length) % BANNER_SLIDES.length
+                )
+              }
+              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white/70 hover:bg-white border border-blue-200 text-[#1664FF] flex items-center justify-center shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
+              aria-label="上一张海报"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentBannerIdx((prev) => (prev + 1) % BANNER_SLIDES.length)}
+              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white/70 hover:bg-white border border-blue-200 text-[#1664FF] flex items-center justify-center shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
+              aria-label="下一张海报"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* 底部指示器小圆点 */}
+            <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/65 backdrop-blur-xs px-3 py-1 rounded-full border border-blue-100">
+              {BANNER_SLIDES.map((s, idx) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setCurrentBannerIdx(idx)}
+                  aria-label={`切换到第 ${idx + 1} 张轮播图`}
+                  className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                    idx === currentBannerIdx
+                      ? 'w-6 bg-[#1664FF]'
+                      : 'w-1.5 bg-[#1664FF]/30 hover:bg-[#1664FF]/60'
+                  }`}
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* Main Content Container */}
+          <main className="max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-8 space-y-6 flex-1 w-full">
+            {/* 模块二：核心双栏（赛事通道 + 通知公告） */}
+            <section id="tracks-notice-section" className="scroll-mt-20">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                {/* 左栏：赛事通道（白色圆角卡片容器，占 7 列） */}
+                <div className="lg:col-span-7 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col">
+                  {/* 卡片头部（蓝标 + 标题 + 底部短横线装饰 + 右侧更多链接） */}
+                  <div className="relative flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-[#1664FF]" />
+                      <h2 className="text-lg font-bold text-slate-900 tracking-tight">赛事通道</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('directory');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                    >
+                      <span>更多赛事</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                  </div>
+
+                  {/* 赛事列表（联动后台赛事管理公开状态，点击整行直接进入对应赛事详情页） */}
+                  <div className="flex-1 divide-y divide-slate-100 flex flex-col justify-between">
+                    {competitions
+                      .filter((c) => c.isPublic !== false)
+                      .slice(0, 3)
+                      .map((comp) => {
+                        const matchedTrack = COMPETITION_TRACKS.find(
+                          (t) => t.catalogId === comp.id
+                        );
+                        const calcStatus = computeCompetitionStatus(
+                          comp.startDate,
+                          comp.endDate
+                        );
+                        const displayStatusLabel = getCompetitionStatusLabel(calcStatus);
+                        const trackVisualStatus =
+                          calcStatus === 'ongoing'
+                            ? 'registering'
+                            : calcStatus === 'upcoming'
+                            ? 'upcoming'
+                            : 'ended';
+                        const statusBadgeClass =
+                          calcStatus === 'ongoing'
+                            ? 'bg-[#00B42A] text-white'
+                            : calcStatus === 'upcoming'
+                            ? 'bg-[#FF9A2E] text-white'
+                            : 'bg-[#86909C] text-white';
+
+                        return (
+                          <div
+                            key={comp.id}
+                            onClick={() => {
+                              setSelectedCompetitionId(comp.id);
+                              setCurrentView('competition-detail');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="group py-4 first:pt-1 last:pb-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 cursor-pointer"
+                          >
+                            {/* 左侧缩略海报图 */}
+                            <div className="w-full sm:w-[220px] h-[118px] shrink-0 overflow-hidden rounded-lg group-hover:shadow-sm transition-shadow">
+                              <TrackCoverIllustration
+                                type={matchedTrack?.visualType || comp.coverTheme}
+                                status={trackVisualStatus}
+                              />
+                            </div>
+
+                            {/* 右侧赛事信息 */}
+                            <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
+                              <div>
+                                <div className="flex items-center gap-2.5 mb-2.5">
+                                  <h3 className="text-base font-bold text-slate-900 group-hover:text-[#1664FF] transition-colors truncate">
+                                    {comp.title}
+                                  </h3>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-xs text-[11px] font-semibold shrink-0 ${statusBadgeClass}`}
+                                  >
+                                    {displayStatusLabel}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1.5 text-xs text-slate-500">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <span className="font-mono-num">
+                                      {comp.startDate} ~ {comp.endDate}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <span className="truncate" title={comp.organizer}>
+                                      主办方：{comp.organizer}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* 右栏：通知公告（白色圆角卡片容器，占 5 列） */}
+                <div className="lg:col-span-5 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col">
+                  {/* 卡片头部 */}
+                  <div className="relative flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <Volume2 className="w-5 h-5 text-[#1664FF]" />
+                      <h2 className="text-lg font-bold text-slate-900 tracking-tight">通知公告</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInitialSelectedNoticeId(null);
+                        setCurrentView('notices');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                    >
+                      <span>更多公告</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                  </div>
+
+                  {/* 公告列表（还原设计图：红底置顶角标 + 标题 + 右侧日期） */}
+                  <div className="flex-1 flex flex-col justify-between divide-y divide-slate-100/80">
+                    {NOTICE_ITEMS.slice(0, 8).map((notice) => (
+                      <div
+                        key={notice.id}
+                        onClick={() => {
+                          setInitialSelectedNoticeId(notice.id);
+                          setCurrentView('notice-detail');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        title={notice.title}
+                        className="py-2.5 first:pt-1 last:pb-1 group flex items-center justify-between gap-3 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {notice.isPinned && (
+                            <span className="px-1.5 py-0.5 rounded-xs bg-[#F53F3F] text-white text-[11px] font-semibold leading-none shrink-0">
+                              置顶
+                            </span>
+                          )}
+                          <p className="text-sm text-slate-800 group-hover:text-[#1664FF] transition-colors truncate">
+                            {notice.title}
+                          </p>
+                        </div>
+                        <span className="text-xs font-mono-num text-slate-400 group-hover:text-[#1664FF] shrink-0">
+                          {notice.date}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 模块三：赛事新闻（单张通栏白色卡片，左图右文列表，点击进入二级详情页） */}
+            <section
+              id="news-section"
+              className="scroll-mt-20 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6"
+            >
+              {/* 卡片头部 */}
+              <div className="relative flex items-center justify-between pb-3.5 mb-5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Newspaper className="w-5 h-5 text-[#1664FF]" />
+                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">赛事新闻</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInitialSelectedNewsId(null);
+                    setCurrentView('news');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                >
+                  <span>更多新闻</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* 左侧：头条大图新闻 */}
+                <div
+                  onClick={() => {
+                    setInitialSelectedNewsId(featuredNews.id);
+                    setCurrentView('news-detail');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="lg:col-span-5 flex flex-col justify-between cursor-pointer group"
+                >
+                  <div className="mb-3.5 overflow-hidden rounded-lg">
+                    <FeaturedNewsIllustration />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-[#1664FF] transition-colors line-clamp-1 mb-2">
+                    {featuredNews.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 line-clamp-2 leading-relaxed mb-3">
+                    {featuredNews.summary}
+                  </p>
+                  <div className="text-xs text-slate-400 flex items-center gap-3">
+                    <span>来源：{featuredNews.source}</span>
+                    <span>|</span>
+                    <span className="font-mono-num">{featuredNews.date}</span>
+                  </div>
+                </div>
+
+                {/* 右侧：新闻列表（首条带蓝色三角指示标与高亮标题，还原设计图） */}
+                <div className="lg:col-span-7 divide-y divide-slate-100 flex flex-col justify-between">
+                  {listNews.slice(0, 3).map((item, idx) => (
+                    <article
+                      key={item.id}
+                      onClick={() => {
+                        setInitialSelectedNewsId(item.id);
+                        setCurrentView('news-detail');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="py-4 first:pt-0 last:pb-0 group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        {idx === 0 && (
+                          <span
+                            className="inline-block w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[#1664FF] shrink-0"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <h3
+                          className={`text-base font-bold transition-colors leading-snug truncate ${
+                            idx === 0
+                              ? 'text-[#1664FF]'
+                              : 'text-slate-900 group-hover:text-[#1664FF]'
+                          }`}
+                        >
+                          {item.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-500 line-clamp-1 mb-2">
+                        {item.summary}
+                      </p>
+                      <div className="text-xs text-slate-400 flex items-center gap-3">
+                        <span>来源：{item.source}</span>
+                        <span>|</span>
+                        <span className="font-mono-num">{item.date}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 模块四：赛事动态（单张通栏白色卡片，头部居中分类Tab + 5列卡片轮播） */}
+            <section
+              id="moments-section"
+              className="scroll-mt-20 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6"
+            >
+              {/* 卡片头部 */}
+              <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 mb-5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Film className="w-5 h-5 text-[#1664FF]" />
+                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">赛事动态</h2>
+                </div>
+
+                {/* 居中分类切换 Tab：全部动态 / 进展报道 / 团队风采 / 赛事花絮 / 专家观点 */}
+                <div className="flex flex-wrap items-center gap-5 sm:gap-7 text-xs sm:text-sm">
+                  {(['全部动态', '进展报道', '团队风采', '赛事花絮', '专家观点'] as const).map(
+                    (cat) => {
+                      const active = activeMomentTab === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => handleMomentTabChange(cat)}
+                          className={`relative pb-3.5 -mb-3.5 transition-colors cursor-pointer whitespace-nowrap ${
+                            active
+                              ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#1664FF]'
+                              : 'text-slate-600 hover:text-[#1664FF] font-medium'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInitialSelectedMomentId(null);
+                    setCurrentView('moments');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer self-end sm:self-auto"
+                >
+                  <span>更多动态</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+              </div>
+
+              {/* 横向卡片轮播区（左右箭头 + 5列卡片） */}
+              <div className="relative flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMomentStartIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={momentStartIndex === 0}
+                  aria-label="向左滚动动态卡片"
+                  className={`hidden md:flex w-8 h-8 rounded-full items-center justify-center shrink-0 transition-colors ${
+                    momentStartIndex === 0
+                      ? 'text-slate-300 cursor-not-allowed'
+                      : 'text-slate-500 hover:text-[#1664FF] hover:bg-blue-50 cursor-pointer'
+                  }`}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {orderedMoments.slice(momentStartIndex, momentStartIndex + 5).map((moment) => (
+                    <div
+                      key={moment.id}
+                      onClick={() => {
+                        setInitialSelectedMomentId(moment.id);
+                        setCurrentView('moment-detail');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="group cursor-pointer flex flex-col"
+                    >
+                      <div className="relative overflow-hidden rounded-lg mb-2.5 group-hover:shadow-md transition-shadow">
+                        <MomentCardVisual
+                          variant={moment.visualVariant}
+                          category={moment.category}
+                        />
+                        {moment.mediaType === 'video' && (
+                          <div className="absolute inset-0 bg-slate-950/15 group-hover:bg-slate-950/5 transition-colors flex items-center justify-center">
+                            <div className="w-9 h-9 rounded-full bg-white/90 group-hover:bg-[#1664FF] text-[#1664FF] group-hover:text-white shadow-sm flex items-center justify-center transition-all duration-200">
+                              <Play className="w-4 h-4 ml-0.5 fill-current" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#1664FF] transition-colors truncate mb-1">
+                        {moment.title}
+                      </h3>
+                      <div className="text-xs text-slate-400 font-mono-num">{moment.date}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMomentStartIndex((prev) => Math.min(maxMomentStartIndex, prev + 1))
+                  }
+                  disabled={momentStartIndex >= maxMomentStartIndex}
+                  aria-label="向右滚动动态卡片"
+                  className={`hidden md:flex w-8 h-8 rounded-full items-center justify-center shrink-0 transition-colors ${
+                    momentStartIndex >= maxMomentStartIndex
+                      ? 'text-slate-300 cursor-not-allowed'
+                      : 'text-slate-500 hover:text-[#1664FF] hover:bg-blue-50 cursor-pointer'
+                  }`}
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </section>
+
+            {/* 模块五：实用服务区（左：常见问题 FAQ + 右：电子证书查询与验证） */}
+            <section id="utility-service-section" className="scroll-mt-20">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                {/* 左卡片：常见问题 */}
+                <div className="lg:col-span-6 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="relative flex items-center justify-between pb-3.5 mb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-[#1664FF]" />
+                        <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+                          常见问题
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCurrentView('help');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                      >
+                        <span>查看全部 FAQ</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                      {FAQ_ITEMS.slice(0, 5).map((faq) => {
+                        const isOpen = openFaqId === faq.id;
+                        return (
+                          <div key={faq.id} className="py-3">
+                            <button
+                              type="button"
+                              onClick={() => setOpenFaqId(isOpen ? '' : faq.id)}
+                              className="w-full flex items-center justify-between gap-3 text-left cursor-pointer group"
+                            >
+                              <span
+                                className={`text-sm truncate transition-colors ${
+                                  isOpen
+                                    ? 'text-[#1664FF] font-semibold'
+                                    : 'text-slate-700 group-hover:text-[#1664FF]'
+                                }`}
+                              >
+                                {faq.question}
+                              </span>
+                              <ChevronRight
+                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                                  isOpen
+                                    ? 'rotate-90 text-[#1664FF]'
+                                    : 'text-slate-400 group-hover:text-[#1664FF]'
+                                }`}
+                              />
+                            </button>
+                            {isOpen && (
+                              <div className="mt-2.5 text-xs text-slate-600 leading-relaxed bg-[#F7FAFF] rounded-lg p-3 border border-blue-100/80">
+                                {faq.answer}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 右卡片：电子证书查询与验证（还原设计图：浅蓝渐变内衬卡片 + 左侧表单 + 右侧3D奖杯证书插画） */}
+                <div
+                  id="cert-section"
+                  className="lg:col-span-6 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col justify-between"
+                >
+                  <div className="relative flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-[#1664FF]" />
+                      <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+                        电子证书查询与验证
+                      </h2>
+                    </div>
+                    <span className="text-xs text-slate-400">获奖查询</span>
+                    <span className="absolute bottom-0 left-0 w-40 h-[2px] bg-[#1664FF] rounded-full" />
+                  </div>
+
+                  <div className="flex-1 rounded-xl bg-gradient-to-r from-[#F2F7FF] via-[#EBF3FF] to-[#DCEBFF] border border-blue-100/80 p-5 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden">
+                    <form
+                      onSubmit={(e) => handleCertificateSearch(e)}
+                      className="flex-1 w-full space-y-3 z-10"
+                    >
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          身份信息（请输入姓名或身份证号）
+                        </label>
+                        <input
+                          type="text"
+                          value={certIdentity}
+                          onChange={(e) => {
+                            setCertIdentity(e.target.value);
+                            if (certQueryError) setCertQueryError(null);
+                          }}
+                          placeholder="请填写姓名或身份证号"
+                          className="w-full px-3.5 py-2 bg-white border border-slate-200 focus:border-[#1664FF] rounded-md text-xs sm:text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          证书编号（请输入证书编号）
+                        </label>
+                        <input
+                          type="text"
+                          value={certNumber}
+                          onChange={(e) => {
+                            setCertNumber(e.target.value);
+                            if (certQueryError) setCertQueryError(null);
+                          }}
+                          placeholder="请填写证书编号"
+                          className="w-full px-3.5 py-2 bg-white border border-slate-200 focus:border-[#1664FF] rounded-md text-xs sm:text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none transition-colors"
+                        />
+                      </div>
+
+                      {certQueryError && (
+                        <div className="text-xs text-red-600 font-medium">{certQueryError}</div>
+                      )}
+
+                      <div className="pt-1">
+                        <button
+                          type="submit"
+                          className="w-full py-2.5 bg-[#1664FF] hover:bg-[#0E4FD6] text-white text-xs sm:text-sm font-semibold rounded-md shadow-xs transition-colors cursor-pointer"
+                        >
+                          点击查询
+                        </button>
+                      </div>
+
+                      {/* 快捷测试样例填入 */}
+                      <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <span className="text-slate-400">示例：</span>
+                        {CERTIFICATE_RECORDS.slice(0, 3).map((rec) => (
+                          <button
+                            key={rec.certId}
+                            type="button"
+                            onClick={() =>
+                              handleCertificateSearch(undefined, {
+                                identity: rec.holderName,
+                                certNo: rec.certId,
+                              })
+                            }
+                            className="px-2 py-0.5 rounded bg-white/80 hover:bg-white text-slate-600 hover:text-[#1664FF] border border-blue-200/70 transition-colors cursor-pointer font-mono-num"
+                          >
+                            {rec.holderName}
+                          </button>
+                        ))}
+                      </div>
+                    </form>
+
+                    {/* 右侧 3D 奖杯与获奖证书插画 */}
+                    <div className="hidden sm:flex items-center justify-center shrink-0">
+                      <CertificateTrophyIllustration />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 模块六：参赛高校（单张通栏白色卡片 + 6列圆形校徽矩阵） */}
+            <section
+              id="universities-section"
+              className="scroll-mt-20 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6"
+            >
+              <div className="relative flex items-center justify-between pb-3.5 mb-6 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-[#1664FF]" />
+                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">参赛高校</h2>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setUniAutoScroll(false)}
+                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                        !uniAutoScroll ? 'bg-white text-[#1664FF] shadow-2xs' : 'text-slate-500'
+                      }`}
+                    >
+                      校徽展示
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUniAutoScroll(true)}
+                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                        uniAutoScroll ? 'bg-white text-[#1664FF] shadow-2xs' : 'text-slate-500'
+                      }`}
+                    >
+                      自动轮播
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setAllUniversitiesModalOpen(true)}
+                    className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                  >
+                    <span>更多高校</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+              </div>
+
+              {uniAutoScroll ? (
+                <div className="relative overflow-hidden py-2">
+                  <div className="animate-marquee gap-6">
+                    {[...UNIVERSITY_PARTNERS, ...UNIVERSITY_PARTNERS].map((uni, idx) => (
+                      <div
+                        key={`${uni.id}-${idx}`}
+                        onClick={() => setAllUniversitiesModalOpen(true)}
+                        className="group w-44 shrink-0 flex flex-col items-center text-center cursor-pointer"
+                      >
+                        <div className="w-28 h-28 rounded-full border border-slate-200/90 bg-white group-hover:border-[#1664FF] group-hover:shadow-md flex items-center justify-center transition-all duration-200 mb-3">
+                          <UniversityCrest uni={uni} />
+                        </div>
+                        <div className="text-sm font-bold text-slate-800 group-hover:text-[#1664FF] transition-colors">
+                          {uni.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 py-2">
+                  {UNIVERSITY_PARTNERS.slice(uniManualOffset, uniManualOffset + 6).map((uni) => (
+                    <div
+                      key={uni.id}
+                      onClick={() => setAllUniversitiesModalOpen(true)}
+                      className="group flex flex-col items-center text-center cursor-pointer"
+                    >
+                      <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border border-slate-200/90 bg-white group-hover:border-[#1664FF] group-hover:shadow-md flex items-center justify-center transition-all duration-200 mb-3">
+                        <UniversityCrest uni={uni} />
+                      </div>
+                      <div className="text-sm font-bold text-slate-800 group-hover:text-[#1664FF] transition-colors">
+                        {uni.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* 模块七：领导机构（单张通栏白色卡片 + 胶囊形浅蓝边框按钮阵列） */}
+            <section
+              id="leadership-section"
+              className="scroll-mt-20 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6"
+            >
+              <div className="relative flex items-center justify-between pb-3.5 mb-6 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Landmark className="w-5 h-5 text-[#1664FF]" />
+                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">领导机构</h2>
+                </div>
+                <span className="text-xs text-slate-400">指导单位 · 主办单位 · 承办与技术支撑</span>
+                <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                {LEADERSHIP_ORGS.map((org) => (
+                  <button
+                    key={org.id}
+                    type="button"
+                    onClick={() => setSelectedOrgModal(org)}
+                    className="group rounded-full border border-[#BEDAFF] bg-[#F8FBFF] hover:bg-[#EBF3FF] hover:border-[#1664FF] px-6 py-3.5 text-center transition-all duration-150 cursor-pointer flex items-center justify-center"
+                  >
+                    <span className="text-sm sm:text-base font-bold text-slate-800 group-hover:text-[#1664FF] truncate">
+                      {org.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </main>
+        </>
+      )}
+
+      {/* 页脚（深海藏蓝 Footer，还原设计图多栏导航 + 右侧公众号二维码 + 底部版权栏） */}
+      <footer className="bg-[#06122E] text-slate-300 mt-10">
+        <div className="max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-12 gap-8 pb-10 border-b border-white/10">
+            {/* 第 1 列：关于我们 */}
+            <div className="lg:col-span-2 space-y-3">
+              <h3 className="text-sm font-bold text-white">关于我们</h3>
+              <ul className="space-y-2 text-xs text-slate-400">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentView('directory');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    关于大赛
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setAllUniversitiesModalOpen(true)}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    参赛高校名录
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrgModal(LEADERSHIP_ORGS[0])}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    组委会架构
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* 第 2 列：社区功能 */}
+            <div className="lg:col-span-2 space-y-3">
+              <h3 className="text-sm font-bold text-white">赛事功能</h3>
+              <ul className="space-y-2 text-xs text-slate-400">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentView('directory');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    赛事目录
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInitialSelectedMomentId(null);
+                      setCurrentView('moments');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    赛事动态
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('utility-service-section')}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    电子证书核验
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* 第 3 列：社区服务 & 友情链接 */}
+            <div className="lg:col-span-3 space-y-3">
+              <h3 className="text-sm font-bold text-white">权威机构与服务</h3>
+              <ul className="space-y-2 text-xs text-slate-400">
+                <li>
+                  <a
+                    href="https://www.cac.gov.cn"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    中国网信网 (cac.gov.cn)
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.moe.gov.cn"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    中华人民共和国教育部
+                  </a>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentView('help');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    参赛常见问题 (FAQ)
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* 第 4 列：关注大赛 / 联系组委会 */}
+            <div className="lg:col-span-3 space-y-3">
+              <h3 className="text-sm font-bold text-white">关注“XX杯”组委会</h3>
+              <div className="space-y-2 text-xs text-slate-400">
+                <div>官方赛事咨询：010-6899-2026</div>
+                <div className="font-mono-num">联赛交流群：271910967</div>
+                <div className="font-mono-num">组委会邮箱：committee@xxcup-sec.org.cn</div>
+              </div>
+            </div>
+
+            {/* 第 5 列：右侧二维码卡片 */}
+            <div className="col-span-2 sm:col-span-4 lg:col-span-2 flex flex-col items-start lg:items-center justify-center">
+              <div className="w-24 h-24 rounded-lg bg-white p-2 flex items-center justify-center shadow-md">
+                <QrCode className="w-full h-full text-[#06122E]" />
+              </div>
+              <div className="text-[11px] text-slate-400 text-center mt-2 leading-tight">
+                <div>扫一扫二维码</div>
+                <div>关注大赛公众号</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-6 text-center text-xs text-slate-500 font-mono-num">
+            Copyright © 2026 “XX杯”全国网数智安全大赛组委会 & 国家信息安全工程技术研究中心 版权所有 · 京ICP备2026008921号-1
+          </div>
+        </div>
+      </footer>
+
+      {/* =====================================================================
+          安全风控提醒：异地登录站内弹出提醒（指标2）
+         ===================================================================== */}
+      {abnormalLocationModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-amber-600 to-amber-500 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                <span className="font-bold text-base">异地登录安全提醒（指标2）</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAbnormalLocationModal(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-800 leading-relaxed">
+                系统检测到您本次登录的 IP 归属地与常用登录地不符，请注意账号安全：
+              </p>
+              <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-xs space-y-1.5 font-mono-num text-slate-700">
+                <div>常用登录 IP：{abnormalLocationModal.lastIp} ({abnormalLocationModal.lastLoc})</div>
+                <div className="text-amber-900 font-bold">
+                  本次登录 IP：{abnormalLocationModal.currIp} ({abnormalLocationModal.currLoc})
+                </div>
+              </div>
+              <div className="text-xs text-slate-500 leading-relaxed">
+                系统已同步向您的预留邮箱（<span className="font-mono-num">{abnormalLocationModal.email}</span>）异步发送异地登录安全提醒邮件。如非本人操作，请立即前往个人中心修改密码。
+              </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAbnormalLocationModal(null)}
+                  className="px-5 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer"
+                >
+                  我知道了（确认是本人操作）
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          报名拦截校验弹窗（新注册未完成实名与学籍认证时点击“立即报名”触发）
+         ===================================================================== */}
+      {unverifiedInterceptModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-amber-600 text-white flex items-center justify-between">
+              <span className="font-bold text-base">报名资格拦截校验</span>
+              <button
+                type="button"
+                onClick={() => setUnverifiedInterceptModal(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm font-semibold text-slate-900">
+                您当前尚未完成【实名认证与学籍/教师认证】，暂无法报名《{unverifiedInterceptModal.title}》。
+              </p>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                为保障国家级赛事公平性，所有参赛队员与指导教师在提交赛道报名表前，须先在个人中心完成实名与高校学籍核验。
+              </p>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setUnverifiedInterceptModal(null)}
+                  className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  稍后再说
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUnverifiedInterceptModal(null);
+                    setUserCenterInitialTab('certification');
+                    setCurrentView('user-center');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-5 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer"
+                >
+                  前往个人中心完成认证 &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          点击拦截校验③：已在该赛事下有队伍 -> 弹窗提示已有队伍，并提供【前往我的报名】按钮
+         ===================================================================== */}
+      {existingTeamInterceptModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#072A47] to-[#0284C7] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-300" />
+                <span className="font-bold text-base">已有报名队伍提示</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExistingTeamInterceptModal(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm font-semibold text-slate-900 leading-relaxed">
+                系统检测到您已在该赛事《{existingTeamInterceptModal.competitionTitle}》下拥有队伍，同一赛事每人仅限归属一支参赛队伍。
+              </p>
+              <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-xs space-y-1.5 text-slate-700">
+                <div>
+                  当前关联队伍：<strong className="text-[#0369A1]">{existingTeamInterceptModal.teamName}</strong>
+                </div>
+                <div>
+                  您的队内身份：<span className="font-semibold">{existingTeamInterceptModal.roleDesc}</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                您可以直接前往个人中心【我的报名】查看队伍进度、管理成员或继续编辑草稿。
+              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const compId = existingTeamInterceptModal.competitionId;
+                    const trk = existingTeamInterceptModal.selectedSubTrackName;
+                    setExistingTeamInterceptModal(null);
+                    setSelectedCompetitionId(compId);
+                    setRegInitialSubTrack(trk);
+                    setEditingDraftTeam(null);
+                    setCurrentView('registration-form');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-[11px] text-slate-400 hover:text-[#0284C7] underline cursor-pointer"
+                  title="供演示体验报名表单填写页"
+                >
+                  演示辅助：忽略拦截进入填表页
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setExistingTeamInterceptModal(null)}
+                    className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExistingTeamInterceptModal(null);
+                      setUserCenterInitialTab('registrations');
+                      setCurrentView('user-center');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="px-5 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer"
+                  >
+                    前往我的报名 &rarr;
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 赛事详情页、通知公告详情页、赛事新闻详情页、赛事动态详情页、帮助中心均已采用独立二级页面展示 */}
+
+      {/* 电子证书查询与防伪验证结果弹窗 */}
+      {certSearchResult && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full overflow-hidden shadow-2xl my-8">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#072A47] to-[#0284C7] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-sky-300" />
+                <span className="font-bold text-base">“XX杯”获奖查询与电子证书核验结果</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCertSearchResult(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {certSearchResult.records.length === 0 ? (
+                <div className="text-center py-8 space-y-3">
+                  <div className="text-base font-bold text-slate-800">
+                    未查询到与“{certSearchResult.query}”匹配的获奖证书记录
+                  </div>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    请核对填写的姓名、身份证号或证书编号是否准确，或点击下方测试样例体验查询效果：
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2 pt-2">
+                    {CERTIFICATE_RECORDS.slice(0, 4).map((r) => (
+                      <button
+                        key={r.certId}
+                        type="button"
+                        onClick={() =>
+                          handleCertificateSearch(undefined, {
+                            identity: r.holderName,
+                            certNo: r.certId,
+                          })
+                        }
+                        className="px-3 py-1.5 text-xs bg-sky-50 text-[#0284C7] border border-sky-200 rounded-lg font-mono-num cursor-pointer"
+                      >
+                        查询：{r.holderName} ({r.certId})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {certSearchResult.records.map((rec) => (
+                    <div
+                      key={rec.certId}
+                      className="rounded-xl border-2 border-[#0284C7]/30 bg-gradient-to-br from-[#F8FAFC] via-white to-[#F0F9FF] p-6 relative overflow-hidden"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-200">
+                        <div>
+                          <div className="text-xs text-[#0284C7] font-bold">
+                            核验状态：真实有效 · 官方数字签章已验证
+                          </div>
+                          <h4 className="text-lg font-extrabold text-slate-900 mt-0.5">
+                            {rec.trackTitle}
+                          </h4>
+                        </div>
+                        <div className="text-right font-mono-num">
+                          <div className="text-xs text-slate-400">证书编号</div>
+                          <div className="text-sm font-bold text-slate-900">{rec.certId}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 py-4 text-xs">
+                        <div>
+                          <div className="text-slate-400">获奖选手姓名</div>
+                          <div className="text-sm font-bold text-slate-900 mt-0.5">{rec.holderName}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">身份证号（脱敏）</div>
+                          <div className="text-sm font-mono-num font-semibold text-slate-800 mt-0.5">
+                            {rec.idCard.replace(/^(\d{6})\d{8}(\w{4})$/, '$1********$2')}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">所属高等院校</div>
+                          <div className="text-sm font-bold text-slate-900 mt-0.5">{rec.university}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">参赛战队名称</div>
+                          <div className="text-sm font-bold text-slate-900 mt-0.5">{rec.teamName}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">获奖等级</div>
+                          <div className="text-sm font-extrabold text-[#0284C7] mt-0.5">{rec.awardLevel}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">指导教师 / 签发日期</div>
+                          <div className="text-sm font-semibold text-slate-800 mt-0.5">
+                            {rec.advisor} · <span className="font-mono-num">{rec.issueDate}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 font-mono-num">
+                        <span>防伪摘要：{rec.verifyHash}</span>
+                        <span className="text-emerald-700 font-semibold">
+                          ✓ 国家信息安全工程技术研究中心核准
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {allUniversitiesModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-3xl w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between">
+              <span className="font-bold text-base">全国重点参赛高校名录（部分展示）</span>
+              <button
+                type="button"
+                onClick={() => setAllUniversitiesModalOpen(false)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[70vh] overflow-y-auto">
+              {UNIVERSITY_PARTNERS.map((uni) => (
+                <div
+                  key={uni.id}
+                  className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col items-center text-center"
+                >
+                  <UniversityCrest uni={uni} />
+                  <div className="text-sm font-bold text-slate-900 mt-2">{uni.name}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    {uni.region} · 已报{' '}
+                    <span className="font-mono-num font-bold text-[#0284C7]">{uni.teamsCount}</span> 队
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedOrgModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between">
+              <span className="font-bold text-sm">领导机构职责说明 · {selectedOrgModal.role}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedOrgModal(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <h3 className="text-base font-bold text-slate-900">{selectedOrgModal.name}</h3>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                {selectedOrgModal.description}
+              </p>
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrgModal(null)}
+                  className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  关闭
+                </button>
+                <a
+                  href={selectedOrgModal.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg flex items-center gap-1.5"
+                >
+                  <span>访问机构官网</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 站内全局全文检索弹窗（覆盖赛事新闻、通知公告、赛事动态） */}
+      <GlobalSiteSearchModal
+        isOpen={globalSearchOpen}
+        onClose={() => setGlobalSearchOpen(false)}
+        newsList={allFrontendNews}
+        momentsList={allFrontendMoments}
+        noticesList={NOTICE_ITEMS}
+        onNavigateToNews={(newsId) => {
+          setInitialSelectedNewsId(newsId);
+          setCurrentView('news-detail');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onNavigateToMoment={(momentId) => {
+          setInitialSelectedMomentId(momentId);
+          setCurrentView('moment-detail');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onNavigateToNotice={(noticeId) => {
+          setInitialSelectedNoticeId(noticeId);
+          setCurrentView('notice-detail');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    </div>
+  );
+}

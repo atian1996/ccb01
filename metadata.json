@@ -1,0 +1,6 @@
+{
+  "name": "“XX杯”网数智安全大赛官网",
+  "description": "“XX杯”全国网络、数据与人工智能安全大赛官方门户网站，提供赛事通道报名、通知公告、赛事新闻、赛事动态、FAQ解答及电子证书防伪查询验证服务。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
