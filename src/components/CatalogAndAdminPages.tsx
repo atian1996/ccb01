@@ -35,12 +35,17 @@ import {
   Users,
   Video,
   BookOpen,
+  Paperclip,
+  Download,
+  RotateCcw,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   type CompetitionCatalogItem,
   type CompetitionSubTrack,
   type CompetitionScheduleStage,
   type CompetitionRegistrationMode,
+  type CompetitionAttachment,
   computeCompetitionStatus,
   getCompetitionStatusLabel,
   type CompetitionCalculatedStatus,
@@ -118,8 +123,8 @@ export const CompetitionCoverRender: React.FC<{
 // ============================================================================
 export const MarkdownDocumentRenderer: React.FC<{ content: string }> = ({ content }) => {
   const renderInline = (text: string) => {
-    // 处理行内代码 `code` 与加粗 **bold**
-    const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+    // 处理行内代码 `code`、加粗 **bold** 与链接 [label](url)
+    const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g);
     return tokens.map((token, idx) => {
       if (token.startsWith('`') && token.endsWith('`') && token.length > 2) {
         return (
@@ -136,6 +141,23 @@ export const MarkdownDocumentRenderer: React.FC<{ content: string }> = ({ conten
           <strong key={idx} className="font-bold text-slate-900">
             {token.slice(2, -2)}
           </strong>
+        );
+      }
+      const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (linkMatch) {
+        const [, linkLabel, linkHref] = linkMatch;
+        return (
+          <a
+            key={idx}
+            href={linkHref}
+            download={linkLabel.replace(/^📎\s*附件：/, '').replace(/\s*\([^)]*\)$/, '')}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 rounded-md bg-sky-50 hover:bg-sky-100 text-[#0284C7] border border-sky-200 text-xs font-semibold transition-colors"
+          >
+            <Paperclip className="w-3 h-3 shrink-0" />
+            <span>{linkLabel}</span>
+          </a>
         );
       }
       return <React.Fragment key={idx}>{token}</React.Fragment>;
@@ -311,6 +333,44 @@ function getStatusDotClass(status: CompetitionCalculatedStatus) {
   if (status === 'ongoing') return 'bg-emerald-500 animate-pulse';
   if (status === 'upcoming') return 'bg-amber-500';
   return 'bg-slate-400';
+}
+
+/**
+ * 将存储的时间字符串（YYYY-MM-DD HH:mm:ss 或 YYYY-MM-DD）转为 datetime-local 控件所需的 YYYY-MM-DDTHH:mm:ss
+ */
+function toDatetimeLocalValue(val: string, defaultTime = '09:00:00'): string {
+  const trimmed = (val || '').trim();
+  if (!trimmed) return `2026-10-28T${defaultTime}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T${defaultTime}`;
+  }
+  const normalized = trimmed.replace(' ', 'T');
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalized)) {
+    return `${normalized}:00`;
+  }
+  return normalized;
+}
+
+/**
+ * 将 datetime-local 控件的值标准化为 YYYY-MM-DD HH:mm:ss（精确到时分秒）
+ */
+function fromDatetimeLocalValue(val: string, defaultTime = '09:00:00'): string {
+  const trimmed = (val || '').trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed} ${defaultTime}`;
+  }
+  const spaceSeparated = trimmed.replace('T', ' ');
+  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$/.test(spaceSeparated)) {
+    return `${spaceSeparated}:00`;
+  }
+  return spaceSeparated;
+}
+
+function formatAttachmentFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 // ============================================================================
@@ -801,6 +861,60 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
           {/* 渲染 Markdown 正文 */}
           <MarkdownDocumentRenderer content={competition.markdownContent} />
 
+          {/* 赛事介绍附件下载区 */}
+          {competition.attachments && competition.attachments.length > 0 && (
+            <div className="pt-6 border-t border-slate-200/80">
+              <h3 className="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-[#0284C7]" />
+                <span>赛事相关附件（{competition.attachments.length} 个）</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {competition.attachments.map((att) => (
+                  <a
+                    key={att.id}
+                    href={att.url || `#attachment-${att.id}`}
+                    download={att.name}
+                    onClick={(e) => {
+                      if (!att.url) {
+                        e.preventDefault();
+                        const blob = new Blob(
+                          [`赛事附件：${att.name}\n所属赛事：${competition.title}`],
+                          { type: 'text/plain;charset=utf-8' }
+                        );
+                        const tempUrl = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = tempUrl;
+                        a.download = att.name;
+                        a.click();
+                        URL.revokeObjectURL(tempUrl);
+                      }
+                    }}
+                    className="p-3.5 rounded-xl bg-slate-50 hover:bg-sky-50/70 border border-slate-200 hover:border-sky-300 flex items-center justify-between gap-3 transition-colors group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-800 group-hover:text-[#0284C7] truncate">
+                          {att.name}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono-num">
+                          大小：{att.size}
+                          {att.uploadedAt ? ` · ${att.uploadedAt}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-[#0284C7] inline-flex items-center gap-1 shrink-0">
+                      <Download className="w-3 h-3" />
+                      <span>下载</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 附：本赛事下设赛道一览 */}
           {competition.tracks.length > 0 && (
             <div className="pt-6 border-t border-slate-200/80">
@@ -1025,9 +1139,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const [formTitle, setFormTitle] = useState('');
   const [formCoverTheme, setFormCoverTheme] = useState<'network' | 'data' | 'ai'>('network');
   const [formCustomCoverUrl, setFormCustomCoverUrl] = useState('');
+  const [coverUploadHint, setCoverUploadHint] = useState<string | null>(null);
   const [formSummary, setFormSummary] = useState('');
-  const [formStartDate, setFormStartDate] = useState('2026-10-20');
-  const [formEndDate, setFormEndDate] = useState('2026-12-20');
+  const [formStartDate, setFormStartDate] = useState('2026-10-20 09:00:00');
+  const [formEndDate, setFormEndDate] = useState('2026-12-20 18:00:00');
   const [formOrganizer, setFormOrganizer] = useState('“XX杯”全国网数智安全大赛组委会');
   const [formIsPublic, setFormIsPublic] = useState(true);
   const [formRegMode, setFormRegMode] = useState<CompetitionRegistrationMode>('platform');
@@ -1037,6 +1152,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const [formSchedule, setFormSchedule] = useState<CompetitionScheduleStage[]>([]);
   const [formTracks, setFormTracks] = useState<CompetitionSubTrack[]>([]);
   const [formMarkdown, setFormMarkdown] = useState('');
+  const [formAttachments, setFormAttachments] = useState<CompetitionAttachment[]>([]);
   const [mdEditorMode, setMdEditorMode] = useState<'split' | 'edit' | 'preview'>('split');
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -1134,9 +1250,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     setFormTitle('');
     setFormCoverTheme('network');
     setFormCustomCoverUrl('');
+    setCoverUploadHint(null);
     setFormSummary('');
-    setFormStartDate('2026-10-28');
-    setFormEndDate('2026-12-30');
+    setFormStartDate('2026-10-28 09:00:00');
+    setFormEndDate('2026-12-30 18:00:00');
     setFormOrganizer('“XX杯”全国网数智安全大赛组委会');
     setFormIsPublic(true);
     setFormRegMode('platform');
@@ -1172,7 +1289,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     ]);
     setFormMarkdown(`# 赛事背景与介绍
 
-请在此输入赛事详细介绍内容，支持标准 **Markdown** 语法排版。
+请在此输入赛事详细介绍内容，支持标准 **Markdown** 语法排版与附件上传。
 
 ---
 
@@ -1181,7 +1298,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 1. **参赛对象**：全国高等院校全日制在校学生。
 2. **组队人数**：每支队伍 1-4 人，可配指导教师 1 名。
 
-> 提示：您可以在上方工具栏快速插入标题、加粗、代码块或列表，右侧将实时预览前台渲染效果。`);
+> 提示：您可以在上方工具栏快速插入标题、加粗、代码块、列表或直接【上传附件】，右侧将实时预览前台渲染效果。`);
+    setFormAttachments([]);
     setFormError(null);
     setSubView('form');
   };
@@ -1190,11 +1308,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const handleOpenEditForm = (comp: CompetitionCatalogItem) => {
     setEditingId(comp.id);
     setFormTitle(comp.title);
-    setFormCoverTheme(comp.coverTheme);
+    setFormCoverTheme(comp.coverTheme || 'network');
     setFormCustomCoverUrl(comp.customCoverUrl || '');
+    setCoverUploadHint(null);
     setFormSummary(comp.summary);
-    setFormStartDate(comp.startDate);
-    setFormEndDate(comp.endDate);
+    setFormStartDate(fromDatetimeLocalValue(comp.startDate, '09:00:00'));
+    setFormEndDate(fromDatetimeLocalValue(comp.endDate, '18:00:00'));
     setFormOrganizer(comp.organizer || '“XX杯”全国网数智安全大赛组委会');
     setFormIsPublic(comp.isPublic);
     setFormRegMode(comp.registrationMode || 'platform');
@@ -1204,21 +1323,80 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     setFormSchedule(comp.schedule.map((s) => ({ ...s })));
     setFormTracks(comp.tracks.map((t) => ({ ...t })));
     setFormMarkdown(comp.markdownContent);
+    setFormAttachments(comp.attachments ? comp.attachments.map((a) => ({ ...a })) : []);
     setFormError(null);
     setSubView('form');
   };
 
-  // 处理本地封面图片上传（转为 DataURL 实时预览并保存）
+  // 处理本地封面图片上传（校验格式与文件大小，转为 DataURL 实时预览并替换默认封面）
   const handleCoverFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const extOk = /\.(jpe?g|png|webp)$/i.test(file.name);
+    if (!validTypes.includes(file.type) && !extOk) {
+      setCoverUploadHint('上传失败：封面仅支持 JPG、JPEG、PNG、WebP 格式图片');
+      e.target.value = '';
+      return;
+    }
+    const maxBytes = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxBytes) {
+      setCoverUploadHint(
+        `上传失败：当前图片大小为 ${formatAttachmentFileSize(file.size)}，请上传不超过 5MB 的封面图片`
+      );
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setFormCustomCoverUrl(reader.result);
+        setCoverUploadHint(
+          `已上传封面「${file.name}」（${formatAttachmentFileSize(file.size)}），已替换默认封面`
+        );
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // 处理赛事介绍 Markdown 编辑器上传附件
+  const handleMarkdownAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const now = new Date();
+    const timeStr = `2026-10-28 ${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes()
+    ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+    const newAtts: CompetitionAttachment[] = [];
+    const mdLines: string[] = [];
+
+    Array.from(files).forEach((file, idx) => {
+      if (file.size > 20 * 1024 * 1024) {
+        showToast(`附件《${file.name}》超过 20MB 大小限制，已跳过`);
+        return;
+      }
+      const sizeStr = formatAttachmentFileSize(file.size);
+      const blobUrl = URL.createObjectURL(file);
+      const attItem: CompetitionAttachment = {
+        id: `att-${Date.now()}-${idx}`,
+        name: file.name,
+        size: sizeStr,
+        url: blobUrl,
+        uploadedAt: timeStr,
+      };
+      newAtts.push(attItem);
+      mdLines.push(`- [📎 附件：${file.name} (${sizeStr})](${blobUrl})`);
+    });
+
+    if (newAtts.length > 0) {
+      setFormAttachments((prev) => [...prev, ...newAtts]);
+      setFormMarkdown((prev) => `${prev.trimEnd()}\n\n${mdLines.join('\n')}`);
+      showToast(`已成功上传 ${newAtts.length} 个附件并插入赛事介绍文档！`);
+    }
+    e.target.value = '';
   };
 
   // Markdown 快捷插入辅助函数
@@ -1237,12 +1415,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       setFormError('请填写赛事简介');
       return;
     }
-    if (!formStartDate || !formEndDate) {
-      setFormError('请完整选择赛事起止时间');
+    const normalizedStart = fromDatetimeLocalValue(formStartDate, '09:00:00');
+    const normalizedEnd = fromDatetimeLocalValue(formEndDate, '18:00:00');
+    if (!normalizedStart || !normalizedEnd) {
+      setFormError('请完整选择赛事开始时间和结束时间（精确到时分秒）');
       return;
     }
-    if (formStartDate > formEndDate) {
-      setFormError('结束日期不能早于开始日期');
+    if (normalizedStart > normalizedEnd) {
+      setFormError('结束时间不能早于开始时间');
       return;
     }
 
@@ -1258,14 +1438,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               coverTheme: formCoverTheme,
               customCoverUrl: formCustomCoverUrl.trim() || undefined,
               summary: formSummary.trim(),
-              startDate: formStartDate,
-              endDate: formEndDate,
+              startDate: normalizedStart,
+              endDate: normalizedEnd,
               organizer: formOrganizer.trim() || '“XX杯”全国网数智安全大赛组委会',
               isPublic: formIsPublic,
               customTags: formCustomTags,
               schedule: cleanedSchedule,
               tracks: cleanedTracks,
               markdownContent: formMarkdown,
+              attachments: formAttachments,
             }
           : item
       );
@@ -1280,11 +1461,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       const newComp: CompetitionCatalogItem = {
         id: newId,
         title: formTitle.trim(),
-        coverTheme: formCoverTheme,
+        coverTheme: 'network',
         customCoverUrl: formCustomCoverUrl.trim() || undefined,
         summary: formSummary.trim(),
-        startDate: formStartDate,
-        endDate: formEndDate,
+        startDate: normalizedStart,
+        endDate: normalizedEnd,
         organizer: formOrganizer.trim() || '“XX杯”全国网数智安全大赛组委会',
         isPublic: formIsPublic,
         registrationMode: 'platform',
@@ -1292,6 +1473,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         schedule: cleanedSchedule,
         tracks: cleanedTracks,
         markdownContent: formMarkdown,
+        attachments: formAttachments,
         createdAt: createdAtStr,
       };
       onUpdateCompetitions([newComp, ...competitions]);
@@ -1675,9 +1857,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             <span className="text-slate-400">后台管理</span>
             <ChevronRight className="w-4 h-4 text-slate-400" />
             {adminRole === 'school_admin' || activeMenu === 'registrations' ? (
-              <span className="font-bold text-slate-900">
-                报名管理（规则配置与队伍数据管理）
-              </span>
+              <span className="font-bold text-slate-900">报名管理</span>
             ) : activeMenu === 'competitions' ? (
               <>
                 <button
@@ -1699,21 +1879,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 )}
               </>
             ) : activeMenu === 'verify-student' ? (
-              <span className="font-bold text-slate-900">
-                认证管理 &rsaquo; 学生认证（学籍证明材料人工审核）
-              </span>
+              <span className="font-bold text-slate-900">认证管理 &rsaquo; 学生认证</span>
             ) : activeMenu === 'verify-teacher' ? (
-              <span className="font-bold text-slate-900">
-                认证管理 &rsaquo; 教师认证（指导教师资格材料人工审核）
-              </span>
+              <span className="font-bold text-slate-900">认证管理 &rsaquo; 教师认证</span>
             ) : activeMenu === 'institutions' ? (
-              <span className="font-bold text-slate-900">
-                系统管理 &rsaquo; 院校管理（教育部标准高校库与学籍认证控制）
-              </span>
+              <span className="font-bold text-slate-900">系统管理 &rsaquo; 院校管理</span>
             ) : activeMenu === 'users' ? (
-              <span className="font-bold text-slate-900">
-                系统管理 &rsaquo; 用户管理（角色互斥与叠加 · 账号过期与导入导出）
-              </span>
+              <span className="font-bold text-slate-900">系统管理 &rsaquo; 用户管理</span>
             ) : activeMenu === 'content-announcements' ? (
               <span className="font-bold text-slate-900">内容管理 &rsaquo; 通知公告</span>
             ) : activeMenu === 'content-news' ? (
@@ -2231,9 +2403,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
                 )}
 
-                {/* 1. 赛事名称 & 公开状态 */}
+                {/* 1. 赛事名称、主办单位 & 公开状态 */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-                  <div className="md:col-span-9">
+                  <div className="md:col-span-6">
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
                       赛事名称 <span className="text-red-500">*</span>
                     </label>
@@ -2243,6 +2415,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
                       placeholder="例如：2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛"
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:border-[#0284C7] focus:outline-none"
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      主办 / 承办单位
+                    </label>
+                    <input
+                      type="text"
+                      value={formOrganizer}
+                      onChange={(e) => setFormOrganizer(e.target.value)}
+                      placeholder="例如：“XX杯”全国网数智安全大赛组委会"
                       className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:border-[#0284C7] focus:outline-none"
                     />
                   </div>
@@ -2261,34 +2445,40 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
                 </div>
 
-                {/* 2. 起止时间 & 自动状态判断预览 */}
+                {/* 2. 开始时间 & 结束时间（精确到时分秒） + 自动状态判断预览 */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      开始日期 <span className="text-red-500">*</span>
+                      开始时间（精确到时分秒） <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="date"
+                      type="datetime-local"
+                      step="1"
                       required
-                      value={formStartDate}
-                      onChange={(e) => setFormStartDate(e.target.value)}
+                      value={toDatetimeLocalValue(formStartDate, '09:00:00')}
+                      onChange={(e) =>
+                        setFormStartDate(fromDatetimeLocalValue(e.target.value, '09:00:00'))
+                      }
                       className="w-full px-3 py-2 text-xs font-mono-num bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      结束日期 <span className="text-red-500">*</span>
+                      结束时间（精确到时分秒） <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="date"
+                      type="datetime-local"
+                      step="1"
                       required
-                      value={formEndDate}
-                      onChange={(e) => setFormEndDate(e.target.value)}
+                      value={toDatetimeLocalValue(formEndDate, '18:00:00')}
+                      onChange={(e) =>
+                        setFormEndDate(fromDatetimeLocalValue(e.target.value, '18:00:00'))
+                      }
                       className="w-full px-3 py-2 text-xs font-mono-num bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
                     />
                   </div>
                   <div className="flex flex-col justify-center">
-                    <div className="text-xs text-slate-500 mb-1">系统根据起止时间自动判定状态：</div>
+                    <div className="text-xs text-slate-500 mb-1">系统根据开始/结束时间自动判定状态：</div>
                     <div className="inline-flex items-center gap-2 text-sm">
                       <span
                         className={`w-2.5 h-2.5 rounded-full ${getStatusDotClass(
@@ -2302,75 +2492,79 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
                 </div>
 
-                {/* 3. 赛事封面配置 */}
+                {/* 3. 赛事封面配置（单默认封面 + 支持上传封面替换 + 格式/像素/大小要求） */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-slate-700">
                     赛事封面 <span className="text-red-500">*</span>
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-                    <div className="md:col-span-5 h-44 rounded-xl overflow-hidden border border-slate-200 shadow-2xs">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center p-4 rounded-xl bg-slate-50/70 border border-slate-200/90">
+                    <div className="md:col-span-5 h-44 rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative">
                       <CompetitionCoverRender
                         coverTheme={formCoverTheme}
                         customCoverUrl={formCustomCoverUrl}
                         status={previewCalcStatus}
                         className="w-full h-full"
                       />
+                      <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-md bg-slate-900/75 backdrop-blur-xs text-white text-[11px] font-semibold">
+                        {formCustomCoverUrl ? '当前：自定义上传封面' : '当前：官方默认封面'}
+                      </span>
                     </div>
                     <div className="md:col-span-7 space-y-3">
-                      <div>
-                        <div className="text-xs font-semibold text-slate-600 mb-1.5">
-                          方式一：选择官方内置高保真赛事视觉主题封面
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {(
-                            [
-                              { key: 'network', label: '网络安全攻防主题' },
-                              { key: 'data', label: '数据安全与隐私计算主题' },
-                              { key: 'ai', label: '大模型与AI安全主题' },
-                            ] as const
-                          ).map((theme) => (
-                            <button
-                              key={theme.key}
-                              type="button"
-                              onClick={() => {
-                                setFormCoverTheme(theme.key);
-                                setFormCustomCoverUrl('');
-                              }}
-                              className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
-                                formCoverTheme === theme.key && !formCustomCoverUrl
-                                  ? 'bg-sky-50 border-[#0284C7] text-[#0284C7]'
-                                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                              }`}
-                            >
-                              {theme.label}
-                            </button>
-                          ))}
-                        </div>
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <label className="px-4 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-xl inline-flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>上传封面进行替换</span>
+                          <input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            onChange={handleCoverFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {formCustomCoverUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormCustomCoverUrl('');
+                              setFormCoverTheme('network');
+                              setCoverUploadHint('已恢复为平台官方默认封面');
+                            }}
+                            className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>恢复默认封面</span>
+                          </button>
+                        )}
                       </div>
 
-                      <div className="pt-2 border-t border-slate-100 space-y-2">
-                        <div className="text-xs font-semibold text-slate-600">
-                          方式二：上传本地图片或填写自定义封面图 URL
+                      {coverUploadHint && (
+                        <div
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border ${
+                            coverUploadHint.startsWith('上传失败')
+                              ? 'bg-red-50 border-red-200 text-red-700'
+                              : 'bg-sky-50 border-sky-200 text-[#0369A1]'
+                          }`}
+                        >
+                          {coverUploadHint}
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <input
-                            type="text"
-                            value={formCustomCoverUrl}
-                            onChange={(e) => setFormCustomCoverUrl(e.target.value)}
-                            placeholder="输入图片 URL 或点击右侧上传本地封面图..."
-                            className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
-                          />
-                          <label className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 cursor-pointer shrink-0">
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>上传封面</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleCoverFileUpload}
-                              className="hidden"
-                            />
-                          </label>
+                      )}
+
+                      <div className="p-3.5 rounded-xl bg-white border border-slate-200/90 space-y-1.5 text-xs text-slate-600">
+                        <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-[#0284C7]" />
+                          <span>赛事封面上传规范要求（默认提供官方标准封面，可上传替换）：</span>
                         </div>
+                        <ul className="space-y-1 text-[11px] text-slate-500 pl-5 list-disc">
+                          <li>
+                            <strong className="text-slate-700">图片格式：</strong>支持 <span className="font-mono-num text-slate-800">JPG、JPEG、PNG、WebP</span> 格式
+                          </li>
+                          <li>
+                            <strong className="text-slate-700">建议像素与比例：</strong>推荐尺寸 <span className="font-mono-num text-slate-800">1200 × 675 px</span>（标准 16:9 横版比例，最低分辨率不小于 800 × 450 px）
+                          </li>
+                          <li>
+                            <strong className="text-slate-700">文件大小限制：</strong>单张封面图片文件大小不超过 <span className="font-mono-num text-slate-800">5 MB</span>
+                          </li>
+                        </ul>
                       </div>
                     </div>
                   </div>
@@ -2709,6 +2903,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     <Minus className="w-3.5 h-3.5" />
                     <span>分割线</span>
                   </button>
+
+                  {/* 上传附件按钮 */}
+                  <label className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-xs font-bold text-[#0284C7] inline-flex items-center gap-1.5 cursor-pointer ml-auto">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    <span>上传附件</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.txt,.md,.png,.jpg,.jpeg"
+                      onChange={handleMarkdownAttachmentUpload}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
 
                 {/* 编辑区与实时预览区 */}
@@ -2743,6 +2950,67 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* 已上传附件列表管理区 */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Paperclip className="w-3.5 h-3.5 text-[#0284C7]" />
+                      <span>已上传赛事附件（{formAttachments.length} 个）</span>
+                    </div>
+                    <span className="text-[11px] text-slate-400">
+                      支持上传 PDF、Word、Excel、PPT、压缩包等附件（单个不超过 20MB），上传后自动在 Markdown 中插入下载链接
+                    </span>
+                  </div>
+                  {formAttachments.length === 0 ? (
+                    <div className="text-xs text-slate-400 py-2">
+                      暂未上传附件，点击上方工具栏右侧【上传附件】即可添加赛事章程、靶场手册或报名模板文件。
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {formAttachments.map((att) => (
+                        <div
+                          key={att.id}
+                          className="p-3 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-4 h-4 text-[#0284C7] shrink-0" />
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-800 truncate">{att.name}</div>
+                              <div className="text-[11px] text-slate-400 font-mono-num">
+                                {att.size}
+                                {att.uploadedAt ? ` · ${att.uploadedAt}` : ''}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                insertMarkdownSnippet(
+                                  `- [📎 附件：${att.name} (${att.size})](${att.url || `#attachment-${att.id}`})`
+                                )
+                              }
+                              className="text-[#0284C7] hover:underline font-semibold cursor-pointer"
+                            >
+                              插入正文
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormAttachments((prev) => prev.filter((item) => item.id !== att.id))
+                              }
+                              className="text-red-500 hover:text-red-700 cursor-pointer p-1"
+                              title="移除该附件"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 底部提交保存按钮栏 */}
@@ -2766,107 +3034,329 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         </main>
       </div>
 
-      {/* 后台【赛事详情】只读弹窗（含报名模式及联动状态展示） */}
-      {viewingCompetitionDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full overflow-hidden shadow-2xl my-8">
-            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold text-[#0284C7]">赛事管理 · 详情视图</div>
-                <h3 className="text-base font-extrabold text-slate-900 mt-0.5">{viewingCompetitionDetail.title}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setViewingCompetitionDetail(null)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div>
-                  <div className="text-slate-400">赛事 ID</div>
-                  <div className="font-mono-num font-bold text-slate-800 mt-0.5">
-                    {viewingCompetitionDetail.id}
+      {/* 后台【赛事详情】全字段只读弹窗（涵盖封面、状态、起止时间精确到秒、主办单位、标签、简介、赛道、赛程、完整Markdown赛事介绍与附件） */}
+      {viewingCompetitionDetail && (() => {
+        const detailStatus = computeCompetitionStatus(
+          viewingCompetitionDetail.startDate,
+          viewingCompetitionDetail.endDate
+        );
+        const detailStatusLabel = getCompetitionStatusLabel(detailStatus);
+        const linkedRegConfig = registrationConfigs.find(
+          (rc) => rc.eventId === viewingCompetitionDetail.id && !rc.isDisabled
+        );
+        const linkedRegStatus = linkedRegConfig
+          ? computeRegistrationConfigStatus(linkedRegConfig)
+          : null;
+        const linkedRegMeta =
+          linkedRegConfig && linkedRegStatus
+            ? getRegistrationStatusMeta(linkedRegStatus, linkedRegConfig.earlyClosed)
+            : null;
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-4xl w-full overflow-hidden shadow-2xl my-6 flex flex-col max-h-[90vh]">
+              {/* 顶部固定标题栏 */}
+              <div className="px-6 py-4 bg-gradient-to-r from-sky-50/80 via-white to-slate-50 border-b border-slate-200 flex items-center justify-between gap-4 shrink-0">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#0284C7]">
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    <span>赛事管理 · 赛事全字段详情视图</span>
                   </div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 truncate">
+                    {viewingCompetitionDetail.title}
+                  </h3>
                 </div>
-                <div>
-                  <div className="text-slate-400">关联报名状态</div>
-                  <div className="font-bold text-[#0284C7] mt-0.5">
-                    {registrationConfigs.some(
-                      (rc) => rc.eventId === viewingCompetitionDetail.id && !rc.isDisabled
-                    )
-                      ? '已在【报名管理】关联报名'
-                      : '未关联报名'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-slate-400">起止日期</div>
-                  <div className="font-mono-num font-bold text-slate-800 mt-0.5">
-                    {viewingCompetitionDetail.startDate} 至 {viewingCompetitionDetail.endDate}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-slate-400">前台公开状态</div>
-                  <div className="font-bold text-slate-800 mt-0.5">
-                    {viewingCompetitionDetail.isPublic ? '公开（前台可见）' : '隐藏（前台不可见）'}
-                  </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = viewingCompetitionDetail;
+                      setViewingCompetitionDetail(null);
+                      onPreviewCompetitionInFrontend(target);
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#0284C7] text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>前台预览</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewingCompetitionDetail(null)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
 
-              <div>
-                <div className="font-bold text-slate-700 mb-1">赛事简介</div>
-                <p className="text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  {viewingCompetitionDetail.summary}
-                </p>
-              </div>
+              {/* 主体滚动内容区 */}
+              <div className="p-6 sm:p-8 space-y-6 overflow-y-auto text-xs flex-1">
+                {/* 区块 1：赛事封面预览 + 核心属性看板 */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200/90">
+                  {/* 左侧封面图 */}
+                  <div className="lg:col-span-5 h-48 sm:h-52 rounded-xl overflow-hidden border border-slate-200 relative shadow-2xs">
+                    <CompetitionCoverRender
+                      coverTheme={viewingCompetitionDetail.coverTheme}
+                      customCoverUrl={viewingCompetitionDetail.customCoverUrl}
+                      status={detailStatus}
+                      className="w-full h-full"
+                    />
+                    <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-md bg-slate-900/75 backdrop-blur-xs text-white text-[11px] font-semibold">
+                      {viewingCompetitionDetail.customCoverUrl ? '自定义上传封面' : '官方默认封面'}
+                    </span>
+                  </div>
 
-              <div>
-                <div className="font-bold text-slate-700 mb-1.5">
-                  下设赛道（{viewingCompetitionDetail.tracks.length} 个）
-                </div>
-                <div className="space-y-1.5">
-                  {viewingCompetitionDetail.tracks.map((t, i) => (
-                    <div
-                      key={t.id}
-                      className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between"
-                    >
-                      <span className="font-bold text-slate-800">
-                        0{i + 1}. {t.name}
-                      </span>
-                      <span className="text-slate-500">{t.description}</span>
+                  {/* 右侧结构化字段网格 */}
+                  <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3 content-between">
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80">
+                      <div className="text-[11px] text-slate-400">赛事计算状态</div>
+                      <div className="mt-1 inline-flex items-center gap-1.5 text-xs">
+                        <span className={`w-2 h-2 rounded-full ${getStatusDotClass(detailStatus)}`} />
+                        <span className={getStatusTextClass(detailStatus)}>{detailStatusLabel}</span>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              <div>
-                <div className="font-bold text-slate-700 mb-1.5">
-                  比赛赛程（{viewingCompetitionDetail.schedule.length} 个阶段）
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80">
+                      <div className="text-[11px] text-slate-400">前台展示状态</div>
+                      <div className="mt-1 font-bold text-slate-800 inline-flex items-center gap-1.5">
+                        {viewingCompetitionDetail.isPublic ? (
+                          <>
+                            <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-700">公开（前台可见）</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-slate-500">隐藏（前台不可见）</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80">
+                      <div className="text-[11px] text-slate-400">开始时间（精确到时分秒）</div>
+                      <div className="font-mono-num font-bold text-slate-900 mt-1">
+                        {fromDatetimeLocalValue(viewingCompetitionDetail.startDate, '09:00:00')}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80">
+                      <div className="text-[11px] text-slate-400">结束时间（精确到时分秒）</div>
+                      <div className="font-mono-num font-bold text-slate-900 mt-1">
+                        {fromDatetimeLocalValue(viewingCompetitionDetail.endDate, '18:00:00')}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80">
+                      <div className="text-[11px] text-slate-400">主办 / 承办单位</div>
+                      <div className="font-bold text-slate-800 mt-1 line-clamp-1" title={viewingCompetitionDetail.organizer}>
+                        {viewingCompetitionDetail.organizer || '“XX杯”全国网数智安全大赛组委会'}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80">
+                      <div className="text-[11px] text-slate-400">创建时间</div>
+                      <div className="font-mono-num font-semibold text-slate-700 mt-1">
+                        {viewingCompetitionDetail.createdAt}
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2 p-3 rounded-xl bg-white border border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[11px] text-slate-400 mr-2">关联报名状态：</span>
+                        {linkedRegConfig && linkedRegMeta ? (
+                          <span className="font-bold text-[#0284C7]">
+                            已关联报名（{linkedRegMeta.label} · {linkedRegConfig.regStartTime} 至 {linkedRegConfig.regEndTime}）
+                          </span>
+                        ) : (
+                          <span className="font-semibold text-slate-500">暂未在【报名管理】关联报名配置</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  {viewingCompetitionDetail.schedule.map((st, i) => (
-                    <div
-                      key={st.id || i}
-                      className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                    >
-                      <span className="font-bold text-slate-800">
-                        0{i + 1}. {st.stage}
+
+                {/* 区块 2：自定义标签 & 赛事简介 */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  <div className="md:col-span-4 p-4 rounded-xl bg-white border border-slate-200 space-y-2">
+                    <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-[#0284C7]" />
+                      <span>自定义标签（{viewingCompetitionDetail.customTags.length} 个）</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {viewingCompetitionDetail.customTags.length > 0 ? (
+                        viewingCompetitionDetail.customTags.map((tag, idx) => (
+                          <span
+                            key={`${tag}-${idx}`}
+                            className="px-2.5 py-1 rounded-md bg-sky-50 border border-sky-200 text-[#0369A1] font-semibold"
+                          >
+                            {tag}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400">未设置自定义标签</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-8 p-4 rounded-xl bg-white border border-slate-200 space-y-1.5">
+                    <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-[#0284C7]" />
+                      <span>赛事简介</span>
+                    </div>
+                    <p className="text-slate-600 leading-relaxed">
+                      {viewingCompetitionDetail.summary}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 区块 3：赛道配置 & 比赛赛程 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 下设赛道 */}
+                  <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+                    <div className="font-bold text-slate-800 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-[#0284C7]" />
+                        <span>赛道配置明细</span>
                       </span>
-                      <span className="font-mono-num text-[#0284C7] font-semibold">
-                        {st.dateRange}
+                      <span className="text-[11px] font-mono-num text-slate-400">
+                        共 {viewingCompetitionDetail.tracks.length} 个赛道
                       </span>
                     </div>
-                  ))}
+                    {viewingCompetitionDetail.tracks.length === 0 ? (
+                      <div className="text-slate-400 py-4 text-center">暂未配置赛道</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {viewingCompetitionDetail.tracks.map((t, i) => (
+                          <div
+                            key={t.id}
+                            className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1"
+                          >
+                            <div className="font-bold text-slate-900">
+                              <span className="font-mono-num text-[#0284C7] mr-1.5">0{i + 1}.</span>
+                              {t.name}
+                            </div>
+                            {t.description && (
+                              <div className="text-slate-500 leading-relaxed">{t.description}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 比赛赛程 */}
+                  <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+                    <div className="font-bold text-slate-800 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-[#0284C7]" />
+                        <span>比赛赛程时间轴</span>
+                      </span>
+                      <span className="text-[11px] font-mono-num text-slate-400">
+                        共 {viewingCompetitionDetail.schedule.length} 个阶段
+                      </span>
+                    </div>
+                    {viewingCompetitionDetail.schedule.length === 0 ? (
+                      <div className="text-slate-400 py-4 text-center">暂未配置比赛赛程</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {viewingCompetitionDetail.schedule.map((st, i) => (
+                          <div
+                            key={st.id || i}
+                            className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-1"
+                          >
+                            <div className="font-bold text-slate-900">
+                              <span className="font-mono-num text-[#0284C7] mr-1.5">0{i + 1}.</span>
+                              {st.stage}
+                            </div>
+                            <div className="font-mono-num text-[#0284C7] font-semibold">
+                              起止时间：{st.dateRange}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 区块 4：赛事介绍（Markdown 完整正文渲染） */}
+                <div className="p-5 rounded-xl bg-white border border-slate-200 space-y-3">
+                  <div className="font-bold text-slate-800 flex items-center justify-between pb-2.5 border-b border-slate-100">
+                    <span className="flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-[#0284C7]" />
+                      <span>赛事介绍（Markdown 正文内容）</span>
+                    </span>
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-50/60 border border-slate-200/70">
+                    <MarkdownDocumentRenderer content={viewingCompetitionDetail.markdownContent} />
+                  </div>
+                </div>
+
+                {/* 区块 5：赛事附件列表 */}
+                <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+                  <div className="font-bold text-slate-800 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Paperclip className="w-3.5 h-3.5 text-[#0284C7]" />
+                      <span>赛事附件列表</span>
+                    </span>
+                    <span className="text-[11px] font-mono-num text-slate-400">
+                      共 {viewingCompetitionDetail.attachments?.length || 0} 个附件
+                    </span>
+                  </div>
+                  {!viewingCompetitionDetail.attachments ||
+                  viewingCompetitionDetail.attachments.length === 0 ? (
+                    <div className="text-slate-400 py-2">未上传赛事附件</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {viewingCompetitionDetail.attachments.map((att) => (
+                        <a
+                          key={att.id}
+                          href={att.url || `#att-${att.id}`}
+                          download={att.name}
+                          onClick={(e) => {
+                            if (!att.url) {
+                              e.preventDefault();
+                              const blob = new Blob(
+                                [`赛事附件：${att.name}\n所属赛事：${viewingCompetitionDetail.title}`],
+                                { type: 'text/plain;charset=utf-8' }
+                              );
+                              const tempUrl = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = tempUrl;
+                              a.download = att.name;
+                              a.click();
+                              URL.revokeObjectURL(tempUrl);
+                            }
+                          }}
+                          className="p-3 rounded-lg bg-slate-50 hover:bg-sky-50/70 border border-slate-200 flex items-center justify-between gap-2 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-4 h-4 text-[#0284C7] shrink-0" />
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-800 truncate">{att.name}</div>
+                              <div className="text-[11px] text-slate-400 font-mono-num">
+                                {att.size}
+                                {att.uploadedAt ? ` · ${att.uploadedAt}` : ''}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-[#0284C7] font-bold inline-flex items-center gap-1 shrink-0">
+                            <Download className="w-3.5 h-3.5" />
+                            <span>下载</span>
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
+              {/* 底部固定操作栏 */}
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5 shrink-0 text-xs">
                 <button
                   type="button"
                   onClick={() => setViewingCompetitionDetail(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 font-bold cursor-pointer"
                 >
                   关闭
                 </button>
@@ -2877,15 +3367,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     setViewingCompetitionDetail(null);
                     handleOpenEditForm(target);
                   }}
-                  className="px-4 py-2 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white font-bold cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white font-bold cursor-pointer"
                 >
                   编辑该赛事
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

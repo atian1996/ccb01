@@ -69,13 +69,20 @@ export interface TeamApprovedSnapshotMember {
   role: '队长' | '队员' | '指导教师';
   university: string;
   phone?: string;
+  email?: string;
 }
 
 export interface TeamApprovedSnapshot {
+  competitionTitle?: string;
   teamName: string;
+  teamLogo?: string;
+  teamIntro?: string;
   subTrackName: string;
   university: string;
   captainName: string;
+  captainPhone?: string;
+  captainEmail?: string;
+  createdAt?: string;
   approvedAt: string;
   members: TeamApprovedSnapshotMember[];
 }
@@ -99,8 +106,10 @@ export interface CaptainTeamRecord {
   advisors: InvitedTeamPerson[]; // 指导教师列表
   schoolAuditStatus?: TwoStageAuditStatus; // 高校审核状态：待审核 / 已通过 / 已驳回
   schoolRejectReason?: string; // 高校审核驳回原因
+  schoolAuditedAt?: string; // 高校审核时间
   secretariatAuditStatus?: TwoStageAuditStatus; // 秘书处审核状态：待审核 / 已通过 / 已驳回
   secretariatRejectReason?: string; // 秘书处审核驳回原因
+  secretariatAuditedAt?: string; // 秘书处审核时间
   approvedSnapshot?: TeamApprovedSnapshot; // 报名成功时的只读快照（防止管理员后门修改数据后引起用户困惑）
   createdAt: string;
   updatedAt: string;
@@ -218,40 +227,107 @@ export interface ParticipatedTeamRecord {
   approvedSnapshot?: TeamApprovedSnapshot; // 报名成功时的只读快照
 }
 
+// 解析任意成员（队长/队员/指导教师）的手机号与邮箱（若快照或条目未显式携带则从通讯录解析）
+export function resolvePersonContactByName(
+  rawName: string,
+  fallbackPhone?: string,
+  fallbackEmail?: string,
+  platformUsers: PlatformDirectoryUser[] = PLATFORM_DIRECTORY_USERS
+): { phone: string; email: string } {
+  const clean = (rawName || '').replace(/（.*?）/g, '').trim();
+  const matched =
+    platformUsers.find(
+      (u) =>
+        !u.isDeleted &&
+        (u.realName === clean ||
+          u.name.replace(/（.*?）/g, '').trim() === clean ||
+          (u.username || '').toLowerCase() === clean.toLowerCase())
+    ) ||
+    PLATFORM_DIRECTORY_USERS.find(
+      (u) =>
+        u.realName === clean ||
+        u.name.replace(/（.*?）/g, '').trim() === clean ||
+        (u.username || '').toLowerCase() === clean.toLowerCase()
+    );
+
+  const validPhone =
+    fallbackPhone && !fallbackPhone.includes('*') ? fallbackPhone : matched?.phone;
+  const validEmail =
+    fallbackEmail && !fallbackEmail.includes('*') ? fallbackEmail : matched?.email;
+
+  if (validPhone && validEmail) {
+    return { phone: validPhone, email: validEmail };
+  }
+
+  if (clean === '林远航') {
+    return {
+      phone: validPhone || '13810246921',
+      email: validEmail || 'linyuanhang@buaa.edu.cn',
+    };
+  }
+
+  let hash = 0;
+  for (let i = 0; i < clean.length; i++) {
+    hash = (hash * 31 + clean.charCodeAt(i)) % 100000000;
+  }
+  const suffix8 = String(Math.abs(hash)).padStart(8, '0');
+  return {
+    phone: validPhone || `139${suffix8}`,
+    email: validEmail || `member_${suffix8.slice(0, 6)}@buaa.edu.cn`,
+  };
+}
+
 // 根据队伍数据生成【报名成功】时刻的只读快照
 export function buildApprovedSnapshotFromCaptainTeam(
   team: CaptainTeamRecord,
   approvedAt?: string
 ): TeamApprovedSnapshot {
   const cleanName = (raw: string) => raw.replace(/（.*?）/g, '').trim();
+  const captainContact = resolveTeamCaptainContact(team);
   const snapshotMembers: TeamApprovedSnapshotMember[] = [
     {
       name: cleanName(team.captainName),
       role: '队长',
       university: team.captainUniversity || team.university,
+      phone: captainContact.phone,
+      email: captainContact.email,
     },
     ...team.members
       .filter((m) => m.confirmStatus === 'accepted')
-      .map((m) => ({
-        name: cleanName(m.name),
-        role: '队员' as const,
-        university: m.university,
-        phone: m.phone,
-      })),
+      .map((m) => {
+        const contact = resolvePersonContactByName(m.name, m.phone, m.email);
+        return {
+          name: cleanName(m.name),
+          role: '队员' as const,
+          university: m.university,
+          phone: contact.phone,
+          email: contact.email,
+        };
+      }),
     ...team.advisors
       .filter((a) => a.confirmStatus === 'accepted')
-      .map((a) => ({
-        name: cleanName(a.name),
-        role: '指导教师' as const,
-        university: a.university,
-        phone: a.phone,
-      })),
+      .map((a) => {
+        const contact = resolvePersonContactByName(a.name, a.phone, a.email);
+        return {
+          name: cleanName(a.name),
+          role: '指导教师' as const,
+          university: a.university,
+          phone: contact.phone,
+          email: contact.email,
+        };
+      }),
   ];
   return {
+    competitionTitle: team.competitionTitle,
     teamName: team.teamName,
+    teamLogo: team.teamLogo || 'default-logo',
+    teamIntro: team.teamIntro || '',
     subTrackName: team.subTrackName,
     university: team.university,
     captainName: cleanName(team.captainName),
+    captainPhone: captainContact.phone,
+    captainEmail: captainContact.email,
+    createdAt: team.createdAt,
     approvedAt: approvedAt || team.updatedAt || '2026-10-28 10:00',
     members: snapshotMembers,
   };
@@ -894,16 +970,46 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     createdAt: '2026-06-12 14:30',
     updatedAt: '2026-06-15 10:00',
     approvedSnapshot: {
+      competitionTitle: '2026“XX杯”全国网数智安全大赛 · 大模型与人工智能安全先导赛',
       teamName: '北航智盾先锋队',
+      teamLogo: 'default-logo',
+      teamIntro: '深耕大语言模型越狱攻击检测、提示词注入防御与多模态安全内生对齐技术。',
       subTrackName: 'LLM红蓝越狱对抗与安全对齐赛道',
       university: '北京航空航天大学',
       captainName: '林远航',
+      captainPhone: '13810246921',
+      captainEmail: 'linyuanhang@buaa.edu.cn',
+      createdAt: '2026-06-12 14:30',
       approvedAt: '2026-06-15 10:00',
       members: [
-        { name: '林远航', role: '队长', university: '北京航空航天大学', phone: '13810246921' },
-        { name: '陈思远', role: '队员', university: '北京航空航天大学', phone: '13910010002' },
-        { name: '宋知行', role: '队员', university: '北京航空航天大学', phone: '13910010004' },
-        { name: '赵振宇 教授', role: '指导教师', university: '北京航空航天大学', phone: '13800138001' },
+        {
+          name: '林远航',
+          role: '队长',
+          university: '北京航空航天大学',
+          phone: '13810246921',
+          email: 'linyuanhang@buaa.edu.cn',
+        },
+        {
+          name: '陈思远',
+          role: '队员',
+          university: '北京航空航天大学',
+          phone: '13910010002',
+          email: 'chensiyuan@buaa.edu.cn',
+        },
+        {
+          name: '宋知行',
+          role: '队员',
+          university: '北京航空航天大学',
+          phone: '13910010004',
+          email: 'songzhixing@buaa.edu.cn',
+        },
+        {
+          name: '赵振宇 教授',
+          role: '指导教师',
+          university: '北京航空航天大学',
+          phone: '13800138001',
+          email: 'zhaozhenyu@buaa.edu.cn',
+        },
       ],
     },
   },
@@ -1965,16 +2071,46 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     invitedAt: '2026-06-05 11:20',
     teammatesSummary: ['韩明轩（队长）', '林远航（队员）', '赵振宇 教授（指导教师）'],
     approvedSnapshot: {
+      competitionTitle: '2026“XX杯”全国网数智安全大赛 · 大模型与人工智能安全先导赛',
       teamName: '北航多模态鉴伪实验室战队',
+      teamLogo: 'default-logo',
+      teamIntro: '结合频域伪影捕捉与生物信号一致性分析，实现高精度AIGC音视频伪造鉴伪溯源（状态：队伍已通过高校与秘书处双级审核，报名成功）。',
       subTrackName: 'AIGC音视频深度伪造（Deepfake）鉴伪溯源赛道',
       university: '北京航空航天大学',
       captainName: '韩明轩',
+      captainPhone: '13510099012',
+      captainEmail: 'hanmingxuan@buaa.edu.cn',
+      createdAt: '2026-06-05 11:20',
       approvedAt: '2026-06-16 14:20',
       members: [
-        { name: '韩明轩', role: '队长', university: '北京航空航天大学', phone: '13510099012' },
-        { name: '林远航', role: '队员', university: '北京航空航天大学', phone: '13810246921' },
-        { name: '刘语桐', role: '队员', university: '北京航空航天大学', phone: '13910010003' },
-        { name: '赵振宇 教授', role: '指导教师', university: '北京航空航天大学', phone: '13800138001' },
+        {
+          name: '韩明轩',
+          role: '队长',
+          university: '北京航空航天大学',
+          phone: '13510099012',
+          email: 'hanmingxuan@buaa.edu.cn',
+        },
+        {
+          name: '林远航',
+          role: '队员',
+          university: '北京航空航天大学',
+          phone: '13810246921',
+          email: 'linyuanhang@buaa.edu.cn',
+        },
+        {
+          name: '刘语桐',
+          role: '队员',
+          university: '北京航空航天大学',
+          phone: '13910010003',
+          email: 'liuyutong@buaa.edu.cn',
+        },
+        {
+          name: '赵振宇 教授',
+          role: '指导教师',
+          university: '北京航空航天大学',
+          phone: '13800138001',
+          email: 'zhaozhenyu@buaa.edu.cn',
+        },
       ],
     },
   },
@@ -1994,15 +2130,39 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     invitedAt: '2025-10-08 10:00',
     teammatesSummary: ['秦昊天（队长）', '苏子墨（队员）', '林远航（指导教师视角演示）'],
     approvedSnapshot: {
+      competitionTitle: '2025第四届“XX杯”全国网数智安全大赛 · 年度总决赛历史归档',
       teamName: '北航苍穹防线2025战队（指导教师视角示例）',
+      teamLogo: 'default-logo',
+      teamIntro: '展示指导教师受邀并完成双级终审通过的历史参赛记录。',
       subTrackName: '第四届网络安全攻防实战总决赛归档',
       university: '北京航空航天大学',
       captainName: '秦昊天',
+      captainPhone: '13810086610',
+      captainEmail: 'qinhaotian@buaa.edu.cn',
+      createdAt: '2025-10-08 10:00',
       approvedAt: '2025-10-12 18:00',
       members: [
-        { name: '秦昊天', role: '队长', university: '北京航空航天大学', phone: '13810086610' },
-        { name: '苏子墨', role: '队员', university: '北京航空航天大学', phone: '13910087721' },
-        { name: '林远航', role: '指导教师', university: '北京航空航天大学', phone: '13810246921' },
+        {
+          name: '秦昊天',
+          role: '队长',
+          university: '北京航空航天大学',
+          phone: '13810086610',
+          email: 'qinhaotian@buaa.edu.cn',
+        },
+        {
+          name: '苏子墨',
+          role: '队员',
+          university: '北京航空航天大学',
+          phone: '13910087721',
+          email: 'suzimo@buaa.edu.cn',
+        },
+        {
+          name: '林远航',
+          role: '指导教师',
+          university: '北京航空航天大学',
+          phone: '13810246921',
+          email: 'linyuanhang@buaa.edu.cn',
+        },
       ],
     },
   },
@@ -2043,9 +2203,11 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
   schoolStatus: TwoStageAuditStatus;
   schoolRejectReason?: string;
   schoolReason?: string;
+  schoolAuditedAt?: string;
   secretariatStatus: TwoStageAuditStatus;
   secretariatRejectReason?: string;
   secretariatReason?: string;
+  secretariatAuditedAt?: string;
   isRejectedBySchool: boolean;
   isRejectedBySecretariat: boolean;
   canModifyTeam: boolean;
@@ -2103,6 +2265,23 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
       ? 'approved'
       : 'pending';
 
+  const normalizedUpdatedAt =
+    team.updatedAt && team.updatedAt.length === 16 ? `${team.updatedAt}:00` : team.updatedAt;
+  const normalizedApprovedAt =
+    team.approvedSnapshot?.approvedAt && team.approvedSnapshot.approvedAt.length === 16
+      ? `${team.approvedSnapshot.approvedAt}:00`
+      : team.approvedSnapshot?.approvedAt;
+
+  const schoolAuditedAt =
+    schoolStatus === 'approved' || schoolStatus === 'rejected'
+      ? team.schoolAuditedAt || normalizedUpdatedAt
+      : undefined;
+
+  const secretariatAuditedAt =
+    secretariatStatus === 'approved' || secretariatStatus === 'rejected'
+      ? team.secretariatAuditedAt || normalizedApprovedAt || normalizedUpdatedAt
+      : undefined;
+
   // 秘书处审核通过后报名状态才会变成“报名成功”
   if (schoolStatus === 'approved' && secretariatStatus === 'approved') {
     return {
@@ -2112,7 +2291,9 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
       regStatusClass: 'text-emerald-700 bg-emerald-50 border-emerald-200',
       regDotClass: 'bg-emerald-500',
       schoolStatus: 'approved',
+      schoolAuditedAt,
       secretariatStatus: 'approved',
+      secretariatAuditedAt,
       isRejectedBySchool: false,
       isRejectedBySecretariat: false,
       canModifyTeam: false,
@@ -2134,9 +2315,11 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
     schoolStatus,
     schoolRejectReason: team.schoolRejectReason,
     schoolReason: team.schoolRejectReason,
+    schoolAuditedAt,
     secretariatStatus,
     secretariatRejectReason: team.secretariatRejectReason,
     secretariatReason: team.secretariatRejectReason,
+    secretariatAuditedAt,
     isRejectedBySchool,
     isRejectedBySecretariat,
     canModifyTeam: canEdit,
@@ -3873,7 +4056,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
 
           <div className="p-6 space-y-6">
             {/* 0. 队伍基本信息修改区（组建中 / 邀请中 / 高校驳回 / 秘书处驳回 均可直接修改队伍名称、赛道、LOGO、队伍介绍） */}
-            {!isLocked && (
+            {!isLocked ? (
               <div className="p-5 rounded-xl bg-slate-50/80 border border-slate-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -4000,6 +4183,38 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="p-5 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-[#0284C7]" />
+                    <span>赛事与队伍基本信息</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400 font-mono-num">
+                    报名提交时间：{team.createdAt}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/70">
+                  <div>
+                    <span className="text-slate-400 block mb-0.5">队伍名称</span>
+                    <span className="font-bold text-slate-900">{team.teamName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block mb-0.5">参赛赛道</span>
+                    <span className="font-bold text-slate-800">{team.subTrackName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block mb-0.5">所属院校</span>
+                    <span className="font-bold text-[#0369A1]">{team.university}</span>
+                  </div>
+                  <div className="sm:col-span-3">
+                    <span className="text-slate-400 block mb-0.5">队伍介绍</span>
+                    <span className="text-slate-700 leading-relaxed">
+                      {team.teamIntro || '未填写队伍介绍'}
+                    </span>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* 1. 队长本人 */}
@@ -4008,12 +4223,18 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                 队长（固定首位）
               </h3>
               <div className="p-4 rounded-xl bg-sky-50/50 border border-sky-200/80 flex items-center justify-between">
-                <div>
+                <div className="space-y-1">
                   <div className="text-sm font-bold text-slate-900">
                     {team.captainName}（队长本人）
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">
+                  <div className="text-xs text-slate-500">
                     所属院校：{team.captainUniversity} · 实名与学籍已核验
+                  </div>
+                  <div className="text-xs text-slate-500 font-mono-num">
+                    {(() => {
+                      const capContact = resolveTeamCaptainContact(team);
+                      return `手机：${capContact.phone} | 邮箱：${capContact.email}`;
+                    })()}
                   </div>
                 </div>
                 <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
@@ -5023,13 +5244,6 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                                   className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold cursor-pointer"
                                 >
                                   继续编辑
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setManagingTeamId(team.id)}
-                                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-bold cursor-pointer"
-                                >
-                                  管理成员
                                 </button>
                               </div>
                             )}

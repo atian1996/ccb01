@@ -592,6 +592,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   const [editTeamOriginalSnapshot, setEditTeamOriginalSnapshot] = useState<string>('');
   const [removeCaptainModalOpen, setRemoveCaptainModalOpen] = useState(false);
   const [selectedNewCaptainMemberId, setSelectedNewCaptainMemberId] = useState<string>('');
+  const [newCaptainSearchQuery, setNewCaptainSearchQuery] = useState<string>('');
+  const [newCaptainSearchError, setNewCaptainSearchError] = useState<string | null>(null);
   const [backdoorSearchQuery, setBackdoorSearchQuery] = useState('');
   const [backdoorAddRole, setBackdoorAddRole] = useState<'member' | 'advisor'>('member');
   const [backdoorInterceptAlert, setBackdoorInterceptAlert] = useState<{
@@ -1183,9 +1185,11 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           status: isApprove ? ('pending_review' as const) : ('rejected' as const),
           schoolAuditStatus: isApprove ? ('approved' as const) : ('rejected' as const),
           schoolRejectReason: isApprove ? undefined : trimmedReason,
+          schoolAuditedAt: '2026-10-28 12:15:00',
           secretariatAuditStatus: isApprove ? ('pending' as const) : ('none' as const),
           secretariatRejectReason: undefined,
-          updatedAt: '2026-10-28 12:15',
+          secretariatAuditedAt: undefined,
+          updatedAt: '2026-10-28 12:15:00',
         };
       } else {
         // 秘书处审核阶段（前提：高校审核已通过）：
@@ -1195,13 +1199,15 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           ...team,
           status: isApprove ? ('approved' as const) : ('rejected' as const),
           schoolAuditStatus: 'approved' as const,
+          schoolAuditedAt: team.schoolAuditedAt || '2026-10-27 16:30:00',
           secretariatAuditStatus: isApprove ? ('approved' as const) : ('rejected' as const),
           secretariatRejectReason: isApprove ? undefined : trimmedReason,
+          secretariatAuditedAt: '2026-10-28 12:15:00',
           approvedSnapshot: isApprove
             ? team.approvedSnapshot ||
-              buildApprovedSnapshotFromCaptainTeam(team, '2026-10-28 12:15')
+              buildApprovedSnapshotFromCaptainTeam(team, '2026-10-28 12:15:00')
             : team.approvedSnapshot,
-          updatedAt: '2026-10-28 12:15',
+          updatedAt: '2026-10-28 12:15:00',
         };
       }
     });
@@ -1279,26 +1285,140 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     setSubView('team-edit');
   };
 
-  // 管理员后门：指定新队长并移除原队长
+  // 管理员编辑队伍：上传/替换队伍 LOGO
+  const handleEditTeamLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editTeamDraft) return;
+    if (!file.type.startsWith('image/')) {
+      setBackdoorFeedback('请上传 PNG、JPG、SVG 或 WebP 格式的队伍 LOGO 图片文件。');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setBackdoorFeedback('队伍 LOGO 图片大小不能超过 2MB。');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setEditTeamDraft((prev) =>
+          prev ? { ...prev, teamLogo: reader.result as string } : prev
+        );
+        setBackdoorFeedback('已上传并更新队伍 LOGO（保存修改后正式生效）。');
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // 构建可供指定为新队长的候选人列表（包含本队现有队员 + 平台注册用户，支持按手机号或邮箱搜索）
+  const newCaptainCandidates = useMemo(() => {
+    if (!editTeamDraft) return [];
+    const capContact = resolveTeamCaptainContact(editTeamDraft, platformUsers);
+    const memberCandidates = editTeamDraft.members.map((m) => ({
+      id: m.id,
+      name: m.name,
+      phone: m.phone,
+      email: m.email,
+      university: m.university,
+      isVerified: m.isVerified,
+      source: 'team_member' as const,
+    }));
+    const existingPhones = new Set(
+      [capContact.phone, ...editTeamDraft.members.map((m) => m.phone)].filter(Boolean)
+    );
+    const existingEmails = new Set(
+      [
+        capContact.email?.toLowerCase(),
+        ...editTeamDraft.members.map((m) => m.email?.toLowerCase()),
+      ].filter(Boolean)
+    );
+    const userPool = (
+      platformUsers.length > 0 ? platformUsers : PLATFORM_DIRECTORY_USERS
+    ).filter((u) => !u.isDeleted);
+    const directoryCandidates = userPool
+      .filter(
+        (u) =>
+          u.name !== editTeamDraft.captainName &&
+          u.realName !== editTeamDraft.captainName &&
+          !existingPhones.has(u.phone) &&
+          !existingEmails.has(u.email.toLowerCase())
+      )
+      .map((u) => ({
+        id: u.id,
+        name: u.realName || u.name,
+        phone: u.phone,
+        email: u.email,
+        university: u.university,
+        isVerified: u.isRealNameVerified && u.isAcademicOrTeacherVerified,
+        source: 'platform_user' as const,
+      }));
+    return [...memberCandidates, ...directoryCandidates];
+  }, [editTeamDraft, platformUsers]);
+
+  const filteredNewCaptainCandidates = useMemo(() => {
+    const q = newCaptainSearchQuery.trim().toLowerCase();
+    if (!q) {
+      return newCaptainCandidates;
+    }
+    return newCaptainCandidates.filter(
+      (c) =>
+        c.phone.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.name.toLowerCase().includes(q)
+    );
+  }, [newCaptainCandidates, newCaptainSearchQuery]);
+
+  // 管理员后门：指定新队长并移除原队长（支持按手机号/邮箱搜索匹配或从候选列表中选择）
   const handleConfirmReplaceCaptain = () => {
     if (!editTeamDraft) return;
-    const chosenMember = editTeamDraft.members.find(
-      (m) => m.id === selectedNewCaptainMemberId
+    setNewCaptainSearchError(null);
+
+    const q = newCaptainSearchQuery.trim().toLowerCase();
+    let chosenCandidate = newCaptainCandidates.find(
+      (c) => c.id === selectedNewCaptainMemberId
     );
-    if (!chosenMember) return;
+
+    // 若用户输入了手机号或邮箱但尚未点击列表项，优先精确/模糊匹配搜索词
+    if (
+      q &&
+      (!chosenCandidate ||
+        (!chosenCandidate.phone.toLowerCase().includes(q) &&
+          !chosenCandidate.email.toLowerCase().includes(q) &&
+          !chosenCandidate.name.toLowerCase().includes(q)))
+    ) {
+      chosenCandidate =
+        newCaptainCandidates.find(
+          (c) => c.phone.toLowerCase() === q || c.email.toLowerCase() === q
+        ) || filteredNewCaptainCandidates[0];
+    }
+
+    if (!chosenCandidate) {
+      setNewCaptainSearchError('未找到匹配的候选人，请核对输入的手机号或邮箱');
+      return;
+    }
 
     const oldCaptainName = editTeamDraft.captainName;
-    const nextMembers = editTeamDraft.members.filter((m) => m.id !== chosenMember.id);
+    const nextMembers = editTeamDraft.members.filter(
+      (m) =>
+        m.id !== chosenCandidate!.id &&
+        m.phone !== chosenCandidate!.phone &&
+        m.email.toLowerCase() !== chosenCandidate!.email.toLowerCase()
+    );
 
     setEditTeamDraft({
       ...editTeamDraft,
-      captainName: chosenMember.name,
-      captainUniversity: chosenMember.university,
+      captainName: chosenCandidate.name,
+      captainUniversity: chosenCandidate.university,
+      captainVerified: chosenCandidate.isVerified,
       members: nextMembers,
     });
     setRemoveCaptainModalOpen(false);
+    setNewCaptainSearchQuery('');
+    setNewCaptainSearchError(null);
     setBackdoorFeedback(
-      `已将原队长「${oldCaptainName}」移出队伍，并指定「${chosenMember.name}」为新任队长（保存后将向相关成员发送通知）。`
+      `已将原队长「${oldCaptainName}」移出队伍，并指定「${chosenCandidate.name}（${chosenCandidate.phone}）」为新任队长（保存后将向相关成员发送通知）。`
     );
   };
 
@@ -1459,7 +1579,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 <input
                   type="text"
                   readOnly
-                  value={editingComp ? `${editingComp.title} (Event_ID: ${editingComp.id})` : cfgEventId}
+                  value={editingComp ? editingComp.title : '未知关联赛事'}
                   className="w-full px-3.5 py-2.5 text-sm bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-semibold cursor-not-allowed"
                 />
               ) : (
@@ -1475,7 +1595,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   ) : (
                     availableEventsForNewConfig.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.title} (Event_ID: {c.id})
+                        {c.title}
                       </option>
                     ))
                   )}
@@ -1516,122 +1636,151 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
               </div>
             </div>
 
-            {/* 3. 提前关闭开关 & 包含指导教师开关（已移除跨校组队配置，默认统一不允许跨校组队） */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 提前关闭开关 */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-white flex flex-col justify-between gap-3">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">提前关闭开关</span>
-                    <input
-                      type="checkbox"
-                      checked={cfgEarlyClosed}
-                      onChange={(e) => setCfgEarlyClosed(e.target.checked)}
-                      className="w-4 h-4 accent-[#0284C7] cursor-pointer"
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                    开启后立即停止报名，直接覆盖截止时间的判断，前端点击立即报名将提示“报名未开启”。
-                  </p>
-                </div>
-                <div className="text-[11px] font-bold">
-                  当前状态：
-                  <span className={cfgEarlyClosed ? 'text-red-600' : 'text-slate-500'}>
+            {/* 3. 报名的提前关闭开关（开关按钮样式） */}
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900">
+                    提前关闭报名开关
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${
+                      cfgEarlyClosed
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}
+                  >
                     {cfgEarlyClosed ? '已开启（立即停止报名）' : '未开启（按起止时间判断）'}
                   </span>
                 </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  开启后立即停止报名，直接覆盖截止时间的判断，前端点击立即报名将提示“报名未开启”。
+                </p>
               </div>
 
-              {/* 包含指导教师 */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-white flex flex-col justify-between gap-3">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">
-                      包含指导教师 <span className="text-red-500">*</span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={cfgIncludeAdvisor}
-                      onChange={(e) => setCfgIncludeAdvisor(e.target.checked)}
-                      className="w-4 h-4 accent-[#0284C7] cursor-pointer"
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                    默认开启。若关闭，前台报名表单将自动隐藏“邀请指导教师”模块。
-                  </p>
-                </div>
-                <div className="text-[11px] font-bold">
-                  当前状态：
-                  <span className={cfgIncludeAdvisor ? 'text-emerald-700' : 'text-slate-500'}>
-                    {cfgIncludeAdvisor ? '开启指导教师模块' : '隐藏指导教师模块'}
-                  </span>
-                </div>
-              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={cfgEarlyClosed}
+                onClick={() => setCfgEarlyClosed((prev) => !prev)}
+                className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  cfgEarlyClosed ? 'bg-red-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    cfgEarlyClosed ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
 
-            {/* 4. 教师人数上限 & 队伍人数限制 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-4 rounded-xl bg-sky-50/40 border border-sky-200/80">
-              {/* 教师人数上限（当“包含指导教师”开启时必填） */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  教师人数上限（限制 1-5 人）{' '}
-                  {cfgIncludeAdvisor && <span className="text-red-500">*</span>}
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={5}
-                  disabled={!cfgIncludeAdvisor}
-                  required={cfgIncludeAdvisor}
-                  value={cfgIncludeAdvisor ? cfgMaxAdvisors : 0}
-                  onChange={(e) => setCfgMaxAdvisors(Number(e.target.value))}
-                  className="w-full px-3.5 py-2 text-sm font-mono-num bg-white disabled:bg-slate-100 border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  {cfgIncludeAdvisor
-                    ? `每支战队最多可邀请 ${cfgMaxAdvisors} 名已认证指导教师`
-                    : '已关闭“包含指导教师”开关，前台不再展示指导教师模块'}
-                </p>
+            {/* 4. 人数设置：先设置队伍人数，再设置教师人数 */}
+            <div className="p-5 rounded-xl bg-sky-50/40 border border-sky-200/80 space-y-5">
+              <div className="flex items-center justify-between border-b border-sky-200/60 pb-2.5">
+                <div className="text-xs sm:text-sm font-extrabold text-slate-900">
+                  人数设置（先设置队伍人数，再设置指导教师人数）
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  实时约束前台报名表单的队员邀请与指导教师模块
+                </span>
               </div>
 
-              {/* 队伍人数限制（数字区间） */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  队伍人数限制（最少含队长 1-5 人，最多 1-20 人）{' '}
-                  <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <div className="text-[10px] text-slate-400 mb-0.5">最少人数(含队长)</div>
-                    <input
-                      type="number"
-                      min={1}
-                      max={5}
-                      required
-                      value={cfgMinTeamSize}
-                      onChange={(e) => setCfgMinTeamSize(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-sm font-mono-num bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
-                    />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* 第一项：队伍人数设置（最少人数 ~ 最多人数） */}
+                <div className="p-4 rounded-xl bg-white border border-slate-200/90 flex flex-col justify-between gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-2">
+                      1. 队伍人数限制（最少含队长 1-5 人，最多 1-20 人）{' '}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex-1">
+                        <div className="text-[11px] text-slate-500 mb-1">最少人数（含队长）</div>
+                        <input
+                          type="number"
+                          min={1}
+                          max={5}
+                          required
+                          value={cfgMinTeamSize}
+                          onChange={(e) => setCfgMinTeamSize(Number(e.target.value))}
+                          className="w-full px-3.5 py-2 text-sm font-mono-num bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
+                        />
+                      </div>
+                      <span className="text-slate-400 font-bold pt-5">~</span>
+                      <div className="flex-1">
+                        <div className="text-[11px] text-slate-500 mb-1">最多人数（含队长）</div>
+                        <input
+                          type="number"
+                          min={1}
+                          max={20}
+                          required
+                          value={cfgMaxTeamSize}
+                          onChange={(e) => setCfgMaxTeamSize(Number(e.target.value))}
+                          className="w-full px-3.5 py-2 text-sm font-mono-num bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-slate-400 font-bold pt-4">~</span>
-                  <div className="flex-1">
-                    <div className="text-[10px] text-slate-400 mb-0.5">最多人数(含队长)</div>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      required
-                      value={cfgMaxTeamSize}
-                      onChange={(e) => setCfgMaxTeamSize(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-sm font-mono-num bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
-                    />
-                  </div>
+                  <p className="text-[11px] text-[#0369A1] font-medium">
+                    {cfgMaxTeamSize === 1
+                      ? '当前最多人数限制为 1 人（单人赛），前台报名表单将自动隐藏“邀请队员”模块'
+                      : `每支战队须由 ${cfgMinTeamSize} 至 ${cfgMaxTeamSize} 名参赛学生组成（含队长本人）`}
+                  </p>
                 </div>
-                <p className="text-[11px] text-[#0369A1] font-medium mt-1">
-                  {cfgMaxTeamSize === 1
-                    ? '当前最多人数限制为 1 人（单人赛），前台报名表单将自动隐藏“邀请队员”模块'
-                    : `每支战队须由 ${cfgMinTeamSize} 至 ${cfgMaxTeamSize} 名参赛学生组成（含队长本人）`}
-                </p>
+
+                {/* 第二项：教师人数设置（包含指导教师开关 + 教师人数上限） */}
+                <div className="p-4 rounded-xl bg-white border border-slate-200/90 flex flex-col justify-between gap-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-bold text-slate-800">
+                          2. 指导教师人数设置 <span className="text-red-500">*</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {cfgIncludeAdvisor ? '已开启指导教师模块' : '已关闭（前台隐藏指导教师模块）'}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={cfgIncludeAdvisor}
+                        onClick={() => setCfgIncludeAdvisor((prev) => !prev)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          cfgIncludeAdvisor ? 'bg-[#0284C7]' : 'bg-slate-300'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                            cfgIncludeAdvisor ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-slate-500 mb-1">
+                        教师人数上限（限制 1-5 人）{' '}
+                        {cfgIncludeAdvisor && <span className="text-red-500">*</span>}
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={5}
+                        disabled={!cfgIncludeAdvisor}
+                        required={cfgIncludeAdvisor}
+                        value={cfgIncludeAdvisor ? cfgMaxAdvisors : 0}
+                        onChange={(e) => setCfgMaxAdvisors(Number(e.target.value))}
+                        className="w-full px-3.5 py-2 text-sm font-mono-num bg-white disabled:bg-slate-100 border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {cfgIncludeAdvisor
+                      ? `每支战队最多可邀请 ${cfgMaxAdvisors} 名已认证指导教师`
+                      : '已关闭“包含指导教师”开关，前台报名表单不再展示指导教师邀请项'}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1741,6 +1890,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       rejectReason={stages.schoolReason}
                       stage="school"
                     />
+                    <span className="text-slate-400 font-mono-num">
+                      （审核时间：{stages.schoolAuditedAt || '—'}）
+                    </span>
                   </div>
                   <div className="inline-flex items-center gap-1.5 text-xs">
                     <span className="text-slate-500 font-semibold">秘书处审核：</span>
@@ -1749,6 +1901,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       rejectReason={stages.secretariatReason}
                       stage="secretariat"
                     />
+                    <span className="text-slate-400 font-mono-num">
+                      （审核时间：{stages.secretariatAuditedAt || '—'}）
+                    </span>
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
@@ -1769,20 +1924,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 </div>
               </div>
             </div>
-
-            {adminRole === 'super_admin' && (
-              <button
-                type="button"
-                onClick={() => handleOpenAdminBackdoorEdit(team)}
-                className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 inline-flex items-center gap-1.5 cursor-pointer self-start"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-[#0284C7]" />
-                <span>进入特权编辑</span>
-              </button>
-            )}
           </div>
 
-          {/* 2. 成员列表表格（含认证状态快照，手机号/邮箱/身份证号均脱敏） */}
+          {/* 2. 成员列表表格（手机号/邮箱/身份证号均脱敏） */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-slate-900">
               队伍成员与指导教师明细（共 {allPersonRows.length} 人 · 隐私字段已脱敏）
@@ -1798,7 +1942,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                     <th className="py-3 px-4">手机号(脱敏)</th>
                     <th className="py-3 px-4">邮箱(脱敏)</th>
                     <th className="py-3 px-4">身份证号(脱敏)</th>
-                    <th className="py-3 px-4">认证状态快照（第三方返回状态）</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 text-xs bg-white">
@@ -1825,16 +1968,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       <td className="py-3.5 px-4 font-mono-num text-slate-600">{row.phone}</td>
                       <td className="py-3.5 px-4 font-mono-num text-slate-600">{row.email}</td>
                       <td className="py-3.5 px-4 font-mono-num text-slate-600">{row.idCard}</td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1 font-semibold ${
-                            row.isVerified ? 'text-emerald-700' : 'text-amber-600'
-                          }`}
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                          <span>{getCertSnapshotLabel(row.roleKey, row.isVerified)}</span>
-                        </span>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1899,8 +2032,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   // 渲染子视图 3B：队伍数据管理 —— 【编辑队伍（管理员后门逻辑）】
   // ==========================================================================
   if (subView === 'team-edit' && editTeamDraft) {
-    const editStages = resolveTeamAuditStages(editTeamDraft);
-
     return (
       <div className="space-y-6 pb-12 max-w-6xl 2xl:max-w-[1400px] mx-auto">
         <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
@@ -1912,14 +2043,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
             <ArrowLeft className="w-4 h-4" />
             <span>返回查看报名列表</span>
           </button>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="px-2.5 py-1 rounded bg-amber-50 border border-amber-200 text-amber-800 font-bold">
-              管理员特权后门编辑模式
-            </span>
-            <span className={`px-2.5 py-1 rounded border font-bold ${editStages.regStatusClass}`}>
-              原报名状态保持：{editStages.regStatusLabel}（保存后不重走审核流程）
-            </span>
-          </div>
         </div>
 
         {backdoorFeedback && (
@@ -1958,16 +2081,47 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    队伍 LOGO（默认 LOGO）
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    队伍 LOGO
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3.5">
                     <TeamLogoAvatar
                       logo={editTeamDraft.teamLogo}
                       teamName={editTeamDraft.teamName}
                       size="md"
                     />
-                    <span className="text-xs text-slate-500">使用平台统一默认战队徽标</span>
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="px-3 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>上传修改LOGO</span>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                            onChange={handleEditTeamLogoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {editTeamDraft.teamLogo &&
+                          editTeamDraft.teamLogo !== 'default-logo' && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditTeamDraft({
+                                  ...editTeamDraft,
+                                  teamLogo: 'default-logo',
+                                })
+                              }
+                              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold cursor-pointer"
+                            >
+                              恢复默认LOGO
+                            </button>
+                          )}
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        支持 PNG / JPG / WebP / SVG 格式，文件大小 ≤ 2MB
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2011,13 +2165,11 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
               <button
                 type="button"
                 onClick={() => {
-                  if (editTeamDraft.members.length === 0) {
-                    setBackdoorFeedback(
-                      '当前队伍无其他剩余队员可供接任队长，请先添加至少 1 名队员后再移除原队长。'
-                    );
-                    return;
-                  }
-                  setSelectedNewCaptainMemberId(editTeamDraft.members[0].id);
+                  setNewCaptainSearchQuery('');
+                  setNewCaptainSearchError(null);
+                  setSelectedNewCaptainMemberId(
+                    editTeamDraft.members[0]?.id || newCaptainCandidates[0]?.id || ''
+                  );
                   setRemoveCaptainModalOpen(true);
                 }}
                 className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
@@ -2240,10 +2392,10 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           </div>
         </div>
 
-        {/* 移除队长时强制弹出“请指定新队长”弹窗 */}
+        {/* 移除队长时强制弹出“请指定新队长”弹窗（带搜索输入框，支持按手机号或邮箱搜索） */}
         {removeCaptainModalOpen && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl">
               <div className="px-6 py-4 bg-amber-50 border-b border-amber-200 text-amber-900 font-extrabold text-sm flex items-center justify-between">
                 <span>请指定新队长</span>
                 <button
@@ -2256,19 +2408,117 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
               </div>
               <div className="p-6 space-y-4">
                 <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                  您正在移除当前队长 <strong>{editTeamDraft.captainName}</strong>。队伍不可无队长，请从本队剩余成员中指定一名新队长：
+                  您正在移除当前队长 <strong>{editTeamDraft.captainName}</strong>。队伍不可无队长，请输入手机号或邮箱搜索并指定一名新队长：
                 </p>
-                <select
-                  value={selectedNewCaptainMemberId}
-                  onChange={(e) => setSelectedNewCaptainMemberId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white focus:border-[#0284C7] focus:outline-none cursor-pointer"
-                >
-                  {editTeamDraft.members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}（{m.university}）
-                    </option>
-                  ))}
-                </select>
+
+                {/* 带搜索的输入框（支持按手机号或邮箱搜索） */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={newCaptainSearchQuery}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewCaptainSearchQuery(val);
+                          setNewCaptainSearchError(null);
+                          const q = val.trim().toLowerCase();
+                          if (q) {
+                            const matched = newCaptainCandidates.find(
+                              (c) =>
+                                c.phone.toLowerCase().includes(q) ||
+                                c.email.toLowerCase().includes(q) ||
+                                c.name.toLowerCase().includes(q)
+                            );
+                            if (matched) {
+                              setSelectedNewCaptainMemberId(matched.id);
+                            }
+                          }
+                        }}
+                        placeholder="输入手机号或邮箱搜索新队长..."
+                        className="w-full pl-9 pr-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:border-[#0284C7] focus:outline-none"
+                      />
+                    </div>
+                    {newCaptainSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewCaptainSearchQuery('');
+                          setNewCaptainSearchError(null);
+                        }}
+                        className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer shrink-0"
+                      >
+                        清空
+                      </button>
+                    )}
+                  </div>
+
+                  {newCaptainSearchError && (
+                    <div className="text-xs font-semibold text-red-600">
+                      {newCaptainSearchError}
+                    </div>
+                  )}
+                </div>
+
+                {/* 搜索结果 / 候选人选择列表 */}
+                <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100 bg-slate-50/50">
+                  {filteredNewCaptainCandidates.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400">
+                      未找到匹配该手机号或邮箱的用户
+                    </div>
+                  ) : (
+                    filteredNewCaptainCandidates.map((cand) => {
+                      const isSelected = selectedNewCaptainMemberId === cand.id;
+                      return (
+                        <button
+                          key={cand.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedNewCaptainMemberId(cand.id);
+                            setNewCaptainSearchError(null);
+                          }}
+                          className={`w-full px-3.5 py-2.5 text-left flex items-center justify-between gap-3 transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-sky-50/90 text-slate-900'
+                              : 'bg-white hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-bold flex items-center gap-2 flex-wrap">
+                              <span>{cand.name}</span>
+                              <span className="text-xs font-normal text-slate-500">
+                                （{cand.university}）
+                              </span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  cand.source === 'team_member'
+                                    ? 'bg-sky-100 text-[#0369A1]'
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                {cand.source === 'team_member' ? '本队现有队员' : '平台用户'}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-mono-num mt-0.5 truncate">
+                              手机：{cand.phone} · 邮箱：{cand.email}
+                            </div>
+                          </div>
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                              isSelected
+                                ? 'border-[#0284C7] bg-[#0284C7] text-white'
+                                : 'border-slate-300 bg-white'
+                            }`}
+                          >
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
                 <div className="flex justify-end gap-3 pt-2">
                   <button
                     type="button"
@@ -2393,7 +2643,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
 
     return (
       <div className="space-y-5 pb-12">
-        {/* 顶部面包屑与下载中心入口 */}
+        {/* 顶部面包屑 */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -2414,15 +2664,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
               </span>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => setDownloadCenterOpen(true)}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
-          >
-            <Download className="w-3.5 h-3.5 text-[#0284C7]" />
-            <span>异步下载中心 ({asyncDownloadTasks.length})</span>
-          </button>
         </div>
 
         {/* ===================================================================
@@ -2431,18 +2672,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
            =================================================================== */}
         {adminRole === 'super_admin' && (
           <div className="bg-gradient-to-r from-sky-50/90 via-white to-indigo-50/50 rounded-2xl border border-sky-200/90 p-4 sm:p-5 text-slate-900 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-2xs">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[#0284C7]" />
-                <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                  全局审核阶段开关控制（仅组委会超级管理员可见可操作）
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                控制高校管理员与秘书处管理员是否可进入对应审核阶段；当开关关闭时，前台已有状态不倒退，但后台无法进行新的审核操作。
-              </p>
-            </div>
-
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               {/* 开关1：高校审核阶段 [未开启 / 已开启] */}
               <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
@@ -2559,14 +2788,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 </span>
               </button>
             )}
-          </div>
-
-          <div className="text-xs text-slate-500">
-            {adminRole === 'school_admin'
-              ? `当前为【${adminInstitutionName}】高校管理员视角：仅展示本校已提交的报名队伍，且仅开放【高校审核（通过/驳回）】操作权限。`
-              : effectiveAuditTab === 'school'
-              ? '阶段一【高校审核】：审核队长已提交的报名队伍；高校审核通过后自动进入【秘书处审核】。无论被高校还是秘书处驳回，队长修改重提后均重新进入【高校审核】与【秘书处审核】流程。'
-              : '阶段二【秘书处审核】：仅展示高校审核已通过的队伍；秘书处审核通过后报名状态变为【报名成功】。若秘书处审核驳回，队长修改重提后将重新从【高校审核】开始流转。'}
           </div>
         </div>
 
@@ -2685,17 +2906,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   导出Excel ({selectedTeamIds.length > 0 ? `已选${selectedTeamIds.length}项` : '当前筛选全部'})
                 </span>
               </button>
-
-              {adminRole === 'super_admin' && (
-                <button
-                  type="button"
-                  onClick={() => handleTriggerExportExcel(true)}
-                  className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold cursor-pointer"
-                  title="演示导出数据量 > 5000 条时的后台异步生成机制"
-                >
-                  模拟&gt;5000条异步导出
-                </button>
-              )}
 
               {/* 【批量审核】 */}
               <button
@@ -2816,7 +3026,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   <th className="py-3.5 px-4 whitespace-nowrap">队伍LOGO / 队伍名称</th>
                   <th className="py-3.5 px-4 whitespace-nowrap">所属院校</th>
                   <th className="py-3.5 px-4">所选赛道</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">成员确认进度</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">队伍人数</th>
                   <th className="py-3.5 px-4 whitespace-nowrap">队长姓名 / 手机号</th>
                   <th className="py-3.5 px-4 whitespace-nowrap">报名状态</th>
                   <th className="py-3.5 px-4 whitespace-nowrap">高校审核</th>
@@ -2837,7 +3047,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   filteredEventTeams.map((team) => {
                     const isChecked = selectedTeamIds.includes(team.id);
                     const stages = resolveTeamAuditStages(team);
-                    const confirmProgress = computeTeamConfirmProgress(team);
                     const canAuditInCurrentTab =
                       isCurrentStageSwitchEnabled &&
                       (effectiveAuditTab === 'school'
@@ -2902,15 +3111,16 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           <div className="line-clamp-1">{team.subTrackName}</div>
                         </td>
 
-                        {/* 成员确认进度：邀请X人，X人已同意，X人已拒绝 */}
+                        {/* 队伍人数 */}
                         <td className="py-4 px-4 align-middle whitespace-nowrap">
-                          <div className="font-semibold text-slate-700">
-                            {confirmProgress.label}
+                          <div className="font-bold text-slate-900 font-mono-num">
+                            {1 + team.members.length} 人
                           </div>
-                          <div className="text-[11px] text-slate-400 mt-0.5">
-                            共 {1 + team.members.length} 名学生
-                            {team.advisors.length > 0 ? ` · ${team.advisors.length} 名老师` : ''}
-                          </div>
+                          {team.advisors.length > 0 && (
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              指导教师 {team.advisors.length} 人
+                            </div>
+                          )}
                         </td>
 
                         {/* 队长姓名 / 队长手机号 */}
@@ -3557,12 +3767,12 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   // ==========================================================================
   return (
     <div className="space-y-5 pb-12">
-      {/* 顶部搜索区：赛事名称（模糊搜索） + 状态（未开始/开启中/已截止/已停用） + 新增按钮 */}
+      {/* 顶部搜索区：赛事名称（模糊搜索） + 报名状态（未开始/开启中/已截止/已停用） + 新增按钮 */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
-              状态筛选：
+              报名状态：
             </span>
             <select
               value={listStatusFilter}
@@ -3573,7 +3783,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
               }
               className="px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:border-[#0284C7] focus:outline-none cursor-pointer"
             >
-              <option value="all">全部状态 ({registrationConfigs.length})</option>
+              <option value="all">全部报名状态 ({registrationConfigs.length})</option>
               <option value="not_started">未开始</option>
               <option value="open">开启中</option>
               <option value="ended">已截止</option>
@@ -3622,7 +3832,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   {adminRole === 'school_admin' ? '本校已报人数' : '已报名人数'}
                 </th>
                 <th className="py-3.5 px-4 whitespace-nowrap">审核阶段开关状态</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">状态</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">报名状态</th>
                 <th className="py-3.5 px-4 text-right whitespace-nowrap">操作</th>
               </tr>
             </thead>
@@ -3645,13 +3855,10 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
 
                   return (
                     <tr key={cfg.id} className="hover:bg-sky-50/40 transition-colors">
-                      {/* 关联赛事名称 */}
+                      {/* 关联赛事名称（已删除 eventId） */}
                       <td className="py-4 px-4 align-middle">
                         <div className="font-bold text-slate-900 line-clamp-1">
-                          {comp?.title || `未知赛事 (${cfg.eventId})`}
-                        </div>
-                        <div className="text-[11px] text-slate-400 font-mono-num mt-0.5">
-                          Event_ID: {cfg.eventId}
+                          {comp?.title || '未知关联赛事'}
                         </div>
                       </td>
 
@@ -3817,7 +4024,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 彻底删除后数据不可恢复！确认删除？
               </p>
               <p className="text-xs text-slate-500 leading-relaxed">
-                即将删除赛事《{getCompById(deleteConfigConfirmTarget.eventId)?.title}》的报名配置记录（Event_ID: {deleteConfigConfirmTarget.eventId}），删除操作将实时写入后台安全操作审计日志。
+                即将删除赛事《{getCompById(deleteConfigConfirmTarget.eventId)?.title}》的报名配置记录，删除操作将实时写入后台安全操作审计日志。
               </p>
               <div className="flex justify-end gap-3 pt-2">
                 <button

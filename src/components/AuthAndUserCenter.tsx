@@ -43,8 +43,10 @@ import {
 } from '../data/competitionData';
 import {
   MyRegistrationsClosedLoopModule,
+  TeamLogoAvatar,
   resolveTeamAuditStages,
   buildApprovedSnapshotFromCaptainTeam,
+  resolvePersonContactByName,
   isUserAccountExpired,
   getEffectiveUserStatus,
   isTeamOwnedByUser,
@@ -54,7 +56,10 @@ import {
   type PlatformDirectoryUser,
 } from './TeamRegistrationSystem';
 import type { EventRegistrationConfig } from './AdminRegistrationManagement';
-import type { VerificationApplicationRecord } from './InstitutionAndContentManagement';
+import type {
+  VerificationApplicationRecord,
+  VerificationAttachmentItem,
+} from './InstitutionAndContentManagement';
 
 // ============================================================================
 // 站内消息中心（顶部铃铛下拉面板 + 个人中心“我的消息”TAB 100% 同步数据结构）
@@ -3401,8 +3406,35 @@ export const StandaloneUserCenterPage: React.FC<{
       const comp = competitions.find((c) => c.id === team.competitionId);
       const statusKey = comp ? computeCompetitionStatus(comp.startDate, comp.endDate) : 'ongoing';
       const statusLabel = getCompetitionStatusLabel(statusKey);
-      const snapshot =
-        team.approvedSnapshot || buildApprovedSnapshotFromCaptainTeam(team);
+      const baseGenerated = buildApprovedSnapshotFromCaptainTeam(team);
+      const rawSnap = team.approvedSnapshot || baseGenerated;
+      const snapshot: TeamApprovedSnapshot = {
+        ...baseGenerated,
+        ...rawSnap,
+        competitionTitle:
+          rawSnap.competitionTitle || comp?.title || team.competitionTitle,
+        teamLogo: rawSnap.teamLogo || team.teamLogo || 'default-logo',
+        teamIntro:
+          rawSnap.teamIntro ||
+          team.teamIntro ||
+          '专注网络与数据安全攻防技术研究。',
+        captainPhone: rawSnap.captainPhone || baseGenerated.captainPhone,
+        captainEmail: rawSnap.captainEmail || baseGenerated.captainEmail,
+        createdAt: rawSnap.createdAt || team.createdAt || rawSnap.approvedAt,
+        members: rawSnap.members.map((m) => {
+          const contact = resolvePersonContactByName(
+            m.name,
+            m.phone,
+            m.email,
+            platformUsers
+          );
+          return {
+            ...m,
+            phone: contact.phone,
+            email: contact.email,
+          };
+        }),
+      };
 
       list.push({
         id: `my-comp-cap-${team.id}`,
@@ -3433,13 +3465,16 @@ export const StandaloneUserCenterPage: React.FC<{
         const myRole: '队长' | '队员' | '指导教师' =
           pt.myRoleInTeam === '指导教师' ? '指导教师' : '队员';
 
-        const fallbackSnapshot: TeamApprovedSnapshot = pt.approvedSnapshot || {
-          teamName: pt.teamName,
-          subTrackName: pt.subTrackName,
-          university: pt.university,
-          captainName: pt.captainName,
-          approvedAt: pt.invitedAt,
-          members: pt.teammatesSummary.map((raw) => {
+        const capContact = resolvePersonContactByName(
+          pt.captainName,
+          pt.approvedSnapshot?.captainPhone || pt.captainPhone,
+          pt.approvedSnapshot?.captainEmail,
+          platformUsers
+        );
+
+        const rawMembers: TeamApprovedSnapshot['members'] =
+          pt.approvedSnapshot?.members ||
+          pt.teammatesSummary.map((raw) => {
             const role: '队长' | '队员' | '指导教师' = raw.includes('队长')
               ? '队长'
               : raw.includes('指导教师')
@@ -3450,6 +3485,38 @@ export const StandaloneUserCenterPage: React.FC<{
               name,
               role,
               university: pt.university,
+            };
+          });
+
+        const fallbackSnapshot: TeamApprovedSnapshot = {
+          competitionTitle:
+            pt.approvedSnapshot?.competitionTitle ||
+            comp?.title ||
+            pt.competitionTitle,
+          teamName: pt.approvedSnapshot?.teamName || pt.teamName,
+          teamLogo: pt.approvedSnapshot?.teamLogo || pt.teamLogo || 'default-logo',
+          teamIntro:
+            pt.approvedSnapshot?.teamIntro ||
+            pt.teamIntro ||
+            '专注网络与数据安全攻防技术研究。',
+          subTrackName: pt.approvedSnapshot?.subTrackName || pt.subTrackName,
+          university: pt.approvedSnapshot?.university || pt.university,
+          captainName: pt.approvedSnapshot?.captainName || pt.captainName,
+          captainPhone: capContact.phone,
+          captainEmail: capContact.email,
+          createdAt: pt.approvedSnapshot?.createdAt || pt.invitedAt,
+          approvedAt: pt.approvedSnapshot?.approvedAt || pt.invitedAt,
+          members: rawMembers.map((m) => {
+            const contact = resolvePersonContactByName(
+              m.name,
+              m.phone,
+              m.email,
+              platformUsers
+            );
+            return {
+              ...m,
+              phone: contact.phone,
+              email: contact.email,
             };
           }),
         };
@@ -3471,7 +3538,7 @@ export const StandaloneUserCenterPage: React.FC<{
     }
 
     return list;
-  }, [captainTeams, participatedTeams, competitions, user]);
+  }, [captainTeams, participatedTeams, competitions, user, platformUsers]);
 
   // --------------------------------------------------------------------------
   // 1、【个人信息】修改/绑定弹窗状态（用户名、手机号、邮箱）
@@ -3718,16 +3785,61 @@ export const StandaloneUserCenterPage: React.FC<{
   const [stuAutoFailed, setStuAutoFailed] = useState(false);
   const [stuSimulateAutoFail, setStuSimulateAutoFail] = useState(false);
   const [stuManualExpanded, setStuManualExpanded] = useState(false);
-  const [stuManualFileName, setStuManualFileName] = useState('');
+  const [stuManualFiles, setStuManualFiles] = useState<VerificationAttachmentItem[]>([]);
   const [stuFormError, setStuFormError] = useState<string | null>(null);
 
   // 教师认证表单状态
   const [teaSchool, setTeaSchool] = useState(user.university || '');
   const [teaDept, setTeaDept] = useState(user.majorOrDept || '');
   const [teaStaffId, setTeaStaffId] = useState(user.studentId || '');
-  const [teaFileName, setTeaFileName] = useState('');
+  const [teaFiles, setTeaFiles] = useState<VerificationAttachmentItem[]>([]);
   const [teaFormError, setTeaFormError] = useState<string | null>(null);
   const [adminNotificationBanner, setAdminNotificationBanner] = useState<string | null>(null);
+
+  const ALLOWED_CERT_EXTS = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'ppt', 'pptx', 'zip', 'rar'];
+
+  const handleAddCertFiles = (
+    fileList: FileList | null,
+    currentFiles: VerificationAttachmentItem[],
+    setFiles: React.Dispatch<React.SetStateAction<VerificationAttachmentItem[]>>,
+    setError: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    if (!fileList || fileList.length === 0) return;
+    setError(null);
+    const incoming = Array.from(fileList);
+
+    if (currentFiles.length + incoming.length > 10) {
+      setError(`上传的附件最多不超过 10 个（当前已上传 ${currentFiles.length} 个，本次选择了 ${incoming.length} 个）`);
+      return;
+    }
+
+    const nextItems: VerificationAttachmentItem[] = [];
+    for (const file of incoming) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      if (!ALLOWED_CERT_EXTS.includes(ext)) {
+        setError(
+          `文件「${file.name}」格式不支持，请上传 jpg、jpeg、png、pdf、doc、docx、ppt、pptx、zip、rar 等常见格式`
+        );
+        return;
+      }
+      const sizeKb = Math.max(1, Math.round(file.size / 1024));
+      const sizeStr =
+        sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(2)} MB` : `${sizeKb} KB`;
+      const isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+      const url = isImage
+        ? URL.createObjectURL(file)
+        : 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80';
+      nextItems.push({
+        id: `cert-att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name,
+        size: sizeStr,
+        url,
+        fileType: ext,
+      });
+    }
+
+    setFiles((prev) => [...prev, ...nextItems]);
+  };
 
   // 点击模块二【去验证】或【重新验证】
   const handleOpenAcademicModal = () => {
@@ -3800,11 +3912,16 @@ export const StandaloneUserCenterPage: React.FC<{
       setStuFormError('请先选择标准学校名称并填写专业');
       return;
     }
-    if (!stuManualFileName) {
-      setStuFormError('请上传学信网在线验证报告或学生证照片作为人工审核凭证');
+    if (stuManualFiles.length === 0) {
+      setStuFormError('请至少上传 1 份学信网在线验证报告或学生证等证明材料（最多不超过 10 个）');
+      return;
+    }
+    if (stuManualFiles.length > 10) {
+      setStuFormError('上传的附件最多不超过 10 个');
       return;
     }
     const nowStr = '2026-10-28 10:25:00';
+    const firstFile = stuManualFiles[0];
     const updated: UserProfileData = {
       ...user,
       role: 'student',
@@ -3830,15 +3947,15 @@ export const StandaloneUserCenterPage: React.FC<{
       majorOrDept: stuMajor.trim(),
       studentOrStaffId: user.studentId || 'STU2026001',
       levelOrTitle: '全日制本科',
-      submitChannel: '人工兜底 · 学信网报告/学生证照片',
-      materialFileName: stuManualFileName,
-      materialPreviewUrl:
-        'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80',
+      submitChannel: '人工兜底 · 学信网报告/学生证附件',
+      materialFileName: firstFile.name,
+      materialPreviewUrl: firstFile.url,
+      attachments: stuManualFiles,
       applicantNote: '前台个人中心提交学生学籍人工兜底审核申请。',
       submittedAt: nowStr,
     });
     setAdminNotificationBanner(
-      `【系统通知】已根据您选择的学校（${stuSchool}），自动向后台【认证管理 -> 学生认证】推送人工审核申请。`
+      `【系统通知】已根据您选择的学校（${stuSchool}），自动向后台【认证管理 -> 学生认证】推送人工审核申请（共 ${stuManualFiles.length} 份附件）。`
     );
     onAddAuditLog({
       operator: user.username,
@@ -3847,7 +3964,7 @@ export const StandaloneUserCenterPage: React.FC<{
       device: 'Windows 11 / Chrome 130.0',
       action: '提交学生学籍人工兜底认证',
       result: '成功',
-      detail: `已上传证明材料(${stuManualFileName})并推送至后台【认证管理-学生认证】审核`,
+      detail: `已上传 ${stuManualFiles.length} 份证明材料(${stuManualFiles.map((f) => f.name).join('、')})并推送至后台【认证管理-学生认证】审核`,
     });
     setAcademicModalOpen(null);
   };
@@ -3868,12 +3985,17 @@ export const StandaloneUserCenterPage: React.FC<{
       setTeaFormError('请填写教工号');
       return;
     }
-    if (!teaFileName) {
-      setTeaFormError('请上传教师资格证或学校工作证/工牌照片');
+    if (teaFiles.length === 0) {
+      setTeaFormError('请上传教师资格证或学校工作证/工牌等证明材料（最多不超过 10 个）');
+      return;
+    }
+    if (teaFiles.length > 10) {
+      setTeaFormError('上传的附件最多不超过 10 个');
       return;
     }
 
     const nowStr = '2026-10-28 10:30:00';
+    const firstFile = teaFiles[0];
     const updated: UserProfileData = {
       ...user,
       role: 'teacher',
@@ -3901,14 +4023,14 @@ export const StandaloneUserCenterPage: React.FC<{
       studentOrStaffId: teaStaffId.trim(),
       levelOrTitle: '高校专任教师',
       submitChannel: '指导教师资格人工审核（工作证 + 教师资格证）',
-      materialFileName: teaFileName,
-      materialPreviewUrl:
-        'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=900&q=80',
+      materialFileName: firstFile.name,
+      materialPreviewUrl: firstFile.url,
+      attachments: teaFiles,
       applicantNote: '前台个人中心提交指导教师资格认证申请。',
       submittedAt: nowStr,
     });
     setAdminNotificationBanner(
-      `【系统通知】已根据您填写的学校（${teaSchool}），自动向后台【认证管理 -> 教师认证】发送指导教师资格待审核通知。`
+      `【系统通知】已根据您填写的学校（${teaSchool}），自动向后台【认证管理 -> 教师认证】发送指导教师资格待审核通知（共 ${teaFiles.length} 份附件）。`
     );
     onAddAuditLog({
       operator: user.username,
@@ -3917,7 +4039,7 @@ export const StandaloneUserCenterPage: React.FC<{
       device: 'Windows 11 / Chrome 130.0',
       action: '提交指导教师资格认证申请',
       result: '成功',
-      detail: `学校：${teaSchool}，院系：${teaDept.trim()}，教工号：${teaStaffId.trim()}，状态已更新为【审核中】`,
+      detail: `学校：${teaSchool}，院系：${teaDept.trim()}，教工号：${teaStaffId.trim()}，附件数：${teaFiles.length}，状态已更新为【审核中】`,
     });
     setAcademicModalOpen(null);
   };
@@ -3953,19 +4075,6 @@ export const StandaloneUserCenterPage: React.FC<{
                 ? '我的竞赛'
                 : '我的消息'}
             </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">
-              当前登录账号：<strong className="text-slate-800">{user.username}</strong>
-            </span>
-            <button
-              type="button"
-              onClick={onLogout}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:text-red-600 text-xs font-semibold text-slate-600 cursor-pointer transition-colors"
-            >
-              退出登录
-            </button>
           </div>
         </div>
       </div>
@@ -5299,138 +5408,222 @@ export const StandaloneUserCenterPage: React.FC<{
       )}
 
       {/* =====================================================================
-          抽屉/弹窗：【我的竞赛 -> 查看队伍详情】（只读展示报名成功时的基本信息快照）
+          弹窗：【我的竞赛 -> 查看队伍详情】（完整回显报名时填写的所有队伍字段 + 每个队员的手机号与邮箱）
          ===================================================================== */}
       {snapshotDrawerItem && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex justify-end">
-          <div className="bg-white w-full max-w-lg h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-y-auto">
-            <div className="space-y-6">
-              {/* 抽屉顶部栏 */}
-              <div className="px-6 py-5 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between sticky top-0 z-10">
-                <div>
-                  <div className="text-[11px] text-sky-100 font-semibold">
-                    报名成功固化快照 · 只读详情
-                  </div>
-                  <h3 className="text-base font-extrabold mt-0.5">
-                    查看队伍详情（{snapshotDrawerItem.snapshot.teamName}）
-                  </h3>
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] overflow-hidden my-auto">
+            {/* 弹窗顶部栏 */}
+            <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between shrink-0">
+              <div>
+                <div className="text-[11px] text-sky-100 font-semibold">
+                  报名成功队伍档案 · 完整报名信息
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSnapshotDrawerItem(null)}
-                  className="text-white/80 hover:text-white p-1 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <h3 className="text-base sm:text-lg font-extrabold mt-0.5">
+                  查看队伍详情（{snapshotDrawerItem.snapshot.teamName}）
+                </h3>
               </div>
+              <button
+                type="button"
+                onClick={() => setSnapshotDrawerItem(null)}
+                className="text-white/80 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <div className="px-6 space-y-5">
-                {/* 快照说明提示 */}
-                <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-xs text-slate-700 leading-relaxed flex items-start gap-2.5">
-                  <Lock className="w-4 h-4 text-[#0284C7] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-slate-900">报名成功快照保护说明：</span>
-                    此处只读展示该队伍在<strong>【报名成功】</strong>时刻固化的基本信息（队伍名、赛道、成员列表），不受后续管理员后台特权修改影响。
-                  </div>
+            {/* 弹窗主体内容区 */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              {/* 一、赛事与队伍基本信息（对应报名表第一部分所有字段） */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <Trophy className="w-4 h-4 text-[#0284C7]" />
+                    <span>一、赛事与队伍基本信息</span>
+                  </h4>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>报名成功（双级终审已通过）</span>
+                  </span>
                 </div>
 
-                {/* 基本信息卡片 */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3 text-xs">
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">参赛赛事</span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      {snapshotDrawerItem.competitionTitle}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200/70">
-                    <div>
-                      <span className="text-slate-400 block mb-0.5">队伍名称（快照）</span>
-                      <span className="font-extrabold text-slate-900 text-sm">
-                        {snapshotDrawerItem.snapshot.teamName}
-                      </span>
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-4 text-xs">
+                  {/* 队伍 LOGO + 队伍名称 + 我的参赛身份 */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
+                    <div className="flex items-center gap-3.5">
+                      <TeamLogoAvatar
+                        logo={snapshotDrawerItem.snapshot.teamLogo}
+                        teamName={snapshotDrawerItem.snapshot.teamName}
+                        size="lg"
+                      />
+                      <div className="space-y-1">
+                        <div className="text-[11px] text-slate-400 font-semibold">
+                          队伍名称 &amp; 队伍 LOGO
+                        </div>
+                        <div className="text-base sm:text-lg font-extrabold text-slate-900">
+                          {snapshotDrawerItem.snapshot.teamName}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                          <span>
+                            所属院校：
+                            <strong className="text-[#0369A1]">
+                              {snapshotDrawerItem.snapshot.university}
+                            </strong>
+                          </span>
+                          <span className="text-slate-300">|</span>
+                          <span>
+                            发起队长：
+                            <strong className="text-slate-900">
+                              {snapshotDrawerItem.snapshot.captainName}
+                            </strong>
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block mb-0.5">我的参赛身份</span>
-                      <span className="font-bold text-[#0284C7]">
+
+                    <div className="sm:text-right shrink-0">
+                      <span className="text-slate-400 block mb-1">我的参赛身份</span>
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-extrabold border ${
+                          snapshotDrawerItem.myRole === '队长'
+                            ? 'bg-sky-50 text-[#0284C7] border-sky-200'
+                            : snapshotDrawerItem.myRole === '指导教师'
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            : 'bg-white text-slate-700 border-slate-200'
+                        }`}
+                      >
                         {snapshotDrawerItem.myRole}
                       </span>
                     </div>
-                    <div className="col-span-2">
-                      <span className="text-slate-400 block mb-0.5">所选赛道（快照）</span>
-                      <span className="font-bold text-slate-800">
+                  </div>
+
+                  {/* 赛事名称、参赛赛道、所属院校、报名时间等完整字段 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-slate-400 block mb-1">赛事名称</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                        {snapshotDrawerItem.snapshot.competitionTitle ||
+                          snapshotDrawerItem.competitionTitle}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-1">参赛赛道</span>
+                      <span className="font-bold text-slate-800 text-xs sm:text-sm">
                         {snapshotDrawerItem.snapshot.subTrackName}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block mb-0.5">所属院校</span>
-                      <span className="font-semibold text-slate-800">
+                      <span className="text-slate-400 block mb-1">所属院校</span>
+                      <span className="font-bold text-slate-800">
                         {snapshotDrawerItem.snapshot.university}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block mb-0.5">快照生成时间</span>
-                      <span className="font-mono-num text-slate-600">
+                      <span className="text-slate-400 block mb-1">发起队长及联系方式</span>
+                      <span className="font-semibold text-slate-800 font-mono-num">
+                        {snapshotDrawerItem.snapshot.captainName}
+                        {snapshotDrawerItem.snapshot.captainPhone
+                          ? ` · ${snapshotDrawerItem.snapshot.captainPhone}`
+                          : ''}
+                        {snapshotDrawerItem.snapshot.captainEmail
+                          ? ` · ${snapshotDrawerItem.snapshot.captainEmail}`
+                          : ''}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-1">报名创建时间</span>
+                      <span className="font-mono-num text-slate-700">
+                        {snapshotDrawerItem.snapshot.createdAt ||
+                          snapshotDrawerItem.snapshot.approvedAt}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-1">终审通过时间</span>
+                      <span className="font-mono-num text-slate-700">
                         {snapshotDrawerItem.snapshot.approvedAt}
                       </span>
                     </div>
+
+                    {/* 队伍介绍（报名表必填项） */}
+                    <div className="sm:col-span-2 pt-3 border-t border-slate-200/80">
+                      <span className="text-slate-400 block mb-1">队伍介绍（简短介绍）</span>
+                      <p className="text-slate-800 text-xs sm:text-sm leading-relaxed bg-white p-3 rounded-lg border border-slate-200/80">
+                        {snapshotDrawerItem.snapshot.teamIntro || '专注网络与数据安全攻防技术研究。'}
+                      </p>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                {/* 成员列表（只读） */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-[#0284C7]" />
-                      <span>队伍成员列表（共 {snapshotDrawerItem.snapshot.members.length} 人）</span>
-                    </h4>
-                    <span className="text-[11px] text-slate-400">只读快照</span>
-                  </div>
+              {/* 二、成员管理明细（完整回显队长、团队成员、指导教师的姓名、身份、院校、手机号、邮箱） */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-[#0284C7]" />
+                    <span>
+                      二、队伍成员与指导教师名单（共 {snapshotDrawerItem.snapshot.members.length} 人）
+                    </span>
+                  </h4>
+                  <span className="text-[11px] text-slate-400">
+                    含队长、团队成员及指导教师完整联系方式
+                  </span>
+                </div>
 
-                  <div className="rounded-xl border border-slate-200 overflow-hidden">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
-                          <th className="py-2.5 px-3.5">姓名</th>
-                          <th className="py-2.5 px-3.5">队伍身份</th>
-                          <th className="py-2.5 px-3.5">所属院校</th>
+                <div className="rounded-xl border border-slate-200 overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
+                        <th className="py-3 px-3.5 whitespace-nowrap">姓名</th>
+                        <th className="py-3 px-3.5 whitespace-nowrap">队伍身份</th>
+                        <th className="py-3 px-3.5 whitespace-nowrap">所属院校</th>
+                        <th className="py-3 px-3.5 whitespace-nowrap">手机号</th>
+                        <th className="py-3 px-3.5 whitespace-nowrap">电子邮箱</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {snapshotDrawerItem.snapshot.members.map((m, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-3 px-3.5 font-bold text-slate-900 whitespace-nowrap">
+                            {m.name}
+                          </td>
+                          <td className="py-3 px-3.5 whitespace-nowrap">
+                            <span
+                              className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold border ${
+                                m.role === '队长'
+                                  ? 'bg-sky-50 text-[#0284C7] border-sky-200'
+                                  : m.role === '指导教师'
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              {m.role}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3.5 text-slate-700 whitespace-nowrap">
+                            {m.university}
+                          </td>
+                          <td className="py-3 px-3.5 font-mono-num text-slate-700 whitespace-nowrap">
+                            {m.phone || '-'}
+                          </td>
+                          <td className="py-3 px-3.5 font-mono-num text-slate-700 whitespace-nowrap">
+                            {m.email || '-'}
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {snapshotDrawerItem.snapshot.members.map((m, idx) => (
-                          <tr key={idx}>
-                            <td className="py-2.5 px-3.5 font-bold text-slate-900">
-                              {m.name}
-                            </td>
-                            <td className="py-2.5 px-3.5">
-                              <span
-                                className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold border ${
-                                  m.role === '队长'
-                                    ? 'bg-sky-50 text-[#0284C7] border-sky-200'
-                                    : m.role === '指导教师'
-                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                    : 'bg-slate-50 text-slate-700 border-slate-200'
-                                }`}
-                              >
-                                {m.role}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3.5 text-slate-600">{m.university}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
 
-            <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-end sticky bottom-0">
+            {/* 弹窗底部栏 */}
+            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => setSnapshotDrawerItem(null)}
                 className="px-6 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer"
               >
-                关闭抽屉
+                关闭弹窗
               </button>
             </div>
           </div>
@@ -5883,33 +6076,93 @@ export const StandaloneUserCenterPage: React.FC<{
                       <p className="text-xs text-slate-600 leading-relaxed">
                         人工兜底通道：如果您是军校学生、科研院所联培生或刚入学新生导致自动接口未查到数据，请上传<strong>学生证注册页</strong>或<strong>学信网在线验证报告</strong>，由您所选高校的【高校管理员】进行人工审核。
                       </p>
-                      <div className="flex items-center gap-3">
-                        <label className="px-3.5 py-2 rounded-lg bg-white border border-amber-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer">
-                          <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
-                          <span>选择证明附件</span>
-                          <input
-                            type="file"
-                            accept="image/*,.pdf"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              setStuManualFileName(
-                                file ? file.name : '学信网在线验证报告_2026.pdf'
-                              );
-                            }}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setStuManualFileName('教育部学籍在线验证报告_扫描件.pdf')}
-                          className="text-xs text-[#0284C7] underline cursor-pointer"
-                        >
-                          一键填入演示证明文件
-                        </button>
+                      <div className="text-[11px] text-amber-800 bg-amber-100/70 px-3 py-1.5 rounded-lg border border-amber-200">
+                        附件要求：最多不超过 <strong>10 个</strong>附件，支持常规图片及常见文件格式（<strong>jpg、jpeg、png、pdf、doc、docx、ppt、pptx、zip、rar</strong> 等）。
                       </div>
-                      {stuManualFileName && (
-                        <div className="text-xs text-emerald-700 font-medium">
-                          已附加文件：{stuManualFileName}
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <label
+                            className={`px-3.5 py-2 rounded-lg bg-white border border-amber-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer ${
+                              stuManualFiles.length >= 10 ? 'opacity-50 pointer-events-none' : ''
+                            }`}
+                          >
+                            <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
+                            <span>选择证明附件（可多选）</span>
+                            <input
+                              type="file"
+                              multiple
+                              accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.ppt,.pptx,.zip,.rar"
+                              className="hidden"
+                              onChange={(e) => {
+                                handleAddCertFiles(
+                                  e.target.files,
+                                  stuManualFiles,
+                                  setStuManualFiles,
+                                  setStuFormError
+                                );
+                                e.target.value = '';
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStuFormError(null);
+                              setStuManualFiles([
+                                {
+                                  id: `demo-stu-1-${Date.now()}`,
+                                  name: '教育部学籍在线验证报告_2026.pdf',
+                                  size: '1.28 MB',
+                                  url: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80',
+                                  fileType: 'pdf',
+                                },
+                                {
+                                  id: `demo-stu-2-${Date.now()}`,
+                                  name: '学生证注册页及钢印扫描件.jpg',
+                                  size: '840 KB',
+                                  url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=900&q=80',
+                                  fileType: 'jpg',
+                                },
+                              ]);
+                            }}
+                            className="text-xs text-[#0284C7] underline cursor-pointer"
+                          >
+                            一键填入演示证明文件
+                          </button>
+                        </div>
+                        <span className="text-[11px] font-mono text-slate-600">
+                          已上传 <strong>{stuManualFiles.length}</strong> / 10 个附件
+                        </span>
+                      </div>
+                      {stuManualFiles.length > 0 && (
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                          {stuManualFiles.map((f, idx) => (
+                            <div
+                              key={f.id}
+                              className="px-3 py-1.5 rounded-lg bg-white border border-amber-200 flex items-center justify-between gap-2 text-xs"
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <span className="text-[11px] font-mono text-amber-700 font-bold">
+                                  #{idx + 1}
+                                </span>
+                                <FileText className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                                <span className="text-slate-800 font-medium truncate">{f.name}</span>
+                                <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                                  ({f.size})
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setStuManualFiles((prev) => prev.filter((item) => item.id !== f.id))
+                                }
+                                className="text-slate-400 hover:text-red-600 cursor-pointer p-0.5"
+                                title="移除该附件"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       )}
                       <button
@@ -5995,43 +6248,103 @@ export const StandaloneUserCenterPage: React.FC<{
                 />
               </div>
 
-              {/* 证明材料：[ 上传附件 ] */}
+              {/* 证明材料：[ 上传附件 ]（最多不超过10个） */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  证明材料 *（请上传教师资格证或学校工作证/工牌照片，仅用于审核）
+                  证明材料 *（请上传教师资格证或学校工作证/工牌等证明材料，仅用于审核）
                 </label>
-                <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <label className="px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer shadow-2xs">
-                      <Upload className="w-4 h-4 text-[#0284C7]" />
-                      <span>上传附件</span>
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          setTeaFileName(file ? file.name : '高校教师工作证_正反面.jpg');
-                        }}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!teaSchool) setTeaSchool('北京大学');
-                        if (!teaDept) setTeaDept('计算机科学与技术学院');
-                        if (!teaStaffId) setTeaStaffId('PKU-T2019086');
-                        setTeaFileName('高校工作证与教师资格证扫描件.jpg');
-                      }}
-                      className="text-xs text-[#0284C7] underline cursor-pointer"
-                    >
-                      一键填入演示教师材料
-                    </button>
+                <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 space-y-3">
+                  <div className="text-[11px] text-slate-500 leading-relaxed">
+                    支持上传最多不超过 <strong>10 个</strong>附件，格式支持：<strong>jpg、jpeg、png、pdf、doc、docx、ppt、pptx、zip、rar</strong> 等常见文件格式。
                   </div>
-                  {teaFileName && (
-                    <span className="text-xs font-medium text-emerald-700 truncate">
-                      已选择：{teaFileName}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <label
+                        className={`px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          teaFiles.length >= 10 ? 'opacity-50 pointer-events-none' : ''
+                        }`}
+                      >
+                        <Upload className="w-4 h-4 text-[#0284C7]" />
+                        <span>上传附件（可多选）</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.ppt,.pptx,.zip,.rar"
+                          className="hidden"
+                          onChange={(e) => {
+                            handleAddCertFiles(
+                              e.target.files,
+                              teaFiles,
+                              setTeaFiles,
+                              setTeaFormError
+                            );
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTeaFormError(null);
+                          if (!teaSchool) setTeaSchool('北京大学');
+                          if (!teaDept) setTeaDept('计算机科学与技术学院');
+                          if (!teaStaffId) setTeaStaffId('PKU-T2019086');
+                          setTeaFiles([
+                            {
+                              id: `demo-tea-1-${Date.now()}`,
+                              name: '高校教职工工作证正反面扫描件.jpg',
+                              size: '1.12 MB',
+                              url: 'https://images.unsplash.com/photo-1568667256549-094345857637?auto=format&fit=crop&w=900&q=80',
+                              fileType: 'jpg',
+                            },
+                            {
+                              id: `demo-tea-2-${Date.now()}`,
+                              name: '高等学校教师资格证书.pdf',
+                              size: '1.56 MB',
+                              url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80',
+                              fileType: 'pdf',
+                            },
+                          ]);
+                        }}
+                        className="text-xs text-[#0284C7] underline cursor-pointer"
+                      >
+                        一键填入演示教师材料
+                      </button>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-600">
+                      已上传 <strong>{teaFiles.length}</strong> / 10 个附件
                     </span>
+                  </div>
+                  {teaFiles.length > 0 && (
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {teaFiles.map((f, idx) => (
+                        <div
+                          key={f.id}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="text-[11px] font-mono text-[#0284C7] font-bold">
+                              #{idx + 1}
+                            </span>
+                            <FileText className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                            <span className="text-slate-800 font-medium truncate">{f.name}</span>
+                            <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                              ({f.size})
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setTeaFiles((prev) => prev.filter((item) => item.id !== f.id))
+                            }
+                            className="text-slate-400 hover:text-red-600 cursor-pointer p-0.5"
+                            title="移除该附件"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>

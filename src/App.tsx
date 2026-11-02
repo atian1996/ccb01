@@ -1147,17 +1147,8 @@ export default function App() {
             </nav>
           </div>
 
-          {/* 右侧：全站搜索入口 + 通知铃铛 + 用户头像下拉 / 登录注册胶囊按钮 */}
+          {/* 右侧：通知铃铛 + 用户头像下拉 / 登录注册胶囊按钮 */}
           <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => setGlobalSearchOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F2F6FC] hover:bg-[#E6F0FF] text-slate-600 hover:text-[#1664FF] border border-blue-100 text-xs font-medium transition-colors cursor-pointer"
-              title="站内全局检索（新闻/公告/动态）"
-            >
-              <Search className="w-3.5 h-3.5 text-[#1664FF]" />
-              <span>全站检索</span>
-            </button>
             {!isLoggedIn ? (
               <div className="flex items-center gap-2.5">
                 <button

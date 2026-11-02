@@ -1389,18 +1389,27 @@ export interface CompetitionScheduleStage {
 
 export type CompetitionRegistrationMode = 'none' | 'platform' | 'third_party';
 
+export interface CompetitionAttachment {
+  id: string;
+  name: string;
+  size: string;
+  url?: string;
+  uploadedAt?: string;
+}
+
 export interface CompetitionCatalogItem {
   id: string;
   title: string;
   summary: string;
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
+  startDate: string; // YYYY-MM-DD HH:mm:ss
+  endDate: string; // YYYY-MM-DD HH:mm:ss
   coverTheme: 'network' | 'data' | 'ai';
   customCoverUrl?: string;
   customTags: string[];
   tracks: CompetitionSubTrack[];
   schedule: CompetitionScheduleStage[];
   markdownContent: string;
+  attachments?: CompetitionAttachment[];
   isPublic: boolean;
   createdAt: string;
   organizer: string;
@@ -1409,8 +1418,8 @@ export interface CompetitionCatalogItem {
 }
 
 /**
- * 根据赛事起止时间动态判断状态：
- * 当前基准日期为 2026-10-28
+ * 根据赛事起止时间（精确到时分秒）动态判断状态：
+ * 当前基准时间为 2026-10-28 12:00:00
  * - 当前时间 < startDate => 'upcoming' (未开始)
  * - 当前时间 > endDate   => 'ended' (已结束)
  * - 其余                 => 'ongoing' (进行中)
@@ -1418,13 +1427,30 @@ export interface CompetitionCatalogItem {
 export function computeCompetitionStatus(
   startDate: string,
   endDate: string,
-  referenceDate = '2026-10-28'
+  referenceDate = '2026-10-28 12:00:00'
 ): CompetitionCalculatedStatus {
-  const normStart = startDate.trim().replace(/[年月]/g, '-').replace(/日/g, '');
-  const normEnd = endDate.trim().replace(/[年月]/g, '-').replace(/日/g, '');
+  const normalizeDateTime = (raw: string, fallbackTime: string) => {
+    const cleaned = raw
+      .trim()
+      .replace('T', ' ')
+      .replace(/[年月]/g, '-')
+      .replace(/日/g, '');
+    if (!cleaned) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+      return `${cleaned} ${fallbackTime}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$/.test(cleaned)) {
+      return `${cleaned}:00`;
+    }
+    return cleaned;
+  };
+
+  const normStart = normalizeDateTime(startDate, '00:00:00');
+  const normEnd = normalizeDateTime(endDate, '23:59:59');
+  const normRef = normalizeDateTime(referenceDate, '12:00:00');
   if (!normStart || !normEnd) return 'ongoing';
-  if (referenceDate < normStart) return 'upcoming';
-  if (referenceDate > normEnd) return 'ended';
+  if (normRef < normStart) return 'upcoming';
+  if (normRef > normEnd) return 'ended';
   return 'ongoing';
 }
 
@@ -1440,8 +1466,8 @@ export const INITIAL_COMPETITION_CATALOG: CompetitionCatalogItem[] = [
     title: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
     summary:
       '围绕关键信息基础设施安全防护、云原生容器逃逸漏洞挖掘、工业互联网协议逆向与实战化蓝军应急加固展开，采用线上CTF夺旗选拔与线下AWD Plus靶场攻防双轨赛制。',
-    startDate: '2026-10-15',
-    endDate: '2026-12-20',
+    startDate: '2026-10-15 09:00:00',
+    endDate: '2026-12-20 18:00:00',
     coverTheme: 'network',
     customTags: ['国家级核心赛事', 'CTF+AWD双轨制', '百万奖金池', '高校保研加分'],
     tracks: [
@@ -1506,6 +1532,20 @@ export const INITIAL_COMPETITION_CATALOG: CompetitionCatalogItem[] = [
 - **全国一等奖（5支）**：奖金 **¥ 40,000 / 队** + 国家级重点实验室科研实习绿通卡
 - **全国二等奖（15支）**：奖金 **¥ 10,000 / 队** + 荣誉证书
 - **全国三等奖（39支）**：荣誉证书及赛事专属极客纪念徽章`,
+    attachments: [
+      {
+        id: 'att-main-1',
+        name: '2026第五届“XX杯”网络安全攻防实战赛参赛指南与章程.pdf',
+        size: '2.4 MB',
+        uploadedAt: '2026-09-28 09:30:00',
+      },
+      {
+        id: 'att-main-2',
+        name: '线上靶场VPN客户端连接配置手册与Writeup模板.docx',
+        size: '860 KB',
+        uploadedAt: '2026-10-15 10:00:00',
+      },
+    ],
     isPublic: true,
     createdAt: '2026-09-28 09:30:00',
     organizer: '“XX杯”全国网数智安全大赛组委会、国家信息安全工程技术研究中心',
@@ -1516,8 +1556,8 @@ export const INITIAL_COMPETITION_CATALOG: CompetitionCatalogItem[] = [
     title: '2026“XX杯”全国网数智安全大赛 · 数据安全与隐私计算专项挑战赛',
     summary:
       '聚焦公共数据授权运营、金融多方安全计算（MPC）、联邦学习梯度反演防御及PB级敏感数据智能分类分级，开放真实脱敏政务与医疗数据集供参赛团队进行容器化评测。',
-    startDate: '2026-11-10',
-    endDate: '2026-12-28',
+    startDate: '2026-11-10 09:00:00',
+    endDate: '2026-12-28 18:00:00',
     coverTheme: 'data',
     customTags: ['数据要素流通', '隐私计算MPC', '联邦学习防御', 'Docker容器评测'],
     tracks: [
@@ -1580,6 +1620,14 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
 \`\`\`
 
 > **评测资源说明**：大赛云端评测中心为每支通过学籍认证的参赛队伍免费配发 **NVIDIA A800 算力评测配额**，无需自备昂贵硬件即可完成全流程训练与推理验证。`,
+    attachments: [
+      {
+        id: 'att-data-1',
+        name: '数据安全与隐私计算赛道Docker评测环境说明白皮书.pdf',
+        size: '3.1 MB',
+        uploadedAt: '2026-10-08 14:15:00',
+      },
+    ],
     isPublic: true,
     createdAt: '2026-10-08 14:15:00',
     organizer: '国家数据安全重点实验室、“XX杯”全国网数智安全大赛组委会',
@@ -1590,8 +1638,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”全国网数智安全大赛 · 大模型与人工智能安全先导赛',
     summary:
       '围绕大语言模型（LLM）越狱攻击与安全护栏构建、AIGC深度伪造多模态溯源鉴伪、智能体（Agent）提示词注入免疫等核心课题开展红蓝双向对抗评测。',
-    startDate: '2026-06-01',
-    endDate: '2026-09-25',
+    startDate: '2026-06-01 09:00:00',
+    endDate: '2026-09-25 18:00:00',
     coverTheme: 'ai',
     customTags: ['大模型越狱攻防', 'AIGC深伪鉴伪', 'Agent安全护栏', '已公示获奖名单'],
     tracks: [
@@ -1645,8 +1693,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”车联网与智能工业控制系统安全极客邀请赛',
     summary:
       '针对智能网联汽车车载CAN总线入侵检测、车路云一体化V2X通信伪造防御、电力SCADA工控系统固件漏洞挖掘打造的硬核实网仿真攻防赛。',
-    startDate: '2026-10-20',
-    endDate: '2026-11-30',
+    startDate: '2026-10-20 09:00:00',
+    endDate: '2026-11-30 18:00:00',
     coverTheme: 'network',
     customTags: ['智能网联汽车', '工控SCADA靶场', '硬件固件逆向', '实车仿真沙盘'],
     tracks: [
@@ -1695,8 +1743,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2027“XX杯”全国高校数字安全冬令营暨后量子密码创新设计赛（内部筹备版）',
     summary:
       '面向抗量子计算攻击的新一代格密码（Lattice-based Cryptography）工程实现、侧信道能量分析防御与零信任内生安全架构设计的高阶冬令营挑战赛。',
-    startDate: '2026-12-15',
-    endDate: '2027-01-25',
+    startDate: '2026-12-15 09:00:00',
+    endDate: '2027-01-25 18:00:00',
     coverTheme: 'data',
     customTags: ['后量子密码PQC', '侧信道分析防御', '冬令营直通赛'],
     tracks: [
@@ -1737,8 +1785,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”云原生与零信任架构安全攻防挑战赛',
     summary:
       '聚焦大规模Kubernetes生产集群逃逸检测、服务网格（Service Mesh）东西向流量微隔离、eBPF内核态实时入侵阻断与零信任身份网关攻防演练，支持跨校联合组队。',
-    startDate: '2026-10-18',
-    endDate: '2026-12-10',
+    startDate: '2026-10-18 09:00:00',
+    endDate: '2026-12-10 18:00:00',
     coverTheme: 'network',
     customTags: ['云原生K8s安全', 'eBPF内核防御', '允许跨校组队', '平台在线报名中'],
     tracks: [
@@ -1787,8 +1835,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”生成式大模型红蓝对抗与内生安全创新赛',
     summary:
       '面向全国高校开放报名的AI安全实战创新赛，围绕大语言模型越狱防御、RAG知识库投毒检测、多模态对抗样本免疫及Agent工具调用鉴权展开高强度攻防对抗（进行中·尚未报名示例）。',
-    startDate: '2026-10-20',
-    endDate: '2026-12-10',
+    startDate: '2026-10-20 09:00:00',
+    endDate: '2026-12-10 18:00:00',
     coverTheme: 'ai',
     customTags: ['生成式AI安全', '大模型红蓝对抗', '开放报名中', '进行中'],
     tracks: [
@@ -1837,8 +1885,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”电信网络诈骗黑产溯源与威胁情报分析大赛',
     summary:
       '聚焦涉诈域名快闪集群识别、跨境资金链路图谱追踪、恶意APK木马自动化沙箱逆向与多源威胁情报关联建模，当前正处于火热报名开放期（进行中·尚未报名示例）。',
-    startDate: '2026-10-24',
-    endDate: '2026-12-05',
+    startDate: '2026-10-24 09:00:00',
+    endDate: '2026-12-05 18:00:00',
     coverTheme: 'data',
     customTags: ['反诈黑产溯源', '威胁情报图谱', '恶意样本逆向', '开放报名中'],
     tracks: [
@@ -1878,8 +1926,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”新型电力系统与能源工业互联网安全防护赛',
     summary:
       '依托1:1电力调度自动化数字孪生靶场，考察智能变电站IEC-61850协议深度监测、新能源场站边缘网关加固及电网控制指令防篡改能力（进行中·尚未报名示例）。',
-    startDate: '2026-10-25',
-    endDate: '2026-12-12',
+    startDate: '2026-10-25 09:00:00',
+    endDate: '2026-12-12 18:00:00',
     coverTheme: 'network',
     customTags: ['电力工控安全', '数字孪生靶场', '开放报名中', '进行中'],
     tracks: [
@@ -1919,8 +1967,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”开源操作系统内核与机密计算作品赛',
     summary:
       '围绕万物智联操作系统微内核形式化验证、TEE可信执行环境应用开发、Rust内存安全组件重构等方向征集原创安全技术作品（进行中·尚未报名示例）。',
-    startDate: '2026-10-26',
-    endDate: '2026-12-18',
+    startDate: '2026-10-26 09:00:00',
+    endDate: '2026-12-18 18:00:00',
     coverTheme: 'ai',
     customTags: ['原创安全作品赛', '机密计算TEE', '内核安全', '开放报名中'],
     tracks: [
@@ -1960,8 +2008,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”空天地一体化卫星互联网安全攻防挑战赛',
     summary:
       '面向低轨卫星通信链路加密协议分析、星载软件无线电（SDR）信号抗干扰及地面站指控系统渗透防护的前沿专项赛（进行中·尚未报名示例）。',
-    startDate: '2026-10-22',
-    endDate: '2026-12-08',
+    startDate: '2026-10-22 09:00:00',
+    endDate: '2026-12-08 18:00:00',
     coverTheme: 'network',
     customTags: ['卫星互联网安全', '空天地一体化', 'SDR信号分析', '开放报名中'],
     tracks: [
@@ -2001,8 +2049,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”量子通信协议安全与抗量子密码工程挑战赛',
     summary:
       '聚焦量子密钥分发（QKD）网络节点鉴权、后量子格密码算法硬件加速实现与混合密钥交换协议安全性形式化验证（进行中·尚未报名示例）。',
-    startDate: '2026-10-23',
-    endDate: '2026-12-15',
+    startDate: '2026-10-23 09:00:00',
+    endDate: '2026-12-15 18:00:00',
     coverTheme: 'data',
     customTags: ['抗量子密码PQC', '量子通信安全', '开放报名中', '进行中'],
     tracks: [
@@ -2042,8 +2090,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”物联网固件逆向与智能终端安全挑战赛',
     summary:
       '针对智能家居网关、工业边缘路由器、无人机飞控系统及穿戴式智能终端开展固件提取、RTOS内存漏洞挖掘与无线射频协议重放对抗（因硬件台架名额满员，已提前关闭报名）。',
-    startDate: '2026-10-10',
-    endDate: '2026-11-28',
+    startDate: '2026-10-10 09:00:00',
+    endDate: '2026-11-28 18:00:00',
     coverTheme: 'ai',
     customTags: ['IoT固件逆向', '硬件在环台架', '名额满员提前关闭', '进行中'],
     tracks: [
@@ -2083,8 +2131,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”商用密码应用与后量子密码算法挑战赛',
     summary:
       '围绕国密SM2/SM3/SM4/SM9算法高并发工程实现、商用密码应用安全性评估（密评）实战改造、白盒密码抗密钥提取及零知识证明电路优化展开（报名已截止，正处于赛程进行中）。',
-    startDate: '2026-09-10',
-    endDate: '2026-11-20',
+    startDate: '2026-09-10 09:00:00',
+    endDate: '2026-11-20 18:00:00',
     coverTheme: 'data',
     customTags: ['国密SM系列算法', '商用密码密评', '白盒密码对抗', '报名已截止'],
     tracks: [
@@ -2124,8 +2172,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”零日漏洞挖掘与二进制极客个人挑战赛（单兵赛制）',
     summary:
       '专为高校顶尖二进制安全极客打造的个人单兵极限挑战赛（每队严格限制1人），聚焦浏览器V8引擎利用、Linux内核提权、虚拟化逃逸与自动化Fuzzing漏洞挖掘。',
-    startDate: '2026-10-22',
-    endDate: '2026-12-05',
+    startDate: '2026-10-22 09:00:00',
+    endDate: '2026-12-05 18:00:00',
     coverTheme: 'network',
     customTags: ['单兵个人赛(1人/队)', '浏览器与内核Pwn', '自动化Fuzzing', '高额漏洞奖金'],
     tracks: [
@@ -2165,8 +2213,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”金融科技与跨境数据合规安全外部联合赛',
     summary:
       '联合金融机构共同举办的金融反欺诈图神经网络防御、量子金融安全通信与跨境支付隐私合规审计大赛，采用外部合作平台统一通道报名。',
-    startDate: '2026-11-18',
-    endDate: '2026-12-30',
+    startDate: '2026-11-18 09:00:00',
+    endDate: '2026-12-30 18:00:00',
     coverTheme: 'data',
     customTags: ['金融科技安全', '反欺诈图计算', '第三方平台报名', '未开始'],
     tracks: [
@@ -2201,8 +2249,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”开源软件供应链安全与SBOM治理定向特邀赛',
     summary:
       '针对开源组件投毒检测、软件物料清单（SBOM）全生命周期溯源、CI/CD构建流水线篡改防护开展的定向高校特邀演练赛（定向邀请制，不开启公开报名）。',
-    startDate: '2026-10-12',
-    endDate: '2026-11-25',
+    startDate: '2026-10-12 09:00:00',
+    endDate: '2026-11-25 18:00:00',
     coverTheme: 'network',
     customTags: ['开源供应链安全', 'SBOM溯源治理', '定向特邀赛', '不开启公开报名'],
     tracks: [
@@ -2236,8 +2284,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2025第四届“XX杯”全国网数智安全大赛 · 年度总决赛历史归档',
     summary:
       '第四届“XX杯”全国网数智安全大赛完整赛题库、优秀战队解题报告（Writeup）汇编及获奖名册历史归档专区，供全国高校师生复盘学习。',
-    startDate: '2025-10-01',
-    endDate: '2025-12-22',
+    startDate: '2025-10-01 09:00:00',
+    endDate: '2025-12-22 18:00:00',
     coverTheme: 'ai',
     customTags: ['往届经典归档', '官方Writeup开源', '已结束赛事'],
     tracks: [
@@ -2271,8 +2319,8 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     title: '2026“XX杯”高校实网蓝军应急响应与威胁狩猎特训赛（内部演练）',
     summary:
       '面向高校信息化运维团队与学生蓝军战队的高仿真APT攻击溯源、EDR终端遥测日志狩猎与勒索病毒应急恢复内部演练赛（当前后台设为隐藏，可随时公开）。',
-    startDate: '2026-10-16',
-    endDate: '2026-12-01',
+    startDate: '2026-10-16 09:00:00',
+    endDate: '2026-12-01 18:00:00',
     coverTheme: 'network',
     customTags: ['APT攻击溯源', '威胁狩猎EDR', '蓝军应急响应', '内部隐藏赛事'],
     tracks: [

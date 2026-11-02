@@ -1556,11 +1556,11 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
       )}
 
       {/* =====================================================================
-          分区 1：顶部筛选区（多条件组合查询）
+          顶部筛选与操作区（与赛事管理、报名管理无标题排版保持一致）
           ===================================================================== */}
       <form
         onSubmit={handleQuerySubmit}
-        className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs"
+        className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4"
       >
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end">
           {/* 关键字搜索 */}
@@ -1641,106 +1641,104 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
             </button>
           </div>
         </div>
+
+        {/* 底部操作栏：批量管理与新增/导入导出 */}
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          {/* 左侧：新增与批量状态管理 */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleOpenAddUserDrawer}
+              className="px-4 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ 新增用户</span>
+            </button>
+
+            <div className="h-5 w-px bg-slate-200 mx-0.5 hidden sm:block" />
+
+            <button
+              type="button"
+              disabled={selectedUserIds.length === 0}
+              onClick={handleBatchDisable}
+              className="px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Ban className="w-3.5 h-3.5" />
+              <span>批量禁用</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={selectedUserIds.length === 0}
+              onClick={handleBatchRestore}
+              className="px-3.5 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>批量恢复</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={selectedUserIds.length === 0}
+              onClick={handleBatchDeleteClick}
+              className="px-3.5 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>批量删除</span>
+            </button>
+
+            {selectedUserIds.length > 0 && (
+              <span className="text-xs text-slate-500 pl-1">
+                已选 <strong className="text-[#0284C7] font-mono-num">{selectedUserIds.length}</strong> 项
+              </span>
+            )}
+          </div>
+
+          {/* 右侧：导入、下载模板、导出、审计日志 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setImportResult(null);
+                setImportFileName('');
+                setImportModalOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
+              <span>导入</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>下载模板</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportUsers}
+              className="px-3.5 py-2 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#0369A1] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>导出</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowExportAuditDrawer(true)}
+              className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="查看导出与操作审计日志"
+            >
+              <History className="w-3.5 h-3.5 text-slate-500" />
+              <span>操作/导出审计</span>
+            </button>
+          </div>
+        </div>
       </form>
-
-      {/* =====================================================================
-          分区 2：列表操作栏（顶部批量与工具）
-          ===================================================================== */}
-      <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-        {/* 左侧：新增与批量状态管理 */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleOpenAddUserDrawer}
-            className="px-4 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ 新增用户</span>
-          </button>
-
-          <div className="h-5 w-px bg-slate-200 mx-0.5 hidden sm:block" />
-
-          <button
-            type="button"
-            disabled={selectedUserIds.length === 0}
-            onClick={handleBatchDisable}
-            className="px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Ban className="w-3.5 h-3.5" />
-            <span>批量禁用</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={selectedUserIds.length === 0}
-            onClick={handleBatchRestore}
-            className="px-3.5 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>批量恢复</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={selectedUserIds.length === 0}
-            onClick={handleBatchDeleteClick}
-            className="px-3.5 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>批量删除</span>
-          </button>
-
-          {selectedUserIds.length > 0 && (
-            <span className="text-xs text-slate-500 pl-1">
-              已选 <strong className="text-[#0284C7] font-mono-num">{selectedUserIds.length}</strong> 项
-            </span>
-          )}
-        </div>
-
-        {/* 右侧：导入、下载模板、导出、审计日志 */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setImportResult(null);
-              setImportFileName('');
-              setImportModalOpen(true);
-            }}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
-            <span>导入</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDownloadTemplate}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>下载模板</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportUsers}
-            className="px-3.5 py-2 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#0369A1] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>导出</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowExportAuditDrawer(true)}
-            className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="查看导出与操作审计日志"
-          >
-            <History className="w-3.5 h-3.5 text-slate-500" />
-            <span>操作/导出审计</span>
-          </button>
-        </div>
-      </div>
 
       {/* =====================================================================
           分区 3：数据列表区
