@@ -50,6 +50,8 @@ import {
   UNIVERSITY_PARTNERS,
   LEADERSHIP_ORGS,
   INITIAL_COMPETITION_CATALOG,
+  DEFAULT_NEWS_COVER_SVG,
+  HELP_CENTER_HOME_EXCERPT_MARKDOWN,
   type CompetitionCatalogItem,
   computeCompetitionStatus,
   getCompetitionStatusLabel,
@@ -110,6 +112,7 @@ import {
   FrontendNoticesPage,
   FrontendNoticeDetailPage,
   FrontendHelpCenterPage,
+  HelpMarkdownDocumentView,
   FrontendNewsPage,
   FrontendNewsDetailPage,
   FrontendMomentsPage,
@@ -179,10 +182,10 @@ export default function App() {
       (n) => ({
         id: n.id,
         title: n.title,
-        tags: n.isFeaturedCover ? ['赛事新闻', '权威报道'] : ['赛事新闻', '赛制解读'],
+        tags: [],
         coverImage: n.isFeaturedCover
           ? 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=960&q=80'
-          : undefined,
+          : DEFAULT_NEWS_COVER_SVG,
         summary: n.summary,
         source: n.source,
         content: n.content.join('\n\n'),
@@ -563,15 +566,15 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // --- Module 4: Moments Carousel & Category Tab State（联动后台内容管理 -> 赛事动态已发布数据） ---
-  const [activeMomentTab, setActiveMomentTab] = useState<'全部动态' | MomentCategory>('全部动态');
+  // --- Module 4: Moments Carousel & Category Tab State（联动后台内容管理 -> 赛事动态已发布数据，默认展示进展报道） ---
+  const [activeMomentTab, setActiveMomentTab] = useState<MomentCategory>('进展报道');
   const [momentStartIndex, setMomentStartIndex] = useState(0);
 
   const publishedHomeMoments = useMemo(() => {
     const variantPool: Array<
       'arena' | 'defense' | 'hackathon' | 'team' | 'expert' | 'behind' | 'award' | 'interview'
     > = ['arena', 'defense', 'hackathon', 'team', 'expert', 'behind', 'award', 'interview'];
-    const sorted = [...managedMoments]
+    const sorted = [...allFrontendMoments]
       .filter((m) => m.publishStatus === 'published')
       .sort((a, b) => Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned)));
     return sorted.map((m, idx) => {
@@ -585,18 +588,15 @@ export default function App() {
         visualVariant: staticMatch?.visualVariant || variantPool[idx % variantPool.length],
       };
     });
-  }, [managedMoments]);
+  }, [allFrontendMoments]);
 
   const orderedMoments = useMemo(() => {
-    if (activeMomentTab === '全部动态') {
-      return publishedHomeMoments;
-    }
     const primary = publishedHomeMoments.filter((m) => m.category === activeMomentTab);
     const others = publishedHomeMoments.filter((m) => m.category !== activeMomentTab).slice(0, 4);
     return [...primary, ...others];
   }, [activeMomentTab, publishedHomeMoments]);
 
-  const handleMomentTabChange = (cat: '全部动态' | MomentCategory) => {
+  const handleMomentTabChange = (cat: MomentCategory) => {
     setActiveMomentTab(cat);
     setMomentStartIndex(0);
   };
@@ -2267,9 +2267,9 @@ export default function App() {
                   <h2 className="text-lg font-bold text-slate-900 tracking-tight">赛事动态</h2>
                 </div>
 
-                {/* 居中分类切换 Tab：全部动态 / 进展报道 / 团队风采 / 赛事花絮 / 专家观点 */}
+                {/* 居中分类切换 Tab：进展报道 / 团队风采 / 赛事花絮 / 专家观点（默认展示进展报道） */}
                 <div className="flex flex-wrap items-center gap-5 sm:gap-7 text-xs sm:text-sm">
-                  {(['全部动态', '进展报道', '团队风采', '赛事花絮', '专家观点'] as const).map(
+                  {(['进展报道', '团队风采', '赛事花絮', '专家观点'] as const).map(
                     (cat) => {
                       const active = activeMomentTab === cat;
                       return (
@@ -2372,17 +2372,17 @@ export default function App() {
               </div>
             </section>
 
-            {/* 模块五：实用服务区（左：常见问题 FAQ + 右：电子证书查询与验证） */}
+            {/* 模块五：实用服务区（左：帮助中心 Markdown 文档节选 + 右：电子证书查询与验证） */}
             <section id="utility-service-section" className="scroll-mt-20">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* 左卡片：常见问题 */}
+                {/* 左卡片：帮助中心（展示帮助中心 Markdown 文档顶部的一部分内容） */}
                 <div className="lg:col-span-6 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col justify-between">
                   <div>
-                    <div className="relative flex items-center justify-between pb-3.5 mb-3 border-b border-slate-100">
+                    <div className="relative flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100">
                       <div className="flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5 text-[#1664FF]" />
+                        <HelpCircle className="w-5 h-5 text-[#1664FF]" />
                         <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-                          常见问题
+                          帮助中心
                         </h2>
                       </div>
                       <button
@@ -2393,48 +2393,36 @@ export default function App() {
                         }}
                         className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
                       >
-                        <span>查看全部 FAQ</span>
+                        <span>阅读完整帮助文档</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                       <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
                     </div>
 
-                    <div className="divide-y divide-slate-100">
-                      {FAQ_ITEMS.slice(0, 5).map((faq) => {
-                        const isOpen = openFaqId === faq.id;
-                        return (
-                          <div key={faq.id} className="py-3">
-                            <button
-                              type="button"
-                              onClick={() => setOpenFaqId(isOpen ? '' : faq.id)}
-                              className="w-full flex items-center justify-between gap-3 text-left cursor-pointer group"
-                            >
-                              <span
-                                className={`text-sm truncate transition-colors ${
-                                  isOpen
-                                    ? 'text-[#1664FF] font-semibold'
-                                    : 'text-slate-700 group-hover:text-[#1664FF]'
-                                }`}
-                              >
-                                {faq.question}
-                              </span>
-                              <ChevronRight
-                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                                  isOpen
-                                    ? 'rotate-90 text-[#1664FF]'
-                                    : 'text-slate-400 group-hover:text-[#1664FF]'
-                                }`}
-                              />
-                            </button>
-                            {isOpen && (
-                              <div className="mt-2.5 text-xs text-slate-600 leading-relaxed bg-[#F7FAFF] rounded-lg p-3 border border-blue-100/80">
-                                {faq.answer}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="relative max-h-[290px] overflow-hidden pr-1">
+                      <HelpMarkdownDocumentView
+                        content={HELP_CENTER_HOME_EXCERPT_MARKDOWN}
+                        compact
+                      />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white via-white/90 to-transparent" />
                     </div>
+                  </div>
+
+                  <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs text-slate-400">
+                      已为您节选帮助中心文档顶部高频问题指引
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('help');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="text-xs font-semibold text-[#1664FF] hover:text-[#0E4FD6] inline-flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <span>进入帮助中心查看全文</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 

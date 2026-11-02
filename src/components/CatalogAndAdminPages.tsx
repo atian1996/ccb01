@@ -327,6 +327,8 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
 }) => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | CompetitionCalculatedStatus>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   // 前台仅展示公开（isPublic === true）的赛事
   const publicCompetitions = useMemo(
@@ -349,15 +351,19 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
     });
   }, [publicCompetitions, statusFilter, searchKeyword]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredCompetitions.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedCompetitions = filteredCompetitions.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  );
+
   return (
     <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full">
       {/* 页面头部与筛选检索栏 */}
       <div className="mb-8 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <div className="text-xs font-semibold text-[#0284C7] tracking-wide mb-1">
-              “XX杯”全国网数智安全大赛 · 官方赛事大厅
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               赛事目录
             </h1>
@@ -380,7 +386,10 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setStatusFilter(tab.key)}
+                  onClick={() => {
+                    setStatusFilter(tab.key);
+                    setCurrentPage(1);
+                  }}
                   className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap ${
                     active
                       ? 'bg-[#0284C7] text-white shadow-2xs'
@@ -398,7 +407,10 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
             <input
               type="text"
               value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
+              onChange={(e) => {
+                setSearchKeyword(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="搜索比赛名称、简介或标签..."
               className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
             />
@@ -407,7 +419,7 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
       </div>
 
       {/* 一行一个长条形的卡片列表 */}
-      {filteredCompetitions.length === 0 ? (
+      {paginatedCompetitions.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
           <div className="text-base font-bold text-slate-800">暂无符合筛选条件的公开赛事</div>
           <p className="text-xs text-slate-500">
@@ -416,7 +428,7 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
         </div>
       ) : (
         <div className="space-y-5">
-          {filteredCompetitions.map((comp) => {
+          {paginatedCompetitions.map((comp) => {
             const calcStatus = computeCompetitionStatus(comp.startDate, comp.endDate);
             const statusLabel = getCompetitionStatusLabel(calcStatus);
 
@@ -498,6 +510,57 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
           })}
         </div>
       )}
+
+      {/* 底部分页器（每页展示 10 个） */}
+      <div className="mt-8 bg-white border border-slate-200/90 rounded-xl px-6 py-4 shadow-2xs flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-slate-600">
+        <div>
+          共 <span className="text-slate-900 font-bold font-mono-num">{filteredCompetitions.length}</span> 项赛事 · 每页展示{' '}
+          <span className="text-slate-900 font-mono-num font-semibold">{pageSize}</span> 项
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={safeCurrentPage <= 1}
+            onClick={() => {
+              setCurrentPage((p) => Math.max(1, p - 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="px-3.5 py-1.5 rounded-lg bg-slate-50 hover:bg-sky-50 hover:text-[#0284C7] hover:border-sky-200 disabled:opacity-40 text-slate-700 border border-slate-200 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+          >
+            上一页
+          </button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                type="button"
+                onClick={() => {
+                  setCurrentPage(pageNum);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`w-8 h-8 rounded-lg font-mono-num text-xs font-bold transition-colors cursor-pointer ${
+                  safeCurrentPage === pageNum
+                    ? 'bg-[#0284C7] text-white shadow-2xs'
+                    : 'bg-slate-50 hover:bg-sky-50 text-slate-700 border border-slate-200'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={safeCurrentPage >= totalPages}
+            onClick={() => {
+              setCurrentPage((p) => Math.min(totalPages, p + 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="px-3.5 py-1.5 rounded-lg bg-slate-50 hover:bg-sky-50 hover:text-[#0284C7] hover:border-sky-200 disabled:opacity-40 text-slate-700 border border-slate-200 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+          >
+            下一页
+          </button>
+        </div>
+      </div>
     </main>
   );
 };
@@ -676,37 +739,8 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
                     </div>
                   )}
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    {competition.tracks.length > 0 ? (
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[11px] font-semibold text-slate-400 mb-1.5">
-                          选择报名赛道（共 {competition.tracks.length} 个赛道）：
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {competition.tracks.map((trk) => {
-                            const active = selectedSubTrack === trk.name;
-                            return (
-                              <button
-                                key={trk.id}
-                                type="button"
-                                onClick={() => setSelectedSubTrack(trk.name)}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer text-left ${
-                                  active
-                                    ? 'bg-sky-50 border-[#0284C7] text-[#0284C7] font-bold'
-                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
-                                }`}
-                              >
-                                {trk.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-slate-500">综合赛道统一报名通道</div>
-                    )}
-
-                    <div className="shrink-0">
+                  <div className="flex items-center justify-end">
+                    <div className="shrink-0 w-full sm:w-auto">
                       <button
                         type="button"
                         onClick={handleClickRegisterButton}
@@ -762,7 +796,6 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900">赛事介绍</h2>
             </div>
-            <span className="text-xs text-slate-400">支持后台 Markdown 自由排版配置</span>
           </div>
 
           {/* 渲染 Markdown 正文 */}
@@ -814,7 +847,7 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
           {competition.schedule.length === 0 ? (
             <div className="text-xs text-slate-400 py-6 text-center">暂未配置赛程阶段</div>
           ) : (
-            <div className="relative pl-6 border-l-2 border-sky-200 space-y-7 my-2">
+            <div className="relative pl-6 border-l-2 border-sky-200 space-y-6 my-2">
               {competition.schedule.map((item, idx) => {
                 const isFirst = idx === 0;
                 return (
@@ -832,15 +865,9 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
                       {item.dateRange}
                     </div>
 
-                    <h3 className="text-sm font-bold text-slate-900 mb-1">
+                    <h3 className="text-sm font-bold text-slate-900">
                       0{idx + 1}. {item.stage}
                     </h3>
-
-                    {item.description && (
-                      <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        {item.description}
-                      </p>
-                    )}
                   </div>
                 );
               })}
@@ -1120,20 +1147,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       {
         id: `st-${Date.now()}-1`,
         stage: '战队报名与资格审核',
-        dateRange: '2026-10-28 ~ 2026-11-20',
-        description: '在线组建高校战队并完成实名与学籍核验。',
+        dateRange: '2026-10-28 09:00 ~ 2026-11-20 18:00',
+        description: '',
       },
       {
         id: `st-${Date.now()}-2`,
         stage: '线上选拔初赛',
-        dateRange: '2026-11-28 ~ 2026-11-29',
-        description: '48小时云端靶场夺旗比拼。',
+        dateRange: '2026-11-28 09:00 ~ 2026-11-29 21:00',
+        description: '',
       },
       {
         id: `st-${Date.now()}-3`,
         stage: '全国线下总决赛',
-        dateRange: '2026-12-26 ~ 2026-12-27',
-        description: 'AWD Plus实网攻防对抗与现场答辩颁奖。',
+        dateRange: '2026-12-26 09:00 ~ 2026-12-27 17:30',
+        description: '',
       },
     ]);
     setFormTracks([
@@ -2498,7 +2525,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 </div>
               </div>
 
-              {/* 7. 赛程配置（对应详情页右栏纵向时间轴） */}
+              {/* 7. 赛程配置（对应详情页右栏纵向时间轴：只留赛程名称与精确到年月日时分的起止时间） */}
               <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-8 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -2507,7 +2534,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                       <span>比赛赛程配置（对应详情页右栏纵向时间轴）</span>
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      按先后顺序配置各赛程阶段名称、起止时间段及阶段说明
+                      按先后顺序配置各赛程名称及起止时间（精确到年月日时分，如 2026-11-22 09:00 ~ 2026-11-23 18:00）
                     </p>
                   </div>
                   <button
@@ -2534,12 +2561,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   {formSchedule.map((st, idx) => (
                     <div
                       key={st.id}
-                      className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3"
+                      className="p-4 rounded-xl bg-slate-50 border border-slate-200/80"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
                           <span className="text-xs font-mono-num font-bold text-[#0284C7] shrink-0">
-                            阶段 0{idx + 1}
+                            赛程 0{idx + 1}
                           </span>
                           <input
                             type="text"
@@ -2550,8 +2577,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 prev.map((item, i) => (i === idx ? { ...item, stage: val } : item))
                               );
                             }}
-                            placeholder="阶段名称（如：全国线上初赛）"
-                            className="w-full sm:w-60 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg font-semibold focus:border-[#0284C7] focus:outline-none"
+                            placeholder="赛程名称（如：全国线上初赛）"
+                            className="w-full sm:w-64 px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-semibold focus:border-[#0284C7] focus:outline-none"
                           />
                           <input
                             type="text"
@@ -2564,8 +2591,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 )
                               );
                             }}
-                            placeholder="时间范围（如：2026-11-22 ~ 2026-11-23）"
-                            className="flex-1 px-3 py-1.5 text-xs font-mono-num bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
+                            placeholder="起止时间（精确到年月日时分，如：2026-11-22 09:00 ~ 2026-11-23 18:00）"
+                            className="flex-1 px-3 py-2 text-xs font-mono-num bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
                           />
                         </div>
                         <button
@@ -2579,20 +2606,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <span>删除</span>
                         </button>
                       </div>
-                      <input
-                        type="text"
-                        value={st.description}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormSchedule((prev) =>
-                            prev.map((item, i) =>
-                              i === idx ? { ...item, description: val } : item
-                            )
-                          );
-                        }}
-                        placeholder="阶段详细说明（如：48小时连续在线解题比拼，前60支高校战队晋级总决赛）"
-                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
-                      />
                     </div>
                   ))}
                 </div>
@@ -2823,6 +2836,27 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         0{i + 1}. {t.name}
                       </span>
                       <span className="text-slate-500">{t.description}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="font-bold text-slate-700 mb-1.5">
+                  比赛赛程（{viewingCompetitionDetail.schedule.length} 个阶段）
+                </div>
+                <div className="space-y-1.5">
+                  {viewingCompetitionDetail.schedule.map((st, i) => (
+                    <div
+                      key={st.id || i}
+                      className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                    >
+                      <span className="font-bold text-slate-800">
+                        0{i + 1}. {st.stage}
+                      </span>
+                      <span className="font-mono-num text-[#0284C7] font-semibold">
+                        {st.dateRange}
+                      </span>
                     </div>
                   ))}
                 </div>

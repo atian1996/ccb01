@@ -33,13 +33,15 @@ export interface CompetitionTrack {
   registeredTeamsCount: number;
 }
 
+export type NoticeCategoryType = '通知' | '创新赛通知' | '作品赛通知';
+
 export interface NoticeItem {
   id: string;
   title: string;
   date: string; // MM-DD
   fullDate: string; // YYYY-MM-DD
   isPinned: boolean;
-  category?: string;
+  category?: NoticeCategoryType | string;
   summary?: string;
   viewsCount?: number;
   department: string;
@@ -47,6 +49,105 @@ export interface NoticeItem {
   content: string[];
   attachments?: { name: string; size: string }[];
 }
+
+export const DEFAULT_NEWS_COVER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" fill="none">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="800" y2="450" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#072A47"/>
+        <stop offset="55%" stop-color="#0C4A6E"/>
+        <stop offset="100%" stop-color="#0284C7"/>
+      </linearGradient>
+      <linearGradient id="glow" x1="160" y1="60" x2="640" y2="390" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.32"/>
+        <stop offset="100%" stop-color="#0284C7" stop-opacity="0.05"/>
+      </linearGradient>
+    </defs>
+    <rect width="800" height="450" fill="url(#bg)"/>
+    <circle cx="680" cy="90" r="180" fill="url(#glow)"/>
+    <circle cx="130" cy="370" r="210" fill="url(#glow)"/>
+    <g stroke="#38BDF8" stroke-opacity="0.16" stroke-width="1">
+      <line x1="0" y1="90" x2="800" y2="90"/>
+      <line x1="0" y1="180" x2="800" y2="180"/>
+      <line x1="0" y1="270" x2="800" y2="270"/>
+      <line x1="0" y1="360" x2="800" y2="360"/>
+      <line x1="160" y1="0" x2="160" y2="450"/>
+      <line x1="320" y1="0" x2="320" y2="450"/>
+      <line x1="480" y1="0" x2="480" y2="450"/>
+      <line x1="640" y1="0" x2="640" y2="450"/>
+    </g>
+    <rect x="210" y="135" width="380" height="180" rx="20" fill="#0B3B60" fill-opacity="0.72" stroke="#38BDF8" stroke-opacity="0.45" stroke-width="2"/>
+    <text x="400" y="242" text-anchor="middle" fill="#FFFFFF" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="60" font-weight="800" letter-spacing="10">赛事新闻</text>
+  </svg>`
+)}`;
+
+export const HELP_CENTER_MARKDOWN_DOC = `## 一、参赛资格与组队报名规范
+
+### 1. 哪些人员可以报名参加 2026“XX杯”全国网数智安全大赛？
+凡具有教育部正式学籍的全日制普通高等院校在读本专科生、硕士研究生及博士研究生均可报名参赛。所有参赛选手须在报名截止前登录本平台【个人中心 - 用户认证】完成**个人实名认证**与**高校学籍认证**，指导教师须完成**教师资格认证**。
+
+### 2. 每支参赛战队的人数限制是多少？是否支持跨学院或跨校组队？
+- **团队赛制**：每支参赛战队由 **1 至 4 名**全日制在校学生组成（其中设队长 1 名），每队可配备 **1 至 2 名**同校指导教师。
+- **单人赛制**：部分专项挑战赛（如个人极客漏洞挖掘挑战赛）仅限 **1 人独立参赛**，创建报名时系统将自动隐藏队员邀请模块。
+- **跨校组队规则**：默认要求同校组队（鼓励同校内跨学院、跨学科联合组队）；如个别创新专项开放跨校联合组队，以对应赛事报名须知为准。
+
+### 3. 队长发起组队邀请后，队伍如何才算正式报名成功？
+组队报名采取**“队长建队邀人 -> 成员与指导教师在线确认 -> 提交审核 -> 高校与秘书处两级审核”**标准流程：
+1. 队长在赛事详情页点击【立即报名】填写队伍信息并向队员、指导教师发出邀请；
+2. 所有受邀队员及指导教师在【个人中心 - 我的消息】或【我的报名 - 我参与的队伍】中点击【同意】；
+3. 全员确认完毕后，队长点击【提交审核】锁定名单；
+4. 经所属高校管理员初审、大赛组委会秘书处终审通过后，报名状态变更为**“已通过”**即代表正式报名成功。
+
+---
+
+## 二、实名认证、学籍认证与账号安全
+
+### 4. 高校学籍认证与指导教师认证需要准备哪些材料？
+- **学生认证**：需填写真实姓名、所属院校、院系专业、学号，并上传清晰的**学生证内页照片**或**学信网《教育部学籍在线验证报告》截图**。
+- **教师认证**：需填写真实姓名、所属院校、院系部门、教工号，并上传**教师工作证、校园一卡通或院系盖章在职证明**照片。
+- **人工审核时效**：提交后由后台认证管理专员在 1 个工作日内完成人工核验，审核结果将通过顶部铃铛及【个人中心 - 我的消息】实时推送。
+
+### 5. 如果忘记登录密码或手机号更换该如何处理？
+可在登录页点击【忘记密码】，通过已绑定的手机号短信验证码或校园邮箱验证码在线重置密码（新密码须满足 8-20 位且包含大小写字母、数字与特殊符号，且不可与近 5 次历史密码重复）。若原手机号已停用，请联系本校大赛高校管理员或组委会秘书处协助核验身份后重置。
+
+---
+
+## 三、线上靶场接入、赛题提交与反作弊纪律
+
+### 6. 初赛线上靶场对网络环境和终端设备有什么要求？
+线上选拔赛基于云原生弹性仿真靶场进行。参赛选手需使用支持 WireGuard / OpenVPN 协议的客户端接入专用竞赛内网，推荐使用 Chrome 115+ 或 Edge 现代浏览器，并准备好常用渗透测试、逆向分析、密码学计算或 Python 3.10+ 深度学习开发环境。建议在正式开赛前参加组委会统一组织的**全真模拟压力测试**。
+
+### 7. 创新赛与作品赛的技术方案和源码如何提交与评审？
+参加创新赛或作品赛的队伍，须在规定赛程窗口期内按要求提交：
+- 项目技术架构白皮书（PDF 格式）；
+- 核心原型系统源码包及可复现部署说明文档；
+- 5 分钟以内的系统功能演示视频。
+评审专家组将从技术创新性、安全防御有效性、工程完备度及产业应用价值四个维度进行双盲评审。
+
+### 8. 比赛过程中有哪些严格的红线与反作弊规定？
+大赛实行零容忍反作弊机制，全程开启流量指纹审计与 Flag 动态水印追踪：
+- 严禁不同参赛队伍之间共享、交易 Flag 或解题脚本；
+- 严禁对赛事平台基础设施、判题服务器或其他参赛队伍靶机发起拒绝服务（DoS/DDoS）攻击；
+- 一经查实存在违规违纪行为，组委会将立即取消涉事战队比赛成绩并进行全国通报。
+
+---
+
+## 四、奖项评定与电子证书防伪核验
+
+### 9. 获奖电子证书如何查询、下载与验证真伪？
+总决赛成绩公示期满无异议后，组委会将正式签发带数字防伪签章的官方电子获奖证书。参赛选手可在首页下方【电子证书查询与验证】模块输入**姓名/身份证号**与**证书编号（如 XXCUP-2026-08921）**，即可在线核验防伪哈希值、预览证书原件并下载高清 PDF 版本用于高校学分认定与保研加分备案。`;
+
+export const HELP_CENTER_HOME_EXCERPT_MARKDOWN = `## 一、参赛资格与组队报名规范
+
+### 1. 哪些人员可以报名参加 2026“XX杯”全国网数智安全大赛？
+凡具有教育部正式学籍的全日制普通高等院校在读本专科生、硕士研究生及博士研究生均可报名参赛。所有参赛选手须在报名截止前登录本平台【个人中心 - 用户认证】完成**个人实名认证**与**高校学籍认证**，指导教师须完成**教师资格认证**。
+
+### 2. 每支参赛战队的人数限制是多少？是否支持跨学院或跨校组队？
+- **团队赛制**：每支参赛战队由 **1 至 4 名**全日制在校学生组成（其中设队长 1 名），每队可配备 **1 至 2 名**同校指导教师。
+- **单人赛制**：部分专项挑战赛（如个人极客漏洞挖掘挑战赛）仅限 **1 人独立参赛**，创建报名时系统将自动隐藏队员邀请模块。
+
+### 3. 队长发起组队邀请后，队伍如何才算正式报名成功？
+组队报名采取**“队长建队邀人 -> 成员与指导教师在线确认 -> 提交审核 -> 高校与秘书处两级审核”**标准流程，经高校初审与秘书处终审通过后即代表正式报名成功。`;
 
 export interface NewsItem {
   id: string;
@@ -276,11 +377,11 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '10-26',
     fullDate: '2026-10-26',
     isPinned: true,
-    category: '章程与指南',
+    category: '通知',
     summary: '全面规定第五届“XX杯”全国网数智安全大赛三大主力赛道赛制规则、高校学籍核验标准、评分权重及官方附件模板下载。',
     viewsCount: 24680,
     department: '“XX杯”全国网数智安全大赛组委会秘书处',
-    docNumber: '网数智赛字〔2026〕012号',
+    docNumber: '',
     content: [
       '各有关高等院校、参赛指导教师及参赛团队：',
       '为深入贯彻落实国家关于加强网络安全、数据安全与人工智能安全人才培养的战略部署，全面提升高校学生在复杂数字环境下的实战攻防与安全治理能力，第五届“XX杯”全国网数智安全大赛定于2026年10月至12月举行。',
@@ -298,11 +399,11 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '10-24',
     fullDate: '2026-10-24',
     isPinned: true,
-    category: '赛程与靶场',
+    category: '创新赛通知',
     summary: '定于2026年11月18日09:00至21:00开放全真模拟热身靶场，提供Web、Reverse、Pwn、Crypto、Misc共5道样题及VPN接入自检。',
     viewsCount: 19340,
     department: '大赛技术保障组 & 裁判委员会',
-    docNumber: '网数智赛技〔2026〕008号',
+    docNumber: '',
     content: [
       '各已报名参赛战队：',
       '为确保全国线上初赛期间各战队客户端VPN接入、容器靶机下发与Flag提交系统稳定运行，技术保障组将于2026年11月18日09:00至21:00开放全真模拟热身靶场。',
@@ -318,11 +419,11 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '10-27',
     fullDate: '2026-10-27',
     isPinned: false,
-    category: '赛程与靶场',
+    category: '创新赛通知',
     summary: '鉴于远程硬件在环（HIL）仿真台架并发配额已达上限，经组委会研究决定提前关闭该赛项在线报名通道，已提交战队正常进入资格审核。',
     viewsCount: 11250,
     department: '“XX杯”大赛技术保障组',
-    docNumber: '网数智赛技〔2026〕011号',
+    docNumber: '',
     content: [
       '各参赛高校及战队：',
       '鉴于“物联网固件逆向与智能终端安全挑战赛”硬件在环（HIL）仿真台架并发配额已达上限，经组委会研究决定，提前关闭该赛项在线报名通道。已完成报名提交的战队正常进入资格审核阶段。',
@@ -334,11 +435,11 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '10-25',
     fullDate: '2026-10-25',
     isPinned: false,
-    category: '资格与获奖公示',
+    category: '通知',
     summary: '首批620支高校参赛战队已完成教育部学信网在线验证码核验与指导教师资格复核，现予正式公示，被驳回队伍请及时修改重交。',
     viewsCount: 15820,
     department: '“XX杯”大赛资格审查委员会',
-    docNumber: '网数智赛审〔2026〕006号',
+    docNumber: '',
     content: [
       '截至2026年10月25日12:00，大赛资格审查委员会已完成首批620支高校参赛战队的教育部学信网在线验证码核验与指导教师资格复核。',
       '请被标记为“已驳回”的战队队长尽快登录【个人中心 -> 我的报名】查看具体驳回原因（如跨校指导教师不合规、证件照片模糊等），并在报名截止前完成人员更换与重新提交。',
@@ -353,11 +454,11 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '10-18',
     fullDate: '2026-10-18',
     isPinned: false,
-    category: '资格与获奖公示',
+    category: '创新赛通知',
     summary: '公布2026“XX杯”大模型与人工智能安全先导赛全国特等奖及一二三等奖最终名单，国密SM3防伪电子证书现已开放公开查询。',
     viewsCount: 22190,
     department: '“XX杯”大赛评审委员会',
-    docNumber: '网数智赛评〔2026〕005号',
+    docNumber: '',
     content: [
       '经过初赛算法评测、复赛红蓝双向对抗及线下专家评审答辩，2026“XX杯”大模型与人工智能安全先导赛已圆满完成全部赛程，共评出全国特等奖2项、一等奖8项、二等奖16项、三等奖30项及优秀指导教师奖10名。',
       '现将最终获奖名单予以正式公布。即日起，获奖选手与指导教师可通过本官网首页“获奖查询”模块，输入身份信息（姓名或身份证号）与证书编号（如：XXCUP-2026-08921）进行公开核验。',
@@ -369,11 +470,11 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '10-12',
     fullDate: '2026-10-12',
     isPinned: false,
-    category: '章程与指南',
+    category: '通知',
     summary: '面向全国普通高等院校公开招募校园推广大使及官方合作CTF安全技术社团，提供官方聘书、技术沙龙支持及总决赛观摩名额。',
     viewsCount: 8940,
     department: '大赛高校联络工作组',
-    docNumber: '网数智赛联〔2026〕003号',
+    docNumber: '',
     content: [
       '为进一步推动网络安全与数据安全知识在高校校园的普及，促进校际CTF战队与安全技术社团的交流合作，组委会现面向全国高校公开招募“校园推广大使”及“官方合作安全社团”。',
       '入选校园大使将获得组委会颁发的官方聘书、赛事专属周边礼包及总决赛现场观摩名额；优秀组织社团所在高校将优先获评大赛“优秀组织单位奖”。',
@@ -385,11 +486,11 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '10-08',
     fullDate: '2026-10-08',
     isPinned: false,
-    category: '纪律与规范',
+    category: '通知',
     summary: '比赛期间全流量态势感知与反作弊审计系统将实时监测解题Writeup雷同度、异常Flag提交时间序列及非授权IP共享行为。',
     viewsCount: 13400,
     department: '大赛仲裁与纪律监督委员会',
-    docNumber: '网数智赛纪〔2026〕001号',
+    docNumber: '',
     content: [
       '“XX杯”网数智安全大赛始终秉持“公平、公正、严谨、实战”的办赛原则。比赛期间，平台全流量态势感知与反作弊审计系统将实时监测解题Writeup雷同度、异常Flag提交时间序列及非授权IP共享行为。',
       '一经查实存在跨队买卖或共享Flag、故意破坏靶场公共组件等违纪行为，仲裁委员会将立即取消相关队伍参赛资格，并向参赛选手所在高校教务处或研究生院发送正式违纪通报函。',
@@ -397,33 +498,33 @@ export const NOTICE_ITEMS: NoticeItem[] = [
   },
   {
     id: 'notice-8',
-    title: '关于发布《2026“XX杯”全国总决赛线下实网靶场解题报告（Writeup）撰写规范与评分细则》的通知',
+    title: '关于发布《2026“XX杯”作品赛原型系统技术白皮书与演示视频提交规范》的通知',
     date: '10-05',
     fullDate: '2026-10-05',
     isPinned: false,
-    category: '纪律与规范',
-    summary: '明确线上选拔赛与线下总决赛解题报告（Writeup）提交时限、必含漏洞成因分析与完整复现脚本要求，附LaTeX与Word标准模板。',
+    category: '作品赛通知',
+    summary: '明确作品赛阶段原型系统源码包、技术架构白皮书与5分钟功能演示视频的提交时限与评分细则，附标准模板下载。',
     viewsCount: 10560,
     department: '大赛裁判委员会',
-    docNumber: '网数智赛评〔2026〕002号',
+    docNumber: '',
     content: [
-      '为确保线上选拔赛与线下总决赛成绩真实有效，所有晋级队伍须在比赛结束2小时内按标准模板提交含完整复现脚本与漏洞成因分析的解题报告（Writeup）。未按时提交或报告核心步骤缺失的赛题将不予计分。',
+      '为确保作品赛评审客观公正，所有参赛队伍须在规定窗口期内按标准模板提交含完整部署说明、架构设计与核心代码仓库的作品材料包。未按时提交或核心功能无法复现的作品将不予进入终审答辩。',
     ],
     attachments: [
-      { name: '附件：“XX杯”全国网数智安全大赛标准Writeup模板（LaTeX & Word版）.zip', size: '1.6 MB' },
+      { name: '附件：“XX杯”全国网数智安全大赛作品赛技术白皮书标准模板（LaTeX & Word版）.zip', size: '1.6 MB' },
     ],
   },
   {
     id: 'notice-9',
-    title: '关于配发2026“XX杯”数据安全与隐私计算挑战赛云端NVIDIA A800算力代金券的通知',
+    title: '关于配发2026“XX杯”数据安全与隐私计算创新赛云端NVIDIA A800算力代金券的通知',
     date: '10-03',
     fullDate: '2026-10-03',
     isPinned: false,
-    category: '赛程与靶场',
+    category: '创新赛通知',
     summary: '为降低高校战队大模型微调与隐私计算联邦学习实验门槛，组委会为每支通过学籍审核的参赛队伍免费配发100机时云端GPU算力配额。',
     viewsCount: 9280,
     department: '国家数据安全重点实验室 & 大赛算力调度组',
-    docNumber: '网数智赛技〔2026〕005号',
+    docNumber: '',
     content: [
       '各参加“数据安全与隐私计算挑战赛”的高校战队：',
       '为保障所有参赛队伍在统一、公平的硬件基准下开展联邦学习隐私保护与密态计算评测，组委会联合国家超算中心为每支通过资格审核的队伍免费开通云端容器算力沙箱。',
@@ -436,11 +537,11 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '09-29',
     fullDate: '2026-09-29',
     isPinned: false,
-    category: '章程与指南',
+    category: '通知',
     summary: '本平台院校库严格依据教育部全国普通高等学校名单（含普通本科、职业本科、高职专科）构建，支持CARSI联邦与学信网双通道核验。',
     viewsCount: 11730,
     department: '“XX杯”大赛资格审查委员会',
-    docNumber: '网数智赛审〔2026〕001号',
+    docNumber: '',
     content: [
       '各参赛院校领队及参赛师生：',
       '为规范高校集体奖项统计与参赛学籍核验，大赛平台已全面启用教育部10位学校标识码标准库（如北京大学 4111010001、清华大学 4111010003）。',
@@ -453,28 +554,28 @@ export const NOTICE_ITEMS: NoticeItem[] = [
     date: '09-22',
     fullDate: '2026-09-22',
     isPinned: false,
-    category: '资格与获奖公示',
+    category: '通知',
     summary: '聘任来自两院院士、国家级科研院所及一流网络安全学院示范高校的48位专家学者组成第五届大赛命题与技术仲裁委员会。',
     viewsCount: 8410,
     department: '“XX杯”全国网数智安全大赛组委会',
-    docNumber: '网数智赛字〔2026〕003号',
+    docNumber: '',
     content: [
       '经指导单位批准，第五届“XX杯”全国网数智安全大赛正式成立命题专家委员会与独立纪律仲裁委员会，全面负责赛题盲测、评分核准与争议申诉裁决。',
     ],
   },
   {
     id: 'notice-12',
-    title: '关于发布《“XX杯”网数智安全大赛参赛战队开源代码与漏洞披露合规守则》的通知',
+    title: '关于发布《“XX杯”网数智安全大赛作品赛开源代码合规与知识产权保护守则》的通知',
     date: '09-18',
     fullDate: '2026-09-18',
     isPinned: false,
-    category: '纪律与规范',
-    summary: '规范比赛期间发现的真实软硬件0day漏洞上报流程，所有原创漏洞将同步报送国家信息安全漏洞共享平台（CNVD）并颁发原创漏洞证书。',
+    category: '作品赛通知',
+    summary: '规范作品赛期间提交的原创安全防御作品开源协议引用、第三方组件声明及原创漏洞披露合规要求。',
     viewsCount: 7920,
     department: '大赛仲裁与纪律监督委员会',
-    docNumber: '网数智赛纪〔2026〕002号',
+    docNumber: '',
     content: [
-      '参赛战队在比赛及备赛过程中针对真实软硬件靶标挖掘出的未知0day漏洞，须严格遵守国家《网络产品安全漏洞管理规定》，在未完成官方修复前严禁在互联网公开细节或攻击代码。',
+      '参赛战队在作品赛研发过程中须严格遵守开源软件许可证规范，并在技术白皮书中明确标注原创模块与第三方开源组件边界。',
     ],
   },
 ];
@@ -1352,26 +1453,26 @@ export const INITIAL_COMPETITION_CATALOG: CompetitionCatalogItem[] = [
       {
         id: 'st-1',
         stage: '大赛报名与高校学籍核验',
-        dateRange: '2026-10-15 ~ 2026-11-15',
-        description: '全国高校参赛团队在线建队、完成队员实名与教育部学籍核验及指导教师绑定。',
+        dateRange: '2026-10-15 09:00 ~ 2026-11-15 18:00',
+        description: '',
       },
       {
         id: 'st-2',
         stage: '线上靶场连通性测试赛',
-        dateRange: '2026-11-18 09:00 ~ 21:00',
-        description: '开放云端VPN专用客户端下载、容器靶机下发测试与5道热身样题演练。',
+        dateRange: '2026-11-18 09:00 ~ 2026-11-18 21:00',
+        description: '',
       },
       {
         id: 'st-3',
         stage: '全国线上初赛（CTF夺旗模式）',
-        dateRange: '2026-11-22 ~ 2026-11-23',
-        description: '48小时连续在线解题比拼，动态积分榜前60支高校战队晋级线下全国总决赛。',
+        dateRange: '2026-11-22 09:00 ~ 2026-11-23 21:00',
+        description: '',
       },
       {
         id: 'st-4',
         stage: '全国线下总决赛暨颁奖典礼',
-        dateRange: '2026-12-19 ~ 2026-12-20',
-        description: '北京国家会议中心实网靶场AWD Plus攻防对抗，决出全国特等奖及一二三等奖。',
+        dateRange: '2026-12-19 09:00 ~ 2026-12-20 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 大赛背景与宗旨
@@ -1427,26 +1528,26 @@ export const INITIAL_COMPETITION_CATALOG: CompetitionCatalogItem[] = [
       {
         id: 'st-d1',
         stage: '报名开启与基线代码发布',
-        dateRange: '2026-11-10 ~ 2026-11-25',
-        description: '开放赛事报名，同步公开脱敏训练数据集与官方Docker基线评测镜像仓库。',
+        dateRange: '2026-11-10 10:00 ~ 2026-11-25 18:00',
+        description: '',
       },
       {
         id: 'st-d2',
         stage: '初赛算法评测 A 榜阶段',
-        dateRange: '2026-11-15 ~ 2026-12-05',
-        description: '每支队伍每日最多可提交3次容器镜像，云端GPU集群自动评测并实时更新A榜得分。',
+        dateRange: '2026-11-15 09:00 ~ 2026-12-05 18:00',
+        description: '',
       },
       {
         id: 'st-d3',
         stage: '复赛极限对抗 B 榜锁定',
-        dateRange: '2026-12-06 ~ 2026-12-12',
-        description: '切换大规模高噪对抗测试集，综合考量隐私保护强度、模型推理精度与通信时延。',
+        dateRange: '2026-12-06 09:00 ~ 2026-12-12 18:00',
+        description: '',
       },
       {
         id: 'st-d4',
         stage: '全国总决赛现场复现与路演答辩',
-        dateRange: '2026-12-27 ~ 2026-12-28',
-        description: '前30强战队现场代码复现核验，接受两院院士与行业专家评审团问询答辩。',
+        dateRange: '2026-12-27 09:00 ~ 2026-12-28 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 赛事简介
@@ -1502,20 +1603,20 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-a1',
         stage: '先导赛战队集结与报名',
-        dateRange: '2026-06-01 ~ 2026-07-10',
-        description: '吸引全国218所高校共964支学生与青年学者战队完成报名。',
+        dateRange: '2026-06-01 09:00 ~ 2026-07-10 18:00',
+        description: '',
       },
       {
         id: 'st-a2',
         stage: '线上算法基准测试与红蓝博弈',
-        dateRange: '2026-07-15 ~ 2026-08-25',
-        description: '开启攻击样本注入与安全护栏双向交叉自动化评分。',
+        dateRange: '2026-07-15 09:00 ~ 2026-08-25 18:00',
+        description: '',
       },
       {
         id: 'st-a3',
         stage: '全国总决赛暨获奖证书签发',
-        dateRange: '2026-09-20 ~ 2026-09-25',
-        description: '总决赛圆满收官，36支队伍斩获全国大奖，国密SM3防伪电子证书已开放核验。',
+        dateRange: '2026-09-20 09:00 ~ 2026-09-25 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 先导赛回顾与成果公示
@@ -1556,20 +1657,20 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-i1',
         stage: '战队报名与固件仿真包发放',
-        dateRange: '2026-10-20 ~ 2026-11-08',
-        description: '报名审核通过后即可下载车载网关QEMU仿真固件镜像包。',
+        dateRange: '2026-10-20 09:00 ~ 2026-11-08 18:00',
+        description: '',
       },
       {
         id: 'st-i2',
         stage: '线上固件逆向与协议夺旗选拔',
-        dateRange: '2026-11-12 ~ 2026-11-15',
-        description: '72小时线上漏洞挖掘与车载通信异常检测算法评测。',
+        dateRange: '2026-11-12 09:00 ~ 2026-11-15 18:00',
+        description: '',
       },
       {
         id: 'st-i3',
         stage: '实车沙盘线下极客总决赛',
-        dateRange: '2026-11-28 ~ 2026-11-30',
-        description: '针对智能网联实车测试台架与城市微电网数字孪生沙盘进行现场渗透与加固。',
+        dateRange: '2026-11-28 09:00 ~ 2026-11-30 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 车联网与智能工控安全赛项说明
@@ -1606,14 +1707,14 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-w1',
         stage: '冬令营报名与课题申报',
-        dateRange: '2026-12-15 ~ 2027-01-05',
-        description: '面向全国高校密码学与信息安全专业本硕博团队开放。',
+        dateRange: '2026-12-15 09:00 ~ 2027-01-05 18:00',
+        description: '',
       },
       {
         id: 'st-w2',
         stage: '封闭式极客冬令营与决赛答辩',
-        dateRange: '2027-01-18 ~ 2027-01-25',
-        description: '为期7天的专家授课、侧信道实验平台实操与算法极限性能比拼。',
+        dateRange: '2027-01-18 09:00 ~ 2027-01-25 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 赛事筹备说明
@@ -1649,20 +1750,20 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-cl1',
         stage: '战队在线报名与跨校组队确认',
-        dateRange: '2026-10-18 ~ 2026-11-20',
-        description: '开放平台在线报名，本赛项特别开启“允许跨校组队”，欢迎不同高校学子优势互补。',
+        dateRange: '2026-10-18 09:00 ~ 2026-11-20 18:00',
+        description: '',
       },
       {
         id: 'st-cl2',
         stage: '线上云原生靶场集群夺旗选拔',
-        dateRange: '2026-11-25 ~ 2026-11-26',
-        description: '下发独立K8s多节点实验集群，考核复杂微服务链路渗透与加固。',
+        dateRange: '2026-11-25 09:00 ~ 2026-11-26 21:00',
+        description: '',
       },
       {
         id: 'st-cl3',
         stage: '全国总决赛（红蓝双向对抗）',
-        dateRange: '2026-12-09 ~ 2026-12-10',
-        description: '前40强战队围绕真实云原生企业生产底座展开24小时攻防演练。',
+        dateRange: '2026-12-09 09:00 ~ 2026-12-10 18:00',
+        description: '',
       },
     ],
     markdownContent: `# 赛事背景与亮点
@@ -1678,6 +1779,262 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     isPublic: true,
     createdAt: '2026-10-16 10:20:00',
     organizer: '中国网络空间安全协会云安全专委会、“XX杯”全国网数智安全大赛组委会',
+    registrationMode: 'platform',
+  },
+  // === 新增未报名、进行中、平台开放报名的赛事示例（方便直接测试报名与分页） ===
+  {
+    id: 'comp-2026-llm-redteam',
+    title: '2026“XX杯”生成式大模型红蓝对抗与内生安全创新赛',
+    summary:
+      '面向全国高校开放报名的AI安全实战创新赛，围绕大语言模型越狱防御、RAG知识库投毒检测、多模态对抗样本免疫及Agent工具调用鉴权展开高强度攻防对抗（进行中·尚未报名示例）。',
+    startDate: '2026-10-20',
+    endDate: '2026-12-10',
+    coverTheme: 'ai',
+    customTags: ['生成式AI安全', '大模型红蓝对抗', '开放报名中', '进行中'],
+    tracks: [
+      { id: 't-llm1', name: '大模型越狱攻击与围栏加固赛道', description: '针对千亿参数底座模型的自动化红队Prompt注入与蓝队语义防火墙构建' },
+      { id: 't-llm2', name: '多智能体（Multi-Agent）内生安全赛道', description: '防范间接提示词注入、工具调用劫持与跨上下文越权' },
+      { id: 't-llm3', name: 'AIGC深度伪造溯源与数字水印赛道', description: '高精度合成音视频伪造鉴别与鲁棒性隐式水印提取' },
+    ],
+    schedule: [
+      {
+        id: 'st-llm1',
+        stage: '创新赛在线报名与团队组建',
+        dateRange: '2026-10-20 09:00 ~ 2026-11-28 18:00',
+        description: '',
+      },
+      {
+        id: 'st-llm2',
+        stage: '线上模型评测与对抗初赛',
+        dateRange: '2026-12-01 09:00 ~ 2026-12-03 18:00',
+        description: '',
+      },
+      {
+        id: 'st-llm3',
+        stage: '全国总决赛路演与实时攻防',
+        dateRange: '2026-12-09 09:00 ~ 2026-12-10 17:30',
+        description: '',
+      },
+    ],
+    markdownContent: `# 生成式大模型红蓝对抗与内生安全创新赛
+
+随着生成式人工智能在政务、金融、医疗等关键领域的规模化落地，大模型内生安全与供应链防护成为数字安全最前沿阵地。**2026“XX杯”生成式大模型红蓝对抗与内生安全创新赛** 现已正式开启报名，当前登录账号尚未报名本赛事，可直接点击右上角【立即报名】创建战队参赛。
+
+---
+
+## 核心赛题方向
+
+1. **大模型越狱攻击与围栏加固**：基于真实开源基座模型开展红蓝实时博弈。
+2. **多智能体（Multi-Agent）内生安全**：防范间接提示词注入与外部 API 越权调用。
+3. **AIGC 深度伪造溯源与数字水印**：实现高精度合成音视频伪造鉴别与鲁棒性隐式水印提取。`,
+    isPublic: true,
+    createdAt: '2026-10-19 10:00:00',
+    organizer: '“XX杯”全国网数智安全大赛组委会、人工智能安全国家重点实验室',
+    registrationMode: 'platform',
+  },
+  {
+    id: 'comp-2026-telecom-antifraud',
+    title: '2026“XX杯”电信网络诈骗黑产溯源与威胁情报分析大赛',
+    summary:
+      '聚焦涉诈域名快闪集群识别、跨境资金链路图谱追踪、恶意APK木马自动化沙箱逆向与多源威胁情报关联建模，当前正处于火热报名开放期（进行中·尚未报名示例）。',
+    startDate: '2026-10-24',
+    endDate: '2026-12-05',
+    coverTheme: 'data',
+    customTags: ['反诈黑产溯源', '威胁情报图谱', '恶意样本逆向', '开放报名中'],
+    tracks: [
+      { id: 't-tele1', name: '海量异构图谱涉诈团伙挖掘赛道', description: '基于脱敏真实黑产通信与资金流转图谱识别隐蔽犯罪团伙' },
+      { id: 't-tele2', name: '移动端涉诈木马逆向与C2溯源赛道', description: '针对加固混淆涉诈APP进行自动化脱壳与C2通信协议还原' },
+    ],
+    schedule: [
+      {
+        id: 'st-tele1',
+        stage: '战队报名与资格审核',
+        dateRange: '2026-10-24 09:00 ~ 2026-11-26 18:00',
+        description: '',
+      },
+      {
+        id: 'st-tele2',
+        stage: '线上大数据溯源算法排位赛',
+        dateRange: '2026-11-28 09:00 ~ 2026-11-30 20:00',
+        description: '',
+      },
+      {
+        id: 'st-tele3',
+        stage: '全国总决赛现场案件复盘答辩',
+        dateRange: '2026-12-04 09:00 ~ 2026-12-05 18:00',
+        description: '',
+      },
+    ],
+    markdownContent: `# 电信网络诈骗黑产溯源与威胁情报分析大赛
+
+依托全脱敏真实黑产对抗数据集，重点考察参赛战队在复杂加密通信分析、图神经网络异常团伙挖掘及恶意样本沙箱取证领域的综合实战能力。当前赛事处于火热报名期，欢迎直接点击【立即报名】组建战队。`,
+    isPublic: true,
+    createdAt: '2026-10-21 14:30:00',
+    organizer: '国家反诈大数据协同创新中心、“XX杯”全国网数智安全大赛组委会',
+    registrationMode: 'platform',
+  },
+  {
+    id: 'comp-2026-smartgrid-def',
+    title: '2026“XX杯”新型电力系统与能源工业互联网安全防护赛',
+    summary:
+      '依托1:1电力调度自动化数字孪生靶场，考察智能变电站IEC-61850协议深度监测、新能源场站边缘网关加固及电网控制指令防篡改能力（进行中·尚未报名示例）。',
+    startDate: '2026-10-25',
+    endDate: '2026-12-12',
+    coverTheme: 'network',
+    customTags: ['电力工控安全', '数字孪生靶场', '开放报名中', '进行中'],
+    tracks: [
+      { id: 't-grid1', name: '智能变电站工控协议防护赛道', description: '识别针对IEC-104/MMS协议的畸形报文注入与重放攻击' },
+      { id: 't-grid2', name: '新能源微电网云边协同应急赛道', description: '保障仿真电网频率稳定前提下的上位机与PLC控制逻辑加固' },
+    ],
+    schedule: [
+      {
+        id: 'st-grid1',
+        stage: '参赛战队报名与实名核验',
+        dateRange: '2026-10-25 09:00 ~ 2026-11-29 18:00',
+        description: '',
+      },
+      {
+        id: 'st-grid2',
+        stage: '线上电力工控仿真初赛',
+        dateRange: '2026-12-03 09:00 ~ 2026-12-04 18:00',
+        description: '',
+      },
+      {
+        id: 'st-grid3',
+        stage: '电力数字孪生沙盘总决赛',
+        dateRange: '2026-12-11 09:00 ~ 2026-12-12 17:00',
+        description: '',
+      },
+    ],
+    markdownContent: `# 新型电力系统与能源工业互联网安全防护赛
+
+新型电力系统高度依赖数字化通信与智能终端感知，其网络空间安全直接关系国家能源命脉。本赛事面向全国高校电气工程、自动化及网络空间安全专业学生开放组队报名。`,
+    isPublic: true,
+    createdAt: '2026-10-22 11:15:00',
+    organizer: '国家能源互联网安全联合实验室、“XX杯”全国网数智安全大赛组委会',
+    registrationMode: 'platform',
+  },
+  {
+    id: 'comp-2026-openharmony-sec',
+    title: '2026“XX杯”开源操作系统内核与机密计算作品赛',
+    summary:
+      '围绕万物智联操作系统微内核形式化验证、TEE可信执行环境应用开发、Rust内存安全组件重构等方向征集原创安全技术作品（进行中·尚未报名示例）。',
+    startDate: '2026-10-26',
+    endDate: '2026-12-18',
+    coverTheme: 'ai',
+    customTags: ['原创安全作品赛', '机密计算TEE', '内核安全', '开放报名中'],
+    tracks: [
+      { id: 't-oh1', name: '操作系统内核安全增强作品赛道', description: '微内核权限校验、Rust安全驱动重构与系统调用审计' },
+      { id: 't-oh2', name: 'TEE可信执行环境创新应用赛道', description: '基于机密计算底座构建隐私保护型安全应用原型' },
+    ],
+    schedule: [
+      {
+        id: 'st-oh1',
+        stage: '作品赛报名与选题申报',
+        dateRange: '2026-10-26 09:00 ~ 2026-11-30 23:59',
+        description: '',
+      },
+      {
+        id: 'st-oh2',
+        stage: '作品源码与技术白皮书提交',
+        dateRange: '2026-12-01 00:00 ~ 2026-12-10 23:59',
+        description: '',
+      },
+      {
+        id: 'st-oh3',
+        stage: '全国作品赛终审答辩与展演',
+        dateRange: '2026-12-17 09:00 ~ 2026-12-18 17:00',
+        description: '',
+      },
+    ],
+    markdownContent: `# 开源操作系统内核与机密计算作品赛
+
+鼓励参赛学生结合国产开源操作系统与硬件可信执行环境（TEE），设计并实现具有实际工程落地价值的内核级安全防御组件或机密计算工具。支持 1—4 人组队参赛，当前处于作品报名开放阶段。`,
+    isPublic: true,
+    createdAt: '2026-10-23 16:40:00',
+    organizer: '开源系统安全技术委员会、“XX杯”全国网数智安全大赛组委会',
+    registrationMode: 'platform',
+  },
+  {
+    id: 'comp-2026-satellite-sec',
+    title: '2026“XX杯”空天地一体化卫星互联网安全攻防挑战赛',
+    summary:
+      '面向低轨卫星通信链路加密协议分析、星载软件无线电（SDR）信号抗干扰及地面站指控系统渗透防护的前沿专项赛（进行中·尚未报名示例）。',
+    startDate: '2026-10-22',
+    endDate: '2026-12-08',
+    coverTheme: 'network',
+    customTags: ['卫星互联网安全', '空天地一体化', 'SDR信号分析', '开放报名中'],
+    tracks: [
+      { id: 't-sat1', name: '卫星通信协议分析与抗干扰赛道', description: '星地链路协议逆向、伪基站信标识别与抗欺骗加固' },
+      { id: 't-sat2', name: '地面站指控网络渗透防护赛道', description: '卫星测控网边界防护与星载固件安全审计' },
+    ],
+    schedule: [
+      {
+        id: 'st-sat1',
+        stage: '在线组队报名与资格审查',
+        dateRange: '2026-10-22 09:00 ~ 2026-11-27 18:00',
+        description: '',
+      },
+      {
+        id: 'st-sat2',
+        stage: '星地链路仿真线上选拔赛',
+        dateRange: '2026-11-30 09:00 ~ 2026-12-01 18:00',
+        description: '',
+      },
+      {
+        id: 'st-sat3',
+        stage: '全国总决赛卫星硬件在环对抗',
+        dateRange: '2026-12-07 09:00 ~ 2026-12-08 17:00',
+        description: '',
+      },
+    ],
+    markdownContent: `# 空天地一体化卫星互联网安全攻防挑战赛
+
+随着低轨卫星互联网组网建设加速，空天地一体化信息安全成为国家战略安全新兴疆域。本赛事现面向全国高校航空航天、通信工程及网络安全相关专业学生开放组队报名。`,
+    isPublic: true,
+    createdAt: '2026-10-20 09:20:00',
+    organizer: '空天信息安全国家重点实验室、“XX杯”全国网数智安全大赛组委会',
+    registrationMode: 'platform',
+  },
+  {
+    id: 'comp-2026-quantum-crypto',
+    title: '2026“XX杯”量子通信协议安全与抗量子密码工程挑战赛',
+    summary:
+      '聚焦量子密钥分发（QKD）网络节点鉴权、后量子格密码算法硬件加速实现与混合密钥交换协议安全性形式化验证（进行中·尚未报名示例）。',
+    startDate: '2026-10-23',
+    endDate: '2026-12-15',
+    coverTheme: 'data',
+    customTags: ['抗量子密码PQC', '量子通信安全', '开放报名中', '进行中'],
+    tracks: [
+      { id: 't-q1', name: '抗量子密码算法高性能工程优化赛道', description: '针对ML-KEM/ML-DSA及国密后量子算法的AVX2/FPGA加速' },
+      { id: 't-q2', name: 'TLS 1.3后量子混合密钥交换协议审计赛道', description: '协议降级攻击检测与形式化安全证明' },
+    ],
+    schedule: [
+      {
+        id: 'st-q1',
+        stage: '参赛战队报名与环境准备',
+        dateRange: '2026-10-23 09:00 ~ 2026-11-28 18:00',
+        description: '',
+      },
+      {
+        id: 'st-q2',
+        stage: '线上抗量子密码工程基准评测',
+        dateRange: '2026-12-02 09:00 ~ 2026-12-05 18:00',
+        description: '',
+      },
+      {
+        id: 'st-q3',
+        stage: '全国总决赛现场答辩',
+        dateRange: '2026-12-14 09:00 ~ 2026-12-15 17:00',
+        description: '',
+      },
+    ],
+    markdownContent: `# 量子通信协议安全与抗量子密码工程挑战赛
+
+面向后量子密码迁移工程实践，考察参赛团队在新型公钥密码算法实现效率与侧信道防护方面的综合能力。当前正处于开放报名期。`,
+    isPublic: true,
+    createdAt: '2026-10-22 15:10:00',
+    organizer: '国家量子信息安全协同创新中心、“XX杯”全国网数智安全大赛组委会',
     registrationMode: 'platform',
   },
   {
@@ -1697,20 +2054,20 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-iot1',
         stage: '大赛报名（名额满员已提前关闭）',
-        dateRange: '2026-10-10 ~ 2026-10-27',
-        description: '远程硬件台架预约名额已满，报名通道已提前关闭，进入高校资格审核阶段。',
+        dateRange: '2026-10-10 09:00 ~ 2026-10-27 18:00',
+        description: '',
       },
       {
         id: 'st-iot2',
         stage: '线上固件逆向与仿真评测赛',
-        dateRange: '2026-11-05 ~ 2026-11-08',
-        description: '基于固件仿真平台进行自动化漏洞触发与补丁校验。',
+        dateRange: '2026-11-05 09:00 ~ 2026-11-08 18:00',
+        description: '',
       },
       {
         id: 'st-iot3',
         stage: '线下实体设备破解总决赛',
-        dateRange: '2026-11-27 ~ 2026-11-28',
-        description: '现场对20款真实智能硬件设备进行UART/JTAG调试与零日漏洞利用演示。',
+        dateRange: '2026-11-27 09:00 ~ 2026-11-28 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 物联网固件逆向与智能终端安全挑战赛说明
@@ -1738,20 +2095,20 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-cr1',
         stage: '大赛报名与资格复核',
-        dateRange: '2026-09-10 ~ 2026-10-20',
-        description: '在线报名通道已于10月20日24:00正式截止。',
+        dateRange: '2026-09-10 09:00 ~ 2026-10-20 23:59',
+        description: '',
       },
       {
         id: 'st-cr2',
         stage: '全国线上密码分析与算法夺旗赛',
-        dateRange: '2026-10-25 ~ 2026-10-30',
-        description: '当前正在火热进行线上密码分析挑战与白盒二进制样本破解。',
+        dateRange: '2026-10-25 09:00 ~ 2026-10-30 18:00',
+        description: '',
       },
       {
         id: 'st-cr3',
         stage: '全国总决赛暨密评实战路演',
-        dateRange: '2026-11-18 ~ 2026-11-20',
-        description: '入围战队进行密码工程性能优化比拼与专家评审答辩。',
+        dateRange: '2026-11-18 09:00 ~ 2026-11-20 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 商用密码应用与后量子密码算法挑战赛
@@ -1779,20 +2136,20 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-sv1',
         stage: '个人极客报名与实名核验',
-        dateRange: '2026-10-22 ~ 2026-11-18',
-        description: '单人直接参赛（最多人数限制为1人，报名页自动隐藏邀请队员模块）。',
+        dateRange: '2026-10-22 09:00 ~ 2026-11-18 18:00',
+        description: '',
       },
       {
         id: 'st-sv2',
         stage: '线上72小时极限Pwn夺旗赛',
-        dateRange: '2026-11-21 ~ 2026-11-24',
-        description: '全独立容器实例下发，动态计算Exploit稳定性得分。',
+        dateRange: '2026-11-21 09:00 ~ 2026-11-24 09:00',
+        description: '',
       },
       {
         id: 'st-sv3',
         stage: '线下现场0day演示与颁奖',
-        dateRange: '2026-12-05',
-        description: '前20名个人极客现场演示漏洞利用链并获颁年度极客金奖。',
+        dateRange: '2026-12-05 09:00 ~ 2026-12-05 18:00',
+        description: '',
       },
     ],
     markdownContent: `# 零日漏洞挖掘与二进制极客个人挑战赛
@@ -1820,14 +2177,14 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-fn1',
         stage: '外部联合平台报名启动',
-        dateRange: '2026-11-18 ~ 2026-12-02',
-        description: '通过金融安全联合实验室外部平台统一接收报名。',
+        dateRange: '2026-11-18 09:00 ~ 2026-12-02 18:00',
+        description: '',
       },
       {
         id: 'st-fn2',
         stage: '金融沙箱模型评测与决赛路演',
-        dateRange: '2026-12-08 ~ 2026-12-30',
-        description: '在金融脱敏仿真沙箱内完成算法评测。',
+        dateRange: '2026-12-08 09:00 ~ 2026-12-30 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 金融科技与跨境数据合规安全外部联合赛
@@ -1856,14 +2213,14 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-sc1',
         stage: '特邀高校战队名单确认',
-        dateRange: '2026-10-12 ~ 2026-10-18',
-        description: '由组委会定向邀请全国30所国家一流网络安全学院代表队参赛。',
+        dateRange: '2026-10-12 09:00 ~ 2026-10-18 18:00',
+        description: '',
       },
       {
         id: 'st-sc2',
         stage: '供应链投毒样本实时狩猎对抗',
-        dateRange: '2026-10-22 ~ 2026-11-25',
-        description: '当前正处于持续35天的真实开源仓库恶意包监测比拼阶段。',
+        dateRange: '2026-10-22 09:00 ~ 2026-11-25 18:00',
+        description: '',
       },
     ],
     markdownContent: `# 开源软件供应链安全与SBOM治理定向特邀赛
@@ -1891,14 +2248,14 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-ar1',
         stage: '全国线上初赛与复赛选拔',
-        dateRange: '2025-10-01 ~ 2025-11-30',
-        description: '全国240余所高校共1520支战队参与角逐。',
+        dateRange: '2025-10-01 09:00 ~ 2025-11-30 18:00',
+        description: '',
       },
       {
         id: 'st-ar2',
         stage: '第四届全国总决赛暨颁奖盛典',
-        dateRange: '2025-12-20 ~ 2025-12-22',
-        description: '圆满落幕，全部获奖证书均已支持在官网首页防伪核验。',
+        dateRange: '2025-12-20 09:00 ~ 2025-12-22 17:30',
+        description: '',
       },
     ],
     markdownContent: `# 2025第四届“XX杯”年度总决赛历史归档
@@ -1926,14 +2283,14 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
       {
         id: 'st-rb1',
         stage: '特训战队组队与报名',
-        dateRange: '2026-10-16 ~ 2026-11-18',
-        description: '通过平台在线报名组建3-4人高校蓝军应急小组。',
+        dateRange: '2026-10-16 09:00 ~ 2026-11-18 18:00',
+        description: '',
       },
       {
         id: 'st-rb2',
         stage: '云端孪生企业内网应急演练',
-        dateRange: '2026-11-28 ~ 2026-12-01',
-        description: '48小时高强度APT攻击事件响应与取证报告评分。',
+        dateRange: '2026-11-28 09:00 ~ 2026-12-01 18:00',
+        description: '',
       },
     ],
     markdownContent: `# 高校实网蓝军应急响应与威胁狩猎特训赛

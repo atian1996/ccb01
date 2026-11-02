@@ -40,7 +40,14 @@ import {
   Mail,
   MapPin
 } from 'lucide-react';
-import { NOTICE_ITEMS, type NoticeItem, type FaqItem } from '../data/competitionData';
+import {
+  NOTICE_ITEMS,
+  DEFAULT_NEWS_COVER_SVG,
+  HELP_CENTER_MARKDOWN_DOC,
+  type NoticeItem,
+  type NoticeCategoryType,
+  type FaqItem,
+} from '../data/competitionData';
 import {
   getEffectiveUserStatus,
   resolveTeamAuditStages,
@@ -579,8 +586,8 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-2',
     title: '关于发布《2026年度全国高校参赛选手实名认证与教育部院校标准库核验规范》的通知',
-    tags: ['通知公告', '赛制解读'],
-    // 故意不设封面图，体现“支持无图纯文字排版”要求
+    tags: ['赛事新闻'],
+    coverImage: DEFAULT_NEWS_COVER_SVG,
     summary: '为确保国家级赛事公平公正，平台已全面对接教育部全国普通高等学校10位唯一标识码标准名录，所有参赛队员及指导教师须在报名截止前完成实名与学籍/教工认证。',
     source: '大赛资格审查委员会',
     publishStatus: 'published',
@@ -604,7 +611,7 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-3',
     title: '聚焦AI大模型红蓝对抗：2026“XX杯”大模型安全专项赛技术白皮书与样题解析正式公开',
-    tags: ['赛事新闻', '赛制解读'],
+    tags: ['赛事新闻'],
     coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=960&q=80',
     summary: '专项赛涵盖提示词注入越狱防御、RAG检索增强知识库投毒检测、多模态对抗样本鲁棒性加固及Agent工具调用权限逃逸四大核心赛题模块。',
     source: '大赛技术命题组',
@@ -625,7 +632,7 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-4',
     title: '新华网专访大赛评委会主席：以实战化数字靶场锤炼国家急需紧缺网安实战人才',
-    tags: ['权威报道', '赛事新闻'],
+    tags: ['赛事新闻'],
     coverImage: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=960&q=80',
     summary: '评委会主席在采访中指出，“XX杯”已连续举办七届，累计吸引全国超1200所本专科院校、近18万人次学子同台竞技，成为连接高校科研与产业一线安全防御的桥梁。',
     source: '新华网科技频道',
@@ -640,7 +647,8 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-5',
     title: '关于公布第七届“XX杯”大赛首批合作支撑单位与国家级数字靶场算力节点的公告',
-    tags: ['通知公告'],
+    tags: ['赛事新闻'],
+    coverImage: DEFAULT_NEWS_COVER_SVG,
     summary: '为支撑全国上万支参赛战队并发在线实操，大赛组委会联合国家超算中心及头部云安全厂商，已完成北京、上海、杭州、武汉、西安五大分布式靶场节点部署。',
     source: '大赛组委会基础设施组',
     publishStatus: 'published',
@@ -652,7 +660,7 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-6',
     title: '2026国家关键信息基础设施云原生防御挑战赛参赛指南与K8s集群沙箱接入说明',
-    tags: ['赛制解读', '通知公告'],
+    tags: ['赛事新闻'],
     coverImage: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=960&q=80',
     summary: '详细介绍云原生防御挑战赛中的VPN安全接入凭证获取方式、eBPF可观测性探针部署规范以及AWD Plus自动化补丁校验评分机制。',
     source: '云原生赛道命题委员会',
@@ -665,7 +673,7 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-7',
     title: '全国高校密码数学与零知识证明（ZKP）创新应用赛专家评审细则发布',
-    tags: ['赛制解读', '赛事新闻'],
+    tags: ['赛事新闻'],
     coverImage: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=960&q=80',
     summary: '明确后量子密码算法工程实现、zk-SNARKs电路优化效率、形式化安全证明完备性及国产密码硬件适配度四大评分维度权重。',
     source: '密码专项赛专家组',
@@ -678,7 +686,8 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-8',
     title: '政务数据要素安全流通与隐私计算治理挑战赛开放测试数据集下载的通知',
-    tags: ['通知公告'],
+    tags: ['赛事新闻'],
+    coverImage: DEFAULT_NEWS_COVER_SVG,
     summary: '即日起，已进入“组建中”或“报名成功”状态的参赛队伍队长可登录大赛数据沙箱下载百万级脱敏政务与金融联合建模基准测试集。',
     source: '数据安全赛道工作组',
     publishStatus: 'published',
@@ -690,7 +699,7 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-9',
     title: '智能网联汽车车路云一体化安全攻防赛线下实车破解阶段安全操作守则',
-    tags: ['通知公告', '赛制解读'],
+    tags: ['赛事新闻'],
     coverImage: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=960&q=80',
     summary: '针对CAN-FD车载总线注入、V2X路侧单元通信伪造及智能座舱OTA固件逆向三大实车赛项，明确物理台架操作安全边界与违规熔断机制。',
     source: '车联网安全实验室',
@@ -703,7 +712,8 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-10',
     title: '关于增设职业本科与高职专科院校网安技能专项激励奖学金的决定',
-    tags: ['通知公告', '赛事新闻'],
+    tags: ['赛事新闻'],
+    coverImage: DEFAULT_NEWS_COVER_SVG,
     summary: '为鼓励应用型本科与高职院校学子投身网络安全运维与应急响应一线，本届大赛特设“卓越工匠网安专项奖”，覆盖20支优秀职业院校战队。',
     source: '大赛组委会秘书处',
     publishStatus: 'published',
@@ -715,7 +725,7 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-11',
     title: '往届回顾：第六届“XX杯”全国总决赛冠军战队“天枢星辰”赛后技术复盘与成长之路',
-    tags: ['权威报道', '赛事新闻'],
+    tags: ['赛事新闻'],
     coverImage: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=960&q=80',
     summary: '深度访谈上届总冠军团队四位主力队员，揭秘他们在48小时极限AWD攻防拉锯战中如何实现零失分漏洞修补与自动化流量重放反制。',
     source: '中国信息安全杂志社',
@@ -728,7 +738,7 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-12',
     title: '【定时发布】第七届“XX杯”全国初赛线上监考客户端（v2.4.0）公测与反作弊说明',
-    tags: ['通知公告'],
+    tags: ['赛事新闻'],
     coverImage: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&w=960&q=80',
     summary: '初赛期间所有参赛队员须开启双机位视频监控与主机进程完整性校验客户端，定时于4月20日上午9点正式发布下载链接。',
     source: '大赛纪检监察组',
@@ -742,6 +752,7 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
     id: 'mnews-13',
     title: '【内部草稿】华东分赛区线下晋级赛场馆搭建与网络专线拓扑保障方案（待审稿）',
     tags: ['赛事新闻'],
+    coverImage: DEFAULT_NEWS_COVER_SVG,
     summary: '杭州国际博览中心主赛场万兆双冗余光纤接入方案及现场裁判仲裁席位布置初稿，待组委会终审后发布。',
     source: '华东赛区执委会',
     publishStatus: 'draft',
@@ -753,7 +764,8 @@ export const INITIAL_MANAGED_NEWS: ManagedNewsItem[] = [
   {
     id: 'mnews-14',
     title: '【历史归档已下线】关于2026年3月平台春季硬件防火墙割接升级暂停访问的临时通知',
-    tags: ['通知公告'],
+    tags: ['赛事新闻'],
+    coverImage: DEFAULT_NEWS_COVER_SVG,
     summary: '3月25日凌晨平台网络割接已顺利完成，本条临时维护通知已做下线归档处理。',
     source: '平台运维中心',
     publishStatus: 'offline',
@@ -2650,15 +2662,12 @@ interface AdminNewsManagementProps {
   onChangeNewsList: React.Dispatch<React.SetStateAction<ManagedNewsItem[]>>;
 }
 
-const NEWS_TAG_OPTIONS = ['赛事新闻', '通知公告', '赛制解读', '权威报道'];
-
 export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
   newsList,
   onChangeNewsList
 }) => {
-  // 筛选状态：标题（模糊）、分类/标签、发布状态、发布时间范围
+  // 筛选状态：标题（模糊）、发布状态、发布时间范围（赛事新闻分类已移除）
   const [searchTitle, setSearchTitle] = useState('');
-  const [filterTag, setFilterTag] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState<'ALL' | ContentPublishStatus>('ALL');
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
@@ -2672,8 +2681,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
 
   // 表单字段
   const [formTitle, setFormTitle] = useState('');
-  const [formTags, setFormTags] = useState<string[]>(['赛事新闻']);
-  const [formCover, setFormCover] = useState('');
+  const [formCover, setFormCover] = useState(DEFAULT_NEWS_COVER_SVG);
   const [formSummary, setFormSummary] = useState('');
   const [formSource, setFormSource] = useState('大赛组委会');
   const [formContent, setFormContent] = useState('');
@@ -2695,9 +2703,6 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
       if (searchTitle.trim() && !item.title.toLowerCase().includes(searchTitle.trim().toLowerCase())) {
         return false;
       }
-      if (filterTag !== 'ALL' && !item.tags.includes(filterTag)) {
-        return false;
-      }
       if (filterStatus !== 'ALL' && item.publishStatus !== filterStatus) {
         return false;
       }
@@ -2706,13 +2711,12 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
       if (dateEnd && itemDate > dateEnd) return false;
       return true;
     });
-  }, [newsList, searchTitle, filterTag, filterStatus, dateStart, dateEnd]);
+  }, [newsList, searchTitle, filterStatus, dateStart, dateEnd]);
 
   const openCreateForm = () => {
     setEditingItem(null);
     setFormTitle('');
-    setFormTags(['赛事新闻']);
-    setFormCover('');
+    setFormCover(DEFAULT_NEWS_COVER_SVG);
     setFormSummary('');
     setFormSource('大赛组委会秘书处');
     setFormContent('');
@@ -2728,8 +2732,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
   const openEditForm = (item: ManagedNewsItem) => {
     setEditingItem(item);
     setFormTitle(item.title);
-    setFormTags(item.tags.length > 0 ? item.tags : ['赛事新闻']);
-    setFormCover(item.coverImage || '');
+    setFormCover(item.coverImage || DEFAULT_NEWS_COVER_SVG);
     setFormSummary(item.summary || '');
     setFormSource(item.source || '大赛组委会');
     setFormContent(item.content || '');
@@ -2768,8 +2771,8 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
     const newRecord: ManagedNewsItem = {
       id: editingItem ? editingItem.id : `mnews-${Date.now()}`,
       title: formTitle.trim(),
-      tags: formTags.length > 0 ? formTags : ['赛事新闻'],
-      coverImage: formCover.trim() || undefined,
+      tags: ['赛事新闻'],
+      coverImage: formCover.trim() || DEFAULT_NEWS_COVER_SVG,
       summary: formSummary.trim() || formContent.trim().slice(0, 80) + '...',
       source: formSource.trim() || '大赛组委会',
       content: formContent,
@@ -2833,7 +2836,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
               返回新闻列表
             </button>
             <h2 className="text-lg font-extrabold text-slate-900">
-              {editingItem ? '编辑赛事新闻 / 通知公告' : '新增赛事新闻 / 通知公告'}
+              {editingItem ? '编辑赛事新闻' : '新增赛事新闻'}
             </h2>
           </div>
           <span className="text-xs text-slate-500">支持富文本多图混排、内嵌视频、定时发布与置顶有效期</span>
@@ -2853,52 +2856,19 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                 maxLength={64}
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                placeholder="请输入赛事新闻或通知公告标题..."
+                placeholder="请输入赛事新闻标题..."
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-700 font-bold mb-1">
-                  分类 / 标签（支持多选）
-                </label>
-                <div className="flex flex-wrap gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
-                  {NEWS_TAG_OPTIONS.map((tag) => {
-                    const active = formTags.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => {
-                          if (active && formTags.length > 1) {
-                            setFormTags(formTags.filter((t) => t !== tag));
-                          } else if (!active) {
-                            setFormTags([...formTags, tag]);
-                          }
-                        }}
-                        className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
-                          active
-                            ? 'bg-[#0284C7] text-white shadow-2xs'
-                            : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-700 font-bold mb-1">来源（如：大赛组委会、新华网）</label>
-                <input
-                  type="text"
-                  value={formSource}
-                  onChange={(e) => setFormSource(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
-                />
-              </div>
+            <div>
+              <label className="block text-xs text-slate-700 font-bold mb-1">来源（如：大赛组委会、新华网）</label>
+              <input
+                type="text"
+                value={formSource}
+                onChange={(e) => setFormSource(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+              />
             </div>
 
             <div>
@@ -2989,33 +2959,39 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
           <div className="space-y-4">
             <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-3">
               <label className="block text-xs text-slate-700 font-bold">
-                封面图（非必填 · 建议16:9，留空则前台按无图纯文字排版）
+                新闻封面图（建议16:9，未上传自定义封面时默认使用“赛事新闻”官方封面）
               </label>
-              {formCover ? (
-                <div className="relative aspect-video rounded-lg overflow-hidden border border-slate-200">
-                  <img src={formCover} alt="cover" className="w-full h-full object-cover" />
+              <div className="relative aspect-video rounded-lg overflow-hidden border border-slate-200 bg-slate-100">
+                <img
+                  src={formCover.trim() || DEFAULT_NEWS_COVER_SVG}
+                  alt="cover"
+                  className="w-full h-full object-cover"
+                />
+                {formCover && formCover !== DEFAULT_NEWS_COVER_SVG && (
                   <button
                     type="button"
-                    onClick={() => setFormCover('')}
-                    className="absolute top-2 right-2 px-2 py-1 rounded bg-slate-900/80 text-xs text-white hover:bg-red-600 transition-colors cursor-pointer"
+                    onClick={() => setFormCover(DEFAULT_NEWS_COVER_SVG)}
+                    className="absolute top-2 right-2 px-2 py-1 rounded bg-slate-900/80 text-xs text-white hover:bg-[#0284C7] transition-colors cursor-pointer"
                   >
-                    移除封面
+                    恢复默认“赛事新闻”封面
                   </button>
-                </div>
-              ) : (
-                <div className="aspect-video rounded-lg border border-dashed border-slate-300 bg-white flex flex-col items-center justify-center text-xs text-slate-400 p-4 text-center">
-                  <ImageIcon className="w-7 h-7 mb-1.5 text-slate-300" />
-                  当前未设置封面（前台将采用无图纯文字优雅排版）
-                </div>
-              )}
+                )}
+              </div>
               <input
                 type="text"
-                value={formCover}
-                onChange={(e) => setFormCover(e.target.value)}
-                placeholder="输入封面图URL或点击下方预设图..."
+                value={formCover === DEFAULT_NEWS_COVER_SVG ? '' : formCover}
+                onChange={(e) => setFormCover(e.target.value || DEFAULT_NEWS_COVER_SVG)}
+                placeholder="输入自定义封面图URL，留空自动使用“赛事新闻”默认封面..."
                 className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
               />
               <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setFormCover(DEFAULT_NEWS_COVER_SVG)}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200 hover:bg-sky-100 text-[#0284C7] font-bold cursor-pointer"
+                >
+                  默认“赛事新闻”封面
+                </button>
                 <button
                   type="button"
                   onClick={() =>
@@ -3161,7 +3137,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
       </div>
 
       {/* 搜索筛选栏 */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
           <label className="block text-xs font-bold text-slate-600 mb-1">标题（模糊搜索）</label>
           <div className="relative">
@@ -3170,26 +3146,10 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
               type="text"
               value={searchTitle}
               onChange={(e) => setSearchTitle(e.target.value)}
-              placeholder="搜索新闻或公告标题..."
+              placeholder="搜索新闻标题..."
               className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
             />
           </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1">分类 / 标签</label>
-          <select
-            value={filterTag}
-            onChange={(e) => setFilterTag(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
-          >
-            <option value="ALL">全部分类标签</option>
-            {NEWS_TAG_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div>
@@ -3236,7 +3196,6 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-4">标题</th>
                 <th className="py-3.5 px-3">封面（缩略图）</th>
-                <th className="py-3.5 px-3">分类/标签</th>
                 <th className="py-3.5 px-3">来源</th>
                 <th className="py-3.5 px-3 text-center">发布状态</th>
                 <th className="py-3.5 px-3 text-center">是否置顶</th>
@@ -3252,29 +3211,11 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                     <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{item.summary}</div>
                   </td>
                   <td className="py-3.5 px-3">
-                    {item.coverImage ? (
-                      <img
-                        src={item.coverImage}
-                        alt={item.title}
-                        className="w-20 h-11 object-cover rounded border border-slate-200"
-                      />
-                    ) : (
-                      <span className="inline-block px-2 py-1 rounded bg-slate-50 border border-slate-200 text-[11px] text-slate-400">
-                        无图纯文字
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-3">
-                    <div className="flex flex-wrap gap-1">
-                      {item.tags.map((t) => (
-                        <span
-                          key={t}
-                          className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-50 text-[#0284C7] border border-sky-200"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
+                    <img
+                      src={item.coverImage || DEFAULT_NEWS_COVER_SVG}
+                      alt={item.title}
+                      className="w-20 h-11 object-cover rounded border border-slate-200"
+                    />
                   </td>
                   <td className="py-3.5 px-3 text-slate-600 text-xs">{item.source}</td>
                   <td className="py-3.5 px-3 text-center">
@@ -4072,7 +4013,7 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
 // 六（补充 A）、后台【内容管理 -> 通知公告】组件（与赛事新闻、赛事动态风格排版完全一致）
 // ============================================================================
 
-export type NoticeCategoryType = '章程与指南' | '赛程与靶场' | '资格与获奖公示' | '纪律与规范';
+export type { NoticeCategoryType };
 
 export interface ManagedNoticeItem extends NoticeItem {
   publishStatus: ContentPublishStatus;
@@ -4083,7 +4024,8 @@ export interface ManagedNoticeItem extends NoticeItem {
 export const INITIAL_MANAGED_NOTICES: ManagedNoticeItem[] = [
   ...NOTICE_ITEMS.map((n, index) => ({
     ...n,
-    category: (n.category || '章程与指南') as NoticeCategoryType,
+    category: (n.category || '通知') as NoticeCategoryType,
+    docNumber: '',
     publishStatus: 'published' as ContentPublishStatus,
     publishTime: `${n.fullDate} ${index % 2 === 0 ? '09:30' : '15:00'}`,
     pinExpireTime: n.isPinned ? '2026-12-31 23:59' : undefined,
@@ -4095,11 +4037,11 @@ export const INITIAL_MANAGED_NOTICES: ManagedNoticeItem[] = [
     date: '11-05',
     fullDate: '2026-11-05',
     isPinned: false,
-    category: '赛程与靶场',
+    category: '通知',
     summary: '明确全国总决赛北京国家会议中心报到流程、参赛证件核验通道及线下实网靶场物理隔离要求。',
     viewsCount: 0,
     department: '“XX杯”全国网数智安全大赛组委会会务组',
-    docNumber: '网数智赛会〔2026〕015号',
+    docNumber: '',
     content: [
       '各晋级全国总决赛高校战队领队、指导教师及参赛队员：',
       '第五届“XX杯”全国网数智安全大赛全国总决赛暨颁奖盛典定于2026年12月19日至20日在北京国家会议中心举行。请各入围战队于12月18日14:00-20:00凭身份证与学生证原件完成现场签到与抽签。',
@@ -4116,11 +4058,11 @@ export const INITIAL_MANAGED_NOTICES: ManagedNoticeItem[] = [
     date: '10-29',
     fullDate: '2026-10-29',
     isPinned: false,
-    category: '章程与指南',
+    category: '创新赛通知',
     summary: '拟面向全国八大分赛区增补30名高校赛事联络员，负责分赛区学籍核验协查与赛事组织联动。',
     viewsCount: 0,
     department: '大赛高校联络工作组',
-    docNumber: '网数智赛联〔2026〕009号（草稿）',
+    docNumber: '',
     content: [
       '各有关高校网络空间安全学院：',
       '为进一步提升分赛区资格审查效率，组委会拟增补高校联络员及技术观察员，具体推荐表待秘书长审签后正式下发。',
@@ -4131,10 +4073,9 @@ export const INITIAL_MANAGED_NOTICES: ManagedNoticeItem[] = [
 ];
 
 const MANAGED_NOTICE_CATEGORIES: NoticeCategoryType[] = [
-  '章程与指南',
-  '赛程与靶场',
-  '资格与获奖公示',
-  '纪律与规范',
+  '通知',
+  '创新赛通知',
+  '作品赛通知',
 ];
 
 interface AdminNoticesManagementProps {
@@ -4146,7 +4087,7 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
   noticesList,
   onChangeNoticesList,
 }) => {
-  // 筛选条件：标题/文号、公告分类、发布状态、发布时间范围
+  // 筛选条件：标题、公告分类、发布状态、发布时间范围
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filterCategory, setFilterCategory] = useState<'ALL' | NoticeCategoryType>('ALL');
   const [filterStatus, setFilterStatus] = useState<'ALL' | ContentPublishStatus>('ALL');
@@ -4159,8 +4100,7 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
   const [deletingItem, setDeletingItem] = useState<ManagedNoticeItem | null>(null);
 
   const [formTitle, setFormTitle] = useState('');
-  const [formCategory, setFormCategory] = useState<NoticeCategoryType>('章程与指南');
-  const [formDocNumber, setFormDocNumber] = useState('网数智赛字〔2026〕016号');
+  const [formCategory, setFormCategory] = useState<NoticeCategoryType>('通知');
   const [formDepartment, setFormDepartment] = useState('“XX杯”全国网数智安全大赛组委会秘书处');
   const [formSummary, setFormSummary] = useState('');
   const [formContentText, setFormContentText] = useState('');
@@ -4183,11 +4123,10 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
       if (searchKeyword.trim()) {
         const kw = searchKeyword.trim().toLowerCase();
         const matchTitle = item.title.toLowerCase().includes(kw);
-        const matchDoc = item.docNumber.toLowerCase().includes(kw);
         const matchDept = item.department.toLowerCase().includes(kw);
-        if (!matchTitle && !matchDoc && !matchDept) return false;
+        if (!matchTitle && !matchDept) return false;
       }
-      if (filterCategory !== 'ALL' && (item.category || '章程与指南') !== filterCategory) {
+      if (filterCategory !== 'ALL' && (item.category || '通知') !== filterCategory) {
         return false;
       }
       if (filterStatus !== 'ALL' && item.publishStatus !== filterStatus) {
@@ -4203,12 +4142,11 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
   const openCreateForm = () => {
     setEditingItem(null);
     setFormTitle('');
-    setFormCategory('章程与指南');
-    setFormDocNumber(`网数智赛字〔2026〕0${noticesList.length + 5}号`);
+    setFormCategory('通知');
     setFormDepartment('“XX杯”全国网数智安全大赛组委会秘书处');
     setFormSummary('');
     setFormContentText(
-      '各有关高等院校、参赛指导教师及参赛战队：\n\n请在此输入官方通知公告正文内容，支持多段落红头公文格式排版。'
+      '各有关高等院校、参赛指导教师及参赛战队：\n\n请在此输入官方通知公告正文内容。'
     );
     setFormAttachments([]);
     setNewAttachmentName('');
@@ -4223,8 +4161,7 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
   const openEditForm = (item: ManagedNoticeItem) => {
     setEditingItem(item);
     setFormTitle(item.title);
-    setFormCategory((item.category as NoticeCategoryType) || '章程与指南');
-    setFormDocNumber(item.docNumber || '网数智赛字〔2026〕001号');
+    setFormCategory((item.category as NoticeCategoryType) || '通知');
     setFormDepartment(item.department || '“XX杯”全国网数智安全大赛组委会秘书处');
     setFormSummary(item.summary || '');
     setFormContentText((item.content || []).join('\n\n'));
@@ -4243,10 +4180,6 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
   const handleSaveNotice = (saveAsDraft: boolean) => {
     if (!formTitle.trim()) {
       triggerToast('请填写通知公告标题');
-      return;
-    }
-    if (!formDocNumber.trim()) {
-      triggerToast('请填写公文发文字号');
       return;
     }
     if (!formContentText.trim()) {
@@ -4275,7 +4208,7 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
       id: editingItem ? editingItem.id : `notice-${Date.now()}`,
       title: formTitle.trim(),
       category: formCategory,
-      docNumber: formDocNumber.trim(),
+      docNumber: '',
       department: formDepartment.trim() || '“XX杯”全国网数智安全大赛组委会秘书处',
       date: shortDateStr,
       fullDate: fullDateStr,
@@ -4310,7 +4243,7 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
     triggerToast(
       item.isPinned
         ? `已取消置顶《${item.title}》`
-        : `已设为置顶公文《${item.title}》，前台将带红标优先展示`
+        : `已设为置顶《${item.title}》，前台将优先展示`
     );
   };
 
@@ -4345,7 +4278,7 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
             </h2>
           </div>
           <span className="text-xs text-slate-500">
-            支持红头公文格式、发文字号、随文附件配置、定时发布与置顶控制
+            支持通知分类、随文附件配置、定时发布与置顶控制
           </span>
         </div>
 
@@ -4368,7 +4301,7 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-slate-700 font-bold mb-1">公告分类</label>
                 <select
@@ -4382,19 +4315,6 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-700 font-bold mb-1">
-                  发文字号 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formDocNumber}
-                  onChange={(e) => setFormDocNumber(e.target.value)}
-                  placeholder="如：网数智赛字〔2026〕016号"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-mono placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
-                />
               </div>
 
               <div>
@@ -4651,14 +4571,14 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
       {/* 搜索筛选栏 */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1">标题 / 文号（模糊搜索）</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">标题（模糊搜索）</label>
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="搜索通知标题、发文字号..."
+              placeholder="搜索通知标题"
               className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
             />
           </div>
@@ -4723,7 +4643,6 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-4">通知标题 / 提要</th>
-                <th className="py-3.5 px-3">发文字号</th>
                 <th className="py-3.5 px-3">公告分类</th>
                 <th className="py-3.5 px-3">发文机构</th>
                 <th className="py-3.5 px-3 text-center">随文附件</th>
@@ -4742,12 +4661,9 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
                       {item.summary || item.content[0]}
                     </div>
                   </td>
-                  <td className="py-3.5 px-3 font-mono text-xs text-slate-600 whitespace-nowrap">
-                    {item.docNumber}
-                  </td>
                   <td className="py-3.5 px-3 whitespace-nowrap">
                     <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-50 text-[#0284C7] border border-sky-200">
-                      {item.category || '章程与指南'}
+                      {item.category || '通知'}
                     </span>
                   </td>
                   <td className="py-3.5 px-3 text-slate-600 text-xs max-w-[180px] truncate">
@@ -5844,7 +5760,6 @@ export const FrontendNewsPage: React.FC<FrontendNewsPageProps> = ({
   onSelectNews
 }) => {
   const [keyword, setKeyword] = useState('');
-  const [activeTag, setActiveTag] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10; // 每页10-15条
 
@@ -5866,60 +5781,22 @@ export const FrontendNewsPage: React.FC<FrontendNewsPageProps> = ({
       ) {
         return false;
       }
-      if (activeTag !== 'ALL' && !item.tags.includes(activeTag)) {
-        return false;
-      }
       return true;
     });
-  }, [publishedSortedNews, keyword, activeTag]);
+  }, [publishedSortedNews, keyword]);
 
   const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize));
   const paginatedNews = filteredNews.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full">
-      {/* 页面头部与筛选检索栏（与首页、赛事目录一致的浅色风格） */}
-      <div className="mb-8 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
+      {/* 页面头部与检索栏（精简后仅保留标题与右侧搜索框） */}
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <div className="text-xs font-semibold text-[#0284C7] tracking-wide mb-1">
-              “XX杯”全国网数智安全大赛 · 官方资讯中心
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               赛事新闻
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              权威发布大赛组委会官方通知、赛制白皮书解读及主流媒体专题报道
-            </p>
-          </div>
-          <div className="text-xs text-slate-500 font-mono-num">
-            当前已发布新闻共 <strong className="text-slate-900">{filteredNews.length}</strong> 篇（置顶优先 · 按发布时间倒序）
-          </div>
-        </div>
-
-        {/* 分类筛选与关键词搜索 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-lg self-start">
-            {(['ALL', ...NEWS_TAG_OPTIONS] as const).map((tag) => {
-              const active = activeTag === tag;
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => {
-                    setActiveTag(tag);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap ${
-                    active
-                      ? 'bg-[#0284C7] text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {tag === 'ALL' ? '全部资讯' : tag}
-                </button>
-              );
-            })}
           </div>
 
           <div className="relative w-full sm:w-80">
@@ -5931,19 +5808,19 @@ export const FrontendNewsPage: React.FC<FrontendNewsPageProps> = ({
                 setKeyword(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="输入关键词模糊搜索新闻标题..."
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
+              placeholder="搜索新闻标题或摘要内容"
+              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:border-[#0284C7] focus:outline-none text-slate-900 shadow-2xs"
             />
           </div>
         </div>
       </div>
 
-      {/* 图文列表：每条含封面缩略图（可选，无图纯文字排版）、标题（最多两行）、摘要（一行灰色省略）、来源、发布时间 */}
+      {/* 图文列表：每条新闻均有封面（默认显示“赛事新闻”封面）、标题、摘要、来源、发布时间 */}
       {paginatedNews.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
           <div className="text-base font-bold text-slate-800">未检索到匹配的赛事新闻</div>
           <p className="text-xs text-slate-500">
-            请尝试更换搜索关键词或切换上方的资讯分类标签。
+            请尝试更换搜索关键词。
           </p>
         </div>
       ) : (
@@ -5957,23 +5834,21 @@ export const FrontendNewsPage: React.FC<FrontendNewsPageProps> = ({
               }}
               className="group bg-white rounded-2xl border border-slate-200/90 hover:border-[#0284C7] shadow-2xs hover:shadow-lg transition-all duration-200 overflow-hidden p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 cursor-pointer"
             >
-              {/* 可选 16:9 封面缩略图 */}
-              {item.coverImage && (
-                <div className="w-full sm:w-64 lg:w-72 aspect-video rounded-xl overflow-hidden border border-slate-200/80 bg-slate-100 shrink-0 relative">
-                  <img
-                    src={item.coverImage}
-                    alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {item.embeddedVideo && (
-                    <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-slate-950/80 text-white text-[11px] flex items-center gap-1">
-                      <Video className="w-3 h-3 text-sky-400" /> 含视频
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* 16:9 封面缩略图（始终显示封面，未设置时使用“赛事新闻”默认封面） */}
+              <div className="w-full sm:w-64 lg:w-72 aspect-video rounded-xl overflow-hidden border border-slate-200/80 bg-slate-100 shrink-0 relative">
+                <img
+                  src={item.coverImage || DEFAULT_NEWS_COVER_SVG}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                {item.embeddedVideo && (
+                  <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-slate-950/80 text-white text-[11px] flex items-center gap-1">
+                    <Video className="w-3 h-3 text-sky-400" /> 含视频
+                  </div>
+                )}
+              </div>
 
-              {/* 右侧文字区（若无封面图则自动占满100%宽度） */}
+              {/* 右侧文字区 */}
               <div className="flex-1 min-w-0 space-y-2.5 w-full">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div className="flex flex-wrap items-center gap-2">
@@ -5982,14 +5857,6 @@ export const FrontendNewsPage: React.FC<FrontendNewsPageProps> = ({
                         <Pin className="w-3 h-3" /> 置顶
                       </span>
                     )}
-                    {item.tags.map((t) => (
-                      <span
-                        key={t}
-                        className="px-2.5 py-0.5 rounded text-xs font-semibold bg-sky-50 text-[#0369A1] border border-sky-200/80"
-                      >
-                        {t}
-                      </span>
-                    ))}
                   </div>
                   <span className="text-slate-400 font-mono-num">
                     浏览 {item.viewsCount} 次
@@ -6171,23 +6038,15 @@ export const FrontendNewsDetailPage: React.FC<FrontendNewsDetailPageProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10 items-start">
         {/* 左栏：新闻详情主体 */}
         <article className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-8 xl:p-10">
-          {/* 顶部信息：分类标签、大字号加粗标题、来源、发布时间、字号切换 */}
+          {/* 顶部信息：大字号加粗标题、来源、发布时间、字号切换 */}
           <header className="pb-6 mb-8 border-b border-slate-200">
-            <div className="flex flex-wrap items-center gap-2 mb-3.5">
-              {currentDetailItem.isPinned && (
+            {currentDetailItem.isPinned && (
+              <div className="flex flex-wrap items-center gap-2 mb-3.5">
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                  <Pin className="w-3 h-3" /> 置顶公告
+                  <Pin className="w-3 h-3" /> 置顶
                 </span>
-              )}
-              {currentDetailItem.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-2.5 py-0.5 rounded text-xs font-semibold bg-sky-50 text-[#0369A1] border border-sky-200/80"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+              </div>
+            )}
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug tracking-tight">
               {currentDetailItem.title}
@@ -6403,11 +6262,6 @@ export const FrontendNewsDetailPage: React.FC<FrontendNewsDetailPageProps> = ({
                         置顶
                       </span>
                     )}
-                    {item.tags[0] && (
-                      <span className="text-[11px] font-semibold text-[#0284C7]">
-                        [{item.tags[0]}]
-                      </span>
-                    )}
                     <span className="text-[11px] text-slate-400 font-mono-num ml-auto">
                       {item.publishTime.slice(0, 10)}
                     </span>
@@ -6438,8 +6292,6 @@ export const FrontendMomentsPage: React.FC<FrontendMomentsPageProps> = ({
   momentsList,
   onSelectMoment
 }) => {
-  const [activeCategory, setActiveCategory] = useState<'ALL' | MomentCategory>('ALL');
-  const [mediaFilter, setMediaFilter] = useState<'ALL' | MomentMediaType>('ALL');
   const [keyword, setKeyword] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
 
@@ -6453,8 +6305,6 @@ export const FrontendMomentsPage: React.FC<FrontendMomentsPageProps> = ({
 
   const filteredMoments = useMemo(() => {
     return publishedMoments.filter((item) => {
-      if (activeCategory !== 'ALL' && item.category !== activeCategory) return false;
-      if (mediaFilter !== 'ALL' && item.mediaType !== mediaFilter) return false;
       if (
         keyword.trim() &&
         !item.title.toLowerCase().includes(keyword.trim().toLowerCase()) &&
@@ -6464,94 +6314,29 @@ export const FrontendMomentsPage: React.FC<FrontendMomentsPageProps> = ({
       }
       return true;
     });
-  }, [publishedMoments, activeCategory, mediaFilter, keyword]);
+  }, [publishedMoments, keyword]);
 
   const displayedMoments = filteredMoments.slice(0, visibleCount);
 
   return (
     <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full">
-      {/* 页面头部与筛选检索栏（与首页、赛事目录一致的浅色风格） */}
-      <div className="mb-8 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
+      {/* 页面头部（仅保留标题与搜索框，删除类型筛选） */}
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <div className="text-xs font-semibold text-[#0284C7] tracking-wide mb-1">
-              “XX杯”全国网数智安全大赛 · 全景纪实频道
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               赛事动态
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              全景呈现大赛进展报道、院士专家观点、高校战队风采与精彩视频花絮
-            </p>
-          </div>
-          <div className="text-xs text-slate-500 font-mono-num">
-            当前已发布动态共 <strong className="text-slate-900">{filteredMoments.length}</strong> 条（支持图文报道与视频展播）
-          </div>
-        </div>
-
-        {/* 顶部分类 Tab、媒体类型筛选与关键词搜索 */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* 栏目分类切换 */}
-            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-lg">
-              {(['ALL', ...MOMENT_CATEGORIES] as const).map((cat) => {
-                const active = activeCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => {
-                      setActiveCategory(cat);
-                      setVisibleCount(8);
-                    }}
-                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap ${
-                      active
-                        ? 'bg-[#0284C7] text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {cat === 'ALL' ? '全部动态' : cat}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 媒体类型过滤（全部 / 图文 / 视频） */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg text-xs">
-              {(
-                [
-                  { key: 'ALL', label: '全部类型' },
-                  { key: 'article', label: '图文报道' },
-                  { key: 'video', label: '视频播报' }
-                ] as const
-              ).map((m) => (
-                <button
-                  key={m.key}
-                  type="button"
-                  onClick={() => {
-                    setMediaFilter(m.key);
-                    setVisibleCount(8);
-                  }}
-                  className={`px-2.5 py-1.5 rounded-md font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                    mediaFilter === m.key
-                      ? 'bg-white text-[#0284C7] shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
           </div>
 
-          <div className="relative w-full lg:w-80">
+          <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="搜索动态标题、专家观点或战队风采..."
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
+              placeholder="搜索动态标题或摘要内容..."
+              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:border-[#0284C7] focus:outline-none text-slate-900 shadow-2xs"
             />
           </div>
         </div>
@@ -7082,7 +6867,7 @@ export const FrontendMomentDetailPage: React.FC<FrontendMomentDetailPageProps> =
 // 九、前台【通知公告】列表页 + 【通知公告详情】独立二级页面（格式类似赛事新闻，浅色风格，不使用弹窗）
 // ============================================================================
 
-const NOTICE_CATEGORY_OPTIONS = ['章程与指南', '赛程与靶场', '资格与获奖公示', '纪律与规范'] as const;
+const NOTICE_CATEGORY_OPTIONS = ['通知', '创新赛通知', '作品赛通知'] as const;
 
 interface FrontendNoticesPageProps {
   noticesList: NoticeItem[];
@@ -7108,18 +6893,12 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
 
   const filteredNotices = useMemo(() => {
     return sortedNotices.filter((item) => {
-      if (activeCategory !== 'ALL' && (item.category || '章程与指南') !== activeCategory) {
+      if (activeCategory !== 'ALL' && (item.category || '通知') !== activeCategory) {
         return false;
       }
       if (keyword.trim()) {
         const q = keyword.trim().toLowerCase();
-        const matchTitle = item.title.toLowerCase().includes(q);
-        const matchDoc = item.docNumber.toLowerCase().includes(q);
-        const matchDept = item.department.toLowerCase().includes(q);
-        const matchSummary = (item.summary || item.content.join(' ')).toLowerCase().includes(q);
-        if (!matchTitle && !matchDoc && !matchDept && !matchSummary) {
-          return false;
-        }
+        return item.title.toLowerCase().includes(q);
       }
       return true;
     });
@@ -7133,22 +6912,13 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
 
   return (
     <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full">
-      {/* 页面头部与筛选检索栏（格式类似赛事新闻，浅色风格） */}
+      {/* 页面头部与筛选检索栏（仅保留标题） */}
       <div className="mb-8 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <div className="text-xs font-semibold text-[#0284C7] tracking-wide mb-1">
-              “XX杯”全国网数智安全大赛 · 官方公文与通知大厅
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               通知公告
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              权威发布大赛章程指南、线上靶场测试通知、高校战队资格公示及竞赛纪律规范文件
-            </p>
-          </div>
-          <div className="text-xs text-slate-500 font-mono-num">
-            当前已发布官方通知共 <strong className="text-slate-900">{filteredNotices.length}</strong> 份（置顶优先 · 按发布时间倒序）
           </div>
         </div>
 
@@ -7186,14 +6956,14 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
                 setKeyword(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="搜索通知标题、发文字号或发文机构..."
+              placeholder="搜索通知标题"
               className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
             />
           </div>
         </div>
       </div>
 
-      {/* 通知公告列表（格式类似赛事新闻） */}
+      {/* 通知公告列表 */}
       {paginatedNotices.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
           <div className="text-base font-bold text-slate-800">未检索到匹配的通知公告</div>
@@ -7214,7 +6984,7 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
                 }}
                 className="group bg-white rounded-2xl border border-slate-200/90 hover:border-[#0284C7] shadow-2xs hover:shadow-lg transition-all duration-200 overflow-hidden p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 cursor-pointer"
               >
-                {/* 左侧公文日期牌 */}
+                {/* 左侧日期牌 */}
                 <div className="hidden sm:flex w-24 h-24 rounded-2xl bg-gradient-to-br from-sky-50 to-slate-50 border border-sky-200/80 group-hover:border-[#0284C7] group-hover:from-[#0284C7] group-hover:to-[#0369A1] flex-col items-center justify-center shrink-0 transition-all duration-200">
                   <span className="text-2xl font-extrabold font-mono-num text-[#0284C7] group-hover:text-white leading-none">
                     {item.date}
@@ -7224,20 +6994,17 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
                   </span>
                 </div>
 
-                {/* 右侧正文内容 */}
+                {/* 右侧正文内容（已移除发文字号展示） */}
                 <div className="flex-1 min-w-0 space-y-2.5 w-full">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div className="flex flex-wrap items-center gap-2">
                       {item.isPinned && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-50 text-red-600 border border-red-200">
-                          <Pin className="w-3 h-3" /> 置顶公文
+                          <Pin className="w-3 h-3" /> 置顶
                         </span>
                       )}
                       <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-sky-50 text-[#0369A1] border border-sky-200/80">
-                        {item.category || '官方通知'}
-                      </span>
-                      <span className="px-2.5 py-0.5 rounded text-xs font-mono-num text-slate-600 bg-slate-100">
-                        {item.docNumber}
+                        {item.category || '通知'}
                       </span>
                       {item.attachments && item.attachments.length > 0 && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -7420,31 +7187,11 @@ export const FrontendNoticeDetailPage: React.FC<FrontendNoticeDetailPageProps> =
         </div>
       </div>
 
-      {/* 主体两栏布局：左栏通知公文正文（占8列），右栏最新通知推荐（占4列） */}
+      {/* 主体两栏布局：左栏通知正文（占8列），右栏最新通知推荐（占4列） */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10 items-start">
         <article className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-8 xl:p-10">
-          {/* 顶部红头公文样式与元信息区 */}
-          <header className="pb-6 mb-8 border-b-2 border-red-600/80">
-            <div className="text-center mb-4">
-              <div className="text-xs sm:text-sm font-extrabold text-red-600 tracking-[0.2em] mb-1">
-                “XX杯”全国网数智安全大赛组委会文件
-              </div>
-              <div className="text-xs font-mono-num text-slate-500">
-                {currentNotice.docNumber}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-3.5">
-              {currentNotice.isPinned && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-red-50 text-red-600 border border-red-200">
-                  <Pin className="w-3 h-3" /> 置顶公文
-                </span>
-              )}
-              <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-sky-50 text-[#0369A1] border border-sky-200/80">
-                {currentNotice.category || '官方通知'}
-              </span>
-            </div>
-
+          {/* 顶部标题与元信息区（已删除红头抬头、发文字号、置顶标签与分类标签） */}
+          <header className="pb-6 mb-8 border-b border-slate-200">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug tracking-tight text-center">
               {currentNotice.title}
             </h1>
@@ -7488,12 +7235,12 @@ export const FrontendNoticeDetailPage: React.FC<FrontendNoticeDetailPageProps> =
           {/* 摘要导读框 */}
           {currentNotice.summary && (
             <div className="mb-8 p-4 sm:p-5 rounded-xl bg-sky-50/70 border-l-4 border-[#0284C7] text-sm text-slate-700 leading-relaxed">
-              <span className="font-bold text-[#0369A1] mr-2">【公文提要】</span>
+              <span className="font-bold text-[#0369A1] mr-2">【通知提要】</span>
               {currentNotice.summary}
             </div>
           )}
 
-          {/* 公文正文内容 */}
+          {/* 通知正文内容 */}
           <div
             className={`space-y-4 text-slate-700 leading-relaxed ${
               fontSize === 'sm'
@@ -7673,7 +7420,7 @@ export const FrontendNoticeDetailPage: React.FC<FrontendNoticeDetailPageProps> =
                       </span>
                     )}
                     <span className="text-[11px] font-semibold text-[#0284C7]">
-                      [{item.category || '官方通知'}]
+                      [{item.category || '通知'}]
                     </span>
                     <span className="text-[11px] text-slate-400 font-mono-num ml-auto">
                       {item.fullDate}
@@ -7682,9 +7429,6 @@ export const FrontendNoticeDetailPage: React.FC<FrontendNoticeDetailPageProps> =
                   <h3 className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-[#0284C7] transition-colors line-clamp-2 leading-snug">
                     {item.title}
                   </h3>
-                  <div className="text-[11px] text-slate-400 font-mono-num mt-1">
-                    {item.docNumber}
-                  </div>
                 </div>
               ))}
             </div>
@@ -7696,221 +7440,132 @@ export const FrontendNoticeDetailPage: React.FC<FrontendNoticeDetailPageProps> =
 };
 
 // ============================================================================
-// 十、前台【帮助中心 · 参赛常见问题汇总】独立页面（浅色风格）
+// 十、前台【帮助中心】独立页面（单篇 Markdown 文档汇总展示所有问题，删除右侧组委会联系方式栏）
 // ============================================================================
 
 interface FrontendHelpCenterPageProps {
-  faqList: FaqItem[];
+  faqList?: FaqItem[];
   onBackHome?: () => void;
 }
 
-export const FrontendHelpCenterPage: React.FC<FrontendHelpCenterPageProps> = ({
-  faqList,
+const renderHelpMarkdownInline = (text: string): React.ReactNode => {
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={idx} className="font-bold text-slate-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code
+          key={idx}
+          className="px-1.5 py-0.5 rounded bg-sky-50 text-[#0284C7] font-mono text-xs border border-sky-200/80"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+};
+
+export const HelpMarkdownDocumentView: React.FC<{ content: string; compact?: boolean }> = ({
+  content,
+  compact = false,
 }) => {
-  const [keyword, setKeyword] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string>('ALL');
-  const [expandedIds, setExpandedIds] = useState<string[]>(() => faqList.map((f) => f.id));
-
-  const categories = useMemo(() => {
-    return Array.from(new Set(faqList.map((f) => f.category)));
-  }, [faqList]);
-
-  const filteredFaqs = useMemo(() => {
-    return faqList.filter((item) => {
-      if (activeCategory !== 'ALL' && item.category !== activeCategory) {
-        return false;
-      }
-      if (keyword.trim()) {
-        const q = keyword.trim().toLowerCase();
-        return (
-          item.question.toLowerCase().includes(q) ||
-          item.answer.toLowerCase().includes(q) ||
-          item.category.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [faqList, activeCategory, keyword]);
-
-  const toggleFaq = (id: string) => {
-    setExpandedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const allExpanded =
-    filteredFaqs.length > 0 && filteredFaqs.every((f) => expandedIds.includes(f.id));
-
+  const lines = content.split('\n');
   return (
-    <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full space-y-8">
-      {/* 页面头部 */}
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
-          <div>
-            <div className="text-xs font-semibold text-[#0284C7] tracking-wide mb-1">
-              “XX杯”全国网数智安全大赛 · 参赛服务中心
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              帮助中心 · 参赛常见问题汇总
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              涵盖报名组队规则、教育部学籍认证、线上靶场接入规范及获奖电子证书防伪核验等全流程解答
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500 font-mono-num">
-              共收录 <strong className="text-slate-900">{filteredFaqs.length}</strong> 项常见疑问解答
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                setExpandedIds(allExpanded ? [] : filteredFaqs.map((f) => f.id))
-              }
-              className="px-3 py-1.5 rounded-lg bg-white hover:bg-sky-50 border border-slate-200 text-xs font-semibold text-[#0284C7] transition-colors cursor-pointer"
+    <div className={compact ? 'space-y-2.5 text-slate-700 leading-relaxed' : 'space-y-3.5 text-slate-700 leading-relaxed'}>
+      {lines.map((rawLine, idx) => {
+        const line = rawLine.trim();
+        if (!line) {
+          return <div key={idx} className="h-1" />;
+        }
+        if (line === '---') {
+          return <hr key={idx} className="my-5 border-slate-200" />;
+        }
+        if (line.startsWith('# ')) {
+          return (
+            <h2
+              key={idx}
+              className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight pb-3 mb-2 border-b border-slate-200"
             >
-              {allExpanded ? '全部收起' : '全部展开'}
-            </button>
-          </div>
-        </div>
+              {line.slice(2)}
+            </h2>
+          );
+        }
+        if (line.startsWith('## ')) {
+          return (
+            <h3
+              key={idx}
+              className={`${
+                compact ? 'text-sm sm:text-base pt-2' : 'text-base sm:text-lg pt-4 pb-1'
+              } font-extrabold text-[#0284C7] flex items-center gap-2`}
+            >
+              <span className="w-1.5 h-4 rounded-full bg-[#0284C7] shrink-0" />
+              <span>{line.slice(3)}</span>
+            </h3>
+          );
+        }
+        if (line.startsWith('### ')) {
+          return (
+            <h4
+              key={idx}
+              className={`${
+                compact ? 'text-xs sm:text-sm pt-1' : 'text-sm sm:text-base pt-2'
+              } font-bold text-slate-900`}
+            >
+              {line.slice(4)}
+            </h4>
+          );
+        }
+        if (line.startsWith('> ')) {
+          return (
+            <blockquote
+              key={idx}
+              className={`${
+                compact ? 'p-3 text-xs' : 'p-4 text-xs sm:text-sm'
+              } rounded-xl bg-sky-50/70 border-l-4 border-[#0284C7] text-slate-700 leading-relaxed`}
+            >
+              {renderHelpMarkdownInline(line.slice(2))}
+            </blockquote>
+          );
+        }
+        if (line.startsWith('- ')) {
+          return (
+            <div key={idx} className="flex items-start gap-2.5 pl-2 text-xs sm:text-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0284C7] mt-2 shrink-0" />
+              <div className="flex-1">{renderHelpMarkdownInline(line.slice(2))}</div>
+            </div>
+          );
+        }
+        return (
+          <p key={idx} className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+            {renderHelpMarkdownInline(line)}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
 
-        {/* 分类筛选与搜索栏 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-lg self-start">
-            {(['ALL', ...categories] as const).map((cat) => {
-              const active = activeCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap ${
-                    active
-                      ? 'bg-[#0284C7] text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {cat === 'ALL' ? '全部问题汇总' : cat}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="搜索问题关键词（如：学籍认证、跨校组队、证书）..."
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
-            />
-          </div>
-        </div>
+export const FrontendHelpCenterPage: React.FC<FrontendHelpCenterPageProps> = () => {
+  return (
+    <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full space-y-6">
+      {/* 页面头部（仅保留“帮助中心”标题） */}
+      <div className="border-b border-slate-200 pb-5">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          帮助中心
+        </h1>
       </div>
 
-      {/* 主体两栏：左栏参赛常见问题汇总列表（占8列），右栏组委会技术支持与联系方式（占4列） */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10 items-start">
-        <div className="lg:col-span-8 space-y-4">
-          {filteredFaqs.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
-              <div className="text-base font-bold text-slate-800">未找到匹配的常见问题</div>
-              <p className="text-xs text-slate-500">
-                请尝试更换搜索关键词或切换问题分类标签，也可直接联系右侧组委会秘书处。
-              </p>
-            </div>
-          ) : (
-            filteredFaqs.map((faq) => {
-              const isOpen = expandedIds.includes(faq.id);
-              return (
-                <div
-                  key={faq.id}
-                  className="bg-white rounded-2xl border border-slate-200/90 hover:border-sky-300 shadow-2xs transition-all overflow-hidden"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleFaq(faq.id)}
-                    className="w-full px-6 py-5 flex items-start sm:items-center justify-between gap-4 text-left cursor-pointer group"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 min-w-0">
-                      <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-sky-50 text-[#0369A1] border border-sky-200/80 self-start sm:self-auto shrink-0">
-                        {faq.category}
-                      </span>
-                      <h2 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-[#0284C7] transition-colors leading-snug">
-                        {faq.question}
-                      </h2>
-                    </div>
-                    <ChevronDown
-                      className={`w-5 h-5 text-slate-400 group-hover:text-[#0284C7] shrink-0 transition-transform duration-200 mt-1 sm:mt-0 ${
-                        isOpen ? 'rotate-180 text-[#0284C7]' : ''
-                      }`}
-                    />
-                  </button>
-
-                  {isOpen && (
-                    <div className="px-6 pb-6 pt-1 border-t border-slate-100">
-                      <div className="p-4 sm:p-5 rounded-xl bg-slate-50/90 border border-slate-200/70 text-sm text-slate-700 leading-relaxed">
-                        {faq.answer}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* 右栏：组委会秘书处咨询与技术支持卡片 */}
-        <aside className="lg:col-span-4 space-y-6 sticky top-24">
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
-            <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
-              <div className="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] flex items-center justify-center">
-                <HelpCircle className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">组委会秘书处联系方式</h3>
-                <p className="text-xs text-slate-500">人工咨询与靶场技术保障通道</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 text-xs sm:text-sm text-slate-700">
-              <div className="flex items-start gap-3">
-                <Phone className="w-4 h-4 text-[#0284C7] shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-slate-900">赛事咨询与学籍核验专线</div>
-                  <div className="font-mono-num text-slate-600 mt-0.5">
-                    010-6899-2026（工作日 09:00 - 18:00）
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-[#0284C7] shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-slate-900">组委会官方电子邮箱</div>
-                  <div className="font-mono-num text-slate-600 mt-0.5">
-                    committee@xxcup-sec.org.cn
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-[#0284C7] shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-slate-900">秘书处办公地址</div>
-                  <div className="text-slate-600 mt-0.5">
-                    北京市海淀区数字安全创新大厦A座12层（邮编：100088）
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-sky-50/80 border border-sky-200/80 text-xs text-slate-600 leading-relaxed">
-              <strong className="text-[#0369A1] block mb-1">参赛流程快速指引：</strong>
-              注册并登录账号 &rarr; 前往【个人中心 - 用户认证】完成实名与高校学籍认证 &rarr; 在【赛事目录】选择对应赛事点击“立即报名”组建战队。
-            </div>
-          </div>
-        </aside>
-      </div>
+      {/* 单篇 Markdown 文档汇总展示所有常见问题与解答 */}
+      <article className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-10">
+        <HelpMarkdownDocumentView content={HELP_CENTER_MARKDOWN_DOC} />
+      </article>
     </main>
   );
 };
