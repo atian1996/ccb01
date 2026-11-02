@@ -2142,12 +2142,12 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         {removeCaptainModalOpen && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
-              <div className="px-6 py-4 bg-amber-600 text-white font-bold text-sm flex items-center justify-between">
+              <div className="px-6 py-4 bg-amber-50 border-b border-amber-200 text-amber-900 font-extrabold text-sm flex items-center justify-between">
                 <span>请指定新队长</span>
                 <button
                   type="button"
                   onClick={() => setRemoveCaptainModalOpen(false)}
-                  className="text-white/80 hover:text-white cursor-pointer"
+                  className="text-amber-700/70 hover:text-amber-900 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -2328,42 +2328,42 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
             权限限制：仅组委会超级管理员 (super_admin) 能看到并操作这两个开关
            =================================================================== */}
         {adminRole === 'super_admin' && (
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl border border-slate-700 p-4 sm:p-5 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
+          <div className="bg-gradient-to-r from-sky-50/90 via-white to-indigo-50/50 rounded-2xl border border-sky-200/90 p-4 sm:p-5 text-slate-900 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-2xs">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-sky-400" />
-                <span className="text-xs sm:text-sm font-extrabold">
+                <Shield className="w-4 h-4 text-[#0284C7]" />
+                <span className="text-xs sm:text-sm font-extrabold text-slate-900">
                   全局审核阶段开关控制（仅组委会超级管理员可见可操作）
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-xs text-slate-500">
                 控制高校管理员与秘书处管理员是否可进入对应审核阶段；当开关关闭时，前台已有状态不倒退，但后台无法进行新的审核操作。
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               {/* 开关1：高校审核阶段 [未开启 / 已开启] */}
-              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/60 border border-slate-700">
-                <span className="text-xs font-bold text-slate-200">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-xs font-bold text-slate-700">
                   开关1：高校审核阶段
                 </span>
                 <button
                   type="button"
                   onClick={() => handleToggleAuditStageSwitch('school')}
-                  className={`px-3 py-1 rounded-lg text-xs font-extrabold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-xs font-extrabold inline-flex items-center gap-1.5 border transition-all cursor-pointer ${
                     isSchoolStageOpen
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
                   }`}
                 >
                   {isSchoolStageOpen ? (
                     <>
-                      <Unlock className="w-3.5 h-3.5" />
+                      <Unlock className="w-3.5 h-3.5 text-emerald-600" />
                       <span>已开启</span>
                     </>
                   ) : (
                     <>
-                      <Lock className="w-3.5 h-3.5" />
+                      <Lock className="w-3.5 h-3.5 text-slate-500" />
                       <span>未开启</span>
                     </>
                   )}
@@ -2371,27 +2371,27 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
               </div>
 
               {/* 开关2：秘书处审核阶段 [未开启 / 已开启] */}
-              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/60 border border-slate-700">
-                <span className="text-xs font-bold text-slate-200">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-xs font-bold text-slate-700">
                   开关2：秘书处审核阶段
                 </span>
                 <button
                   type="button"
                   onClick={() => handleToggleAuditStageSwitch('secretariat')}
-                  className={`px-3 py-1 rounded-lg text-xs font-extrabold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-xs font-extrabold inline-flex items-center gap-1.5 border transition-all cursor-pointer ${
                     isSecretariatStageOpen
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
                   }`}
                 >
                   {isSecretariatStageOpen ? (
                     <>
-                      <Unlock className="w-3.5 h-3.5" />
+                      <Unlock className="w-3.5 h-3.5 text-emerald-600" />
                       <span>已开启</span>
                     </>
                   ) : (
                     <>
-                      <Lock className="w-3.5 h-3.5" />
+                      <Lock className="w-3.5 h-3.5 text-slate-500" />
                       <span>未开启</span>
                     </>
                   )}
@@ -2627,9 +2627,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                     setImportSuccessMsg(null);
                     setImportModalOpen(true);
                   }}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Upload className="w-3.5 h-3.5" />
+                  <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
                   <span>导入线下数据</span>
                 </button>
               )}
@@ -2939,7 +2939,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         {auditModalState && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl">
-              <div className="px-6 py-4 bg-[#072A47] text-white font-bold text-sm flex items-center justify-between">
+              <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 text-slate-900 font-extrabold text-sm flex items-center justify-between">
                 <span>
                   {auditModalState.mode === 'batch'
                     ? `批量${auditModalState.stage === 'school' ? '高校审核' : '秘书处审核'}（已选 ${auditModalState.teamIds.length} 支队伍）`
@@ -2948,7 +2948,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 <button
                   type="button"
                   onClick={() => setAuditModalState(null)}
-                  className="text-white/80 hover:text-white cursor-pointer"
+                  className="text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -3078,14 +3078,14 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         {exportPreviewModal && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl border border-slate-200 max-w-4xl w-full overflow-hidden shadow-2xl">
-              <div className="px-6 py-4 bg-emerald-700 text-white font-bold text-sm flex items-center justify-between">
+              <div className="px-6 py-4 bg-emerald-50 border-b border-emerald-200 text-emerald-900 font-extrabold text-sm flex items-center justify-between">
                 <span>
                   Excel 导出文件已生成并下载（含双工作表 Sheet1 & Sheet2 · 隐私字段默认脱敏）
                 </span>
                 <button
                   type="button"
                   onClick={() => setExportPreviewModal(null)}
-                  className="text-white/80 hover:text-white cursor-pointer"
+                  className="text-emerald-700/70 hover:text-emerald-900 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -3213,12 +3213,12 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         {downloadCenterOpen && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl">
-              <div className="px-6 py-4 bg-[#072A47] text-white font-bold text-sm flex items-center justify-between">
+              <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 text-slate-900 font-extrabold text-sm flex items-center justify-between">
                 <span>后台异步下载中心（超5000条防卡死队列）</span>
                 <button
                   type="button"
                   onClick={() => setDownloadCenterOpen(false)}
-                  className="text-white/80 hover:text-white cursor-pointer"
+                  className="text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -3269,12 +3269,12 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         {importModalOpen && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl border border-slate-200 max-w-xl w-full overflow-hidden shadow-2xl">
-              <div className="px-6 py-4 bg-slate-900 text-white font-bold text-sm flex items-center justify-between">
+              <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 text-slate-900 font-extrabold text-sm flex items-center justify-between">
                 <span>导入线下报名数据（指标6：三重校验与错误行报告）</span>
                 <button
                   type="button"
                   onClick={() => setImportModalOpen(false)}
-                  className="text-white/80 hover:text-white cursor-pointer"
+                  className="text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -3662,15 +3662,15 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       {auditNotOpenBlockPrompt && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-amber-200 max-w-md w-full overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 bg-amber-600 text-white font-bold text-sm flex items-center justify-between">
+            <div className="px-6 py-4 bg-amber-50 border-b border-amber-200 text-amber-900 font-extrabold text-sm flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <Lock className="w-4 h-4" />
+                <Lock className="w-4 h-4 text-amber-600" />
                 <span>审核阶段暂未开启提醒</span>
               </span>
               <button
                 type="button"
                 onClick={() => setAuditNotOpenBlockPrompt(null)}
-                className="text-white/80 hover:text-white cursor-pointer"
+                className="text-amber-700/70 hover:text-amber-900 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -3700,12 +3700,12 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       {deleteConfigConfirmTarget && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 bg-red-600 text-white font-bold text-sm flex items-center justify-between">
+            <div className="px-6 py-4 bg-red-50 border-b border-red-200 text-red-900 font-extrabold text-sm flex items-center justify-between">
               <span>彻底删除报名数据强确认</span>
               <button
                 type="button"
                 onClick={() => setDeleteConfigConfirmTarget(null)}
-                className="text-white/80 hover:text-white cursor-pointer"
+                className="text-red-700/70 hover:text-red-900 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

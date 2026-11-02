@@ -40,7 +40,7 @@ import {
   Mail,
   MapPin
 } from 'lucide-react';
-import type { NoticeItem, FaqItem } from '../data/competitionData';
+import { NOTICE_ITEMS, type NoticeItem, type FaqItem } from '../data/competitionData';
 import {
   getEffectiveUserStatus,
   resolveTeamAuditStages,
@@ -2822,31 +2822,31 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
 
   if (isFormOpen) {
     return (
-      <div className="bg-[#111827] border border-gray-800 rounded-xl p-6 space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-gray-800">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-2xs space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsFormOpen(false)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               返回新闻列表
             </button>
-            <h2 className="text-lg font-bold text-white">
+            <h2 className="text-lg font-extrabold text-slate-900">
               {editingItem ? '编辑赛事新闻 / 通知公告' : '新增赛事新闻 / 通知公告'}
             </h2>
           </div>
-          <span className="text-xs text-gray-400">支持富文本多图混排、内嵌视频、定时发布与置顶有效期</span>
+          <span className="text-xs text-slate-500">支持富文本多图混排、内嵌视频、定时发布与置顶有效期</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-gray-300 font-medium">
-                  新闻标题 <span className="text-red-400">*</span>（限64字以内）
+                <label className="text-xs text-slate-700 font-bold">
+                  新闻标题 <span className="text-red-500">*</span>（限64字以内）
                 </label>
-                <span className="text-xs font-mono text-gray-400">{formTitle.length} / 64</span>
+                <span className="text-xs font-mono text-slate-400">{formTitle.length} / 64</span>
               </div>
               <input
                 type="text"
@@ -2854,16 +2854,16 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="请输入赛事新闻或通知公告标题..."
-                className="w-full px-3.5 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-300 font-medium mb-1">
+                <label className="block text-xs text-slate-700 font-bold mb-1">
                   分类 / 标签（支持多选）
                 </label>
-                <div className="flex flex-wrap gap-2 p-2.5 bg-gray-900 border border-gray-700 rounded-lg">
+                <div className="flex flex-wrap gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
                   {NEWS_TAG_OPTIONS.map((tag) => {
                     const active = formTags.includes(tag);
                     return (
@@ -2877,10 +2877,10 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                             setFormTags([...formTags, tag]);
                           }
                         }}
-                        className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                        className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
                           active
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+                            ? 'bg-[#0284C7] text-white shadow-2xs'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                         }`}
                       >
                         {tag}
@@ -2891,18 +2891,18 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs text-gray-300 font-medium mb-1">来源（如：大赛组委会、新华网）</label>
+                <label className="block text-xs text-slate-700 font-bold mb-1">来源（如：大赛组委会、新华网）</label>
                 <input
                   type="text"
                   value={formSource}
                   onChange={(e) => setFormSource(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-gray-300 font-medium mb-1">
+              <label className="block text-xs text-slate-700 font-bold mb-1">
                 简介 / 摘要（选填，用于前台列表页标题下方展示）
               </label>
               <textarea
@@ -2910,15 +2910,15 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                 value={formSummary}
                 onChange={(e) => setFormSummary(e.target.value)}
                 placeholder="请输入1-2句核心摘要，留空将自动截取正文前80字..."
-                className="w-full px-3.5 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
             </div>
 
             {/* 富文本编辑器（支持插入图片与嵌入视频） */}
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                <label className="text-xs text-gray-300 font-medium">
-                  正文内容（富文本编辑器 · 支持插入图片与嵌入视频） <span className="text-red-400">*</span>
+                <label className="text-xs text-slate-700 font-bold">
+                  正文内容（富文本编辑器 · 支持插入图片与嵌入视频） <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <button
@@ -2930,7 +2930,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                           '\n\n![赛事现场配图](https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80)\n*图注：大赛现场高清实况图片*'
                       )
                     }
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-blue-400 cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-xs font-bold text-[#0284C7] cursor-pointer transition-colors"
                   >
                     <ImageIcon className="w-3.5 h-3.5" />
                     插入高清图片
@@ -2945,7 +2945,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                         setFormVideoTitle('大赛官方宣传与技术解读视频');
                       }
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-purple-400 cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-xs font-bold text-indigo-700 cursor-pointer transition-colors"
                   >
                     <Video className="w-3.5 h-3.5" />
                     嵌入视频播放器
@@ -2957,29 +2957,29 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                 value={formContent}
                 onChange={(e) => setFormContent(e.target.value)}
                 placeholder="支持段落、小标题（### 标题）、多图混排及视频嵌入..."
-                className="w-full px-3.5 py-3 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white font-mono leading-relaxed"
+                className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 font-mono leading-relaxed focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-900/60 border border-gray-800 rounded-lg p-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">正文内嵌视频地址（选填，MP4或视频外链）</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">正文内嵌视频地址（选填，MP4或视频外链）</label>
                 <input
                   type="text"
                   value={formVideoUrl}
                   onChange={(e) => setFormVideoUrl(e.target.value)}
                   placeholder="https://.../video.mp4"
-                  className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs text-white"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">内嵌视频标题说明</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">内嵌视频标题说明</label>
                 <input
                   type="text"
                   value={formVideoTitle}
                   onChange={(e) => setFormVideoTitle(e.target.value)}
                   placeholder="如：赛事启动仪式全程回顾视频"
-                  className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs text-white"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
                 />
               </div>
             </div>
@@ -2987,24 +2987,24 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
 
           {/* 右侧：封面图上传 & 发布设置 */}
           <div className="space-y-4">
-            <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 space-y-3">
-              <label className="block text-xs text-gray-300 font-medium">
+            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-3">
+              <label className="block text-xs text-slate-700 font-bold">
                 封面图（非必填 · 建议16:9，留空则前台按无图纯文字排版）
               </label>
               {formCover ? (
-                <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-700">
+                <div className="relative aspect-video rounded-lg overflow-hidden border border-slate-200">
                   <img src={formCover} alt="cover" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => setFormCover('')}
-                    className="absolute top-2 right-2 px-2 py-1 rounded bg-black/75 text-xs text-red-300 hover:text-white cursor-pointer"
+                    className="absolute top-2 right-2 px-2 py-1 rounded bg-slate-900/80 text-xs text-white hover:bg-red-600 transition-colors cursor-pointer"
                   >
                     移除封面
                   </button>
                 </div>
               ) : (
-                <div className="aspect-video rounded-lg border border-dashed border-gray-700 flex flex-col items-center justify-center text-xs text-gray-500 p-4 text-center">
-                  <ImageIcon className="w-7 h-7 mb-1.5 text-gray-600" />
+                <div className="aspect-video rounded-lg border border-dashed border-slate-300 bg-white flex flex-col items-center justify-center text-xs text-slate-400 p-4 text-center">
+                  <ImageIcon className="w-7 h-7 mb-1.5 text-slate-300" />
                   当前未设置封面（前台将采用无图纯文字优雅排版）
                 </div>
               )}
@@ -3013,7 +3013,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                 value={formCover}
                 onChange={(e) => setFormCover(e.target.value)}
                 placeholder="输入封面图URL或点击下方预设图..."
-                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs text-white"
+                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
               />
               <div className="flex flex-wrap gap-1.5">
                 <button
@@ -3023,7 +3023,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                       'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=960&q=80'
                     )
                   }
-                  className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 cursor-pointer"
+                  className="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium cursor-pointer"
                 >
                   使用赛场封面
                 </button>
@@ -3034,26 +3034,26 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                       'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=960&q=80'
                     )
                   }
-                  className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 cursor-pointer"
+                  className="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium cursor-pointer"
                 >
                   使用靶场封面
                 </button>
               </div>
             </div>
 
-            <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 space-y-4">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">发布与置顶设置</h4>
+            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-4">
+              <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">发布与置顶设置</h4>
 
               <div>
-                <label className="block text-xs text-gray-400 mb-1.5">发布方式</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">发布方式</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setFormPublishMode('immediate')}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border cursor-pointer ${
+                    className={`py-2 px-3 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
                       formPublishMode === 'immediate'
-                        ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                        : 'bg-gray-900 border-gray-800 text-gray-400'
+                        ? 'bg-sky-50 border-[#0284C7] text-[#0284C7]'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     立即发布
@@ -3061,10 +3061,10 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                   <button
                     type="button"
                     onClick={() => setFormPublishMode('scheduled')}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border cursor-pointer ${
+                    className={`py-2 px-3 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
                       formPublishMode === 'scheduled'
-                        ? 'bg-amber-600/20 border-amber-500 text-amber-300'
-                        : 'bg-gray-900 border-gray-800 text-gray-400'
+                        ? 'bg-amber-50 border-amber-400 text-amber-700'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     定时发布
@@ -3074,36 +3074,36 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
 
               {formPublishMode === 'scheduled' && (
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">预设发布时间</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">预设发布时间</label>
                   <input
                     type="datetime-local"
                     value={formScheduleTime}
                     onChange={(e) => setFormScheduleTime(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0284C7]"
                   />
                 </div>
               )}
 
-              <div className="pt-2 border-t border-gray-800">
+              <div className="pt-2 border-t border-slate-200">
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-xs text-gray-300 font-medium">是否置顶该条新闻</span>
+                  <span className="text-xs text-slate-700 font-bold">是否置顶该条新闻</span>
                   <input
                     type="checkbox"
                     checked={formIsPinned}
                     onChange={(e) => setFormIsPinned(e.target.checked)}
-                    className="rounded border-gray-700 bg-gray-800 text-blue-600"
+                    className="rounded border-slate-300 text-[#0284C7] focus:ring-[#0284C7]"
                   />
                 </label>
               </div>
 
               {formIsPinned && (
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">置顶有效期（选填，到期自动取消置顶）</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">置顶有效期（选填，到期自动取消置顶）</label>
                   <input
                     type="datetime-local"
                     value={formPinExpire}
                     onChange={(e) => setFormPinExpire(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0284C7]"
                   />
                 </div>
               )}
@@ -3113,14 +3113,14 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
               <button
                 type="button"
                 onClick={() => handleSaveNews(false)}
-                className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
               >
                 {formPublishMode === 'scheduled' ? '确认定时发布' : '立即发布上线'}
               </button>
               <button
                 type="button"
                 onClick={() => handleSaveNews(true)}
-                className="w-full py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium transition-colors cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
               >
                 保存为草稿
               </button>
@@ -3132,28 +3132,28 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {toastMsg && (
-        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-emerald-950/95 border border-emerald-500/50 text-emerald-200 px-4 py-3 rounded-xl shadow-2xl text-sm">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold">
+          <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* 顶部栏 */}
-      <div className="bg-[#111827] border border-gray-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-400" />
+          <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-[#0284C7]" />
             内容管理 · 赛事新闻管理
           </h2>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             管理前台【赛事新闻】菜单下的官方公告、新闻报道与赛制解读，支持置顶排序、定时发布与富文本多图/视频混排。
           </p>
         </div>
         <button
           onClick={openCreateForm}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
         >
           <Plus className="w-4 h-4" />
           新增赛事新闻
@@ -3161,27 +3161,27 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
       </div>
 
       {/* 搜索筛选栏 */}
-      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <div>
-          <label className="block text-xs text-gray-400 mb-1">标题（模糊搜索）</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">标题（模糊搜索）</label>
           <div className="relative">
-            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTitle}
               onChange={(e) => setSearchTitle(e.target.value)}
               placeholder="搜索新闻或公告标题..."
-              className="w-full pl-9 pr-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs text-gray-400 mb-1">分类 / 标签</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">分类 / 标签</label>
           <select
             value={filterTag}
             onChange={(e) => setFilterTag(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           >
             <option value="ALL">全部分类标签</option>
             {NEWS_TAG_OPTIONS.map((t) => (
@@ -3193,11 +3193,11 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs text-gray-400 mb-1">发布状态</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">发布状态</label>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as 'ALL' | ContentPublishStatus)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           >
             <option value="ALL">全部状态</option>
             <option value="published">已发布</option>
@@ -3208,32 +3208,32 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs text-gray-400 mb-1">发布开始日期</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">发布开始日期</label>
           <input
             type="date"
             value={dateStart}
             onChange={(e) => setDateStart(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-gray-400 mb-1">发布结束日期</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">发布结束日期</label>
           <input
             type="date"
             value={dateEnd}
             onChange={(e) => setDateEnd(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           />
         </div>
       </div>
 
       {/* 列表表格 */}
-      <div className="bg-[#111827] border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-900/90 border-b border-gray-800 text-xs text-gray-400">
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-4">标题</th>
                 <th className="py-3.5 px-3">封面（缩略图）</th>
                 <th className="py-3.5 px-3">分类/标签</th>
@@ -3244,22 +3244,22 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                 <th className="py-3.5 px-4 text-right">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/70 text-sm">
+            <tbody className="divide-y divide-slate-100 text-xs bg-white">
               {filteredNews.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-800/40 transition-colors">
+                <tr key={item.id} className="hover:bg-sky-50/40 transition-colors">
                   <td className="py-3.5 px-4 max-w-md">
-                    <div className="font-semibold text-white line-clamp-1">{item.title}</div>
-                    <div className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.summary}</div>
+                    <div className="font-bold text-slate-900 line-clamp-1">{item.title}</div>
+                    <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{item.summary}</div>
                   </td>
                   <td className="py-3.5 px-3">
                     {item.coverImage ? (
                       <img
                         src={item.coverImage}
                         alt={item.title}
-                        className="w-20 h-11 object-cover rounded border border-gray-700"
+                        className="w-20 h-11 object-cover rounded border border-slate-200"
                       />
                     ) : (
-                      <span className="inline-block px-2 py-1 rounded bg-gray-900 border border-gray-800 text-xs text-gray-500">
+                      <span className="inline-block px-2 py-1 rounded bg-slate-50 border border-slate-200 text-[11px] text-slate-400">
                         无图纯文字
                       </span>
                     )}
@@ -3269,24 +3269,24 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                       {item.tags.map((t) => (
                         <span
                           key={t}
-                          className="px-2 py-0.5 rounded text-xs bg-blue-500/15 text-blue-300 border border-blue-500/30"
+                          className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-50 text-[#0284C7] border border-sky-200"
                         >
                           {t}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="py-3.5 px-3 text-gray-300 text-xs">{item.source}</td>
+                  <td className="py-3.5 px-3 text-slate-600 text-xs">{item.source}</td>
                   <td className="py-3.5 px-3 text-center">
                     <span
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
                         item.publishStatus === 'published'
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : item.publishStatus === 'scheduled'
-                          ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
                           : item.publishStatus === 'draft'
-                          ? 'bg-gray-700/60 text-gray-300 border-gray-600'
-                          : 'bg-red-500/15 text-red-400 border-red-500/30'
+                          ? 'bg-slate-100 text-slate-600 border-slate-200'
+                          : 'bg-red-50 text-red-600 border-red-200'
                       }`}
                     >
                       {item.publishStatus === 'published'
@@ -3300,37 +3300,37 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                   </td>
                   <td className="py-3.5 px-3 text-center">
                     {item.isPinned ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                         <Pin className="w-3 h-3" /> 置顶中
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-500">否</span>
+                      <span className="text-xs text-slate-400">否</span>
                     )}
                   </td>
-                  <td className="py-3.5 px-3 font-mono text-xs text-gray-400 tabular-nums">{item.publishTime}</td>
+                  <td className="py-3.5 px-3 font-mono text-xs text-slate-500 tabular-nums">{item.publishTime}</td>
                   <td className="py-3.5 px-4 text-right">
                     <div className="inline-flex items-center gap-1.5">
                       <button
                         onClick={() => openEditForm(item)}
-                        className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleTogglePin(item)}
-                        className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-amber-300 text-xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         {item.isPinned ? '取消置顶' : '置顶'}
                       </button>
                       <button
                         onClick={() => handleTogglePublishOffline(item)}
-                        className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-blue-300 text-xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200/80 text-[#0284C7] text-xs font-bold transition-colors cursor-pointer"
                       >
                         {item.publishStatus === 'published' ? '下线' : '发布'}
                       </button>
                       <button
                         onClick={() => setDeletingItem(item)}
-                        className="px-2.5 py-1 rounded bg-red-500/15 hover:bg-red-500/25 text-red-300 text-xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200/80 text-red-600 text-xs font-bold transition-colors cursor-pointer"
                       >
                         删除
                       </button>
@@ -3345,16 +3345,16 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
 
       {/* 删除二次确认弹窗 */}
       {deletingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="bg-[#111827] border border-gray-700 rounded-xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-base font-bold text-white">确认删除赛事新闻？</h3>
-            <p className="text-sm text-gray-300">
-              即将永久删除《<span className="text-white font-medium">{deletingItem.title}</span>》，删除后不可恢复。
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-extrabold text-slate-900">确认删除赛事新闻？</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              即将永久删除《<span className="text-slate-900 font-bold">{deletingItem.title}</span>》，删除后不可恢复。
             </p>
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 onClick={() => setDeletingItem(null)}
-                className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 text-sm cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
               >
                 取消
               </button>
@@ -3364,7 +3364,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                   triggerToast(`已删除新闻《${deletingItem.title}》`);
                   setDeletingItem(null);
                 }}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold cursor-pointer shadow-xs"
               >
                 确认删除
               </button>
@@ -3537,47 +3537,47 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
 
   if (isFormOpen) {
     return (
-      <div className="bg-[#111827] border border-gray-800 rounded-xl p-6 space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-gray-800">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-2xs space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsFormOpen(false)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               返回动态列表
             </button>
-            <h2 className="text-lg font-bold text-white">
+            <h2 className="text-lg font-extrabold text-slate-900">
               {editingItem ? '编辑赛事动态' : '新增赛事动态（图文 / 视频）'}
             </h2>
           </div>
-          <span className="text-xs text-gray-400">支持进展报道、专家观点、团队风采、赛事花絮四大栏目</span>
+          <span className="text-xs text-slate-500">支持进展报道、专家观点、团队风采、赛事花絮四大栏目</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div>
-              <label className="block text-xs text-gray-300 font-medium mb-1">
-                动态标题 / 名称 <span className="text-red-400">*</span>
+              <label className="block text-xs text-slate-700 font-bold mb-1">
+                动态标题 / 名称 <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="请输入赛事动态标题..."
-                className="w-full px-3.5 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs text-gray-300 font-medium mb-1">
-                  所属分类（单选） <span className="text-red-400">*</span>
+                <label className="block text-xs text-slate-700 font-bold mb-1">
+                  所属分类（单选） <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formCategory}
                   onChange={(e) => setFormCategory(e.target.value as MomentCategory)}
-                  className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
                 >
                   {MOMENT_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
@@ -3588,17 +3588,17 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs text-gray-300 font-medium mb-1">
-                  媒体类型（单选） <span className="text-red-400">*</span>
+                <label className="block text-xs text-slate-700 font-bold mb-1">
+                  媒体类型（单选） <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setFormMediaType('article')}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
                       formMediaType === 'article'
-                        ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                        : 'bg-gray-900 border-gray-800 text-gray-400'
+                        ? 'bg-sky-50 border-[#0284C7] text-[#0284C7]'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <ImageIcon className="w-3.5 h-3.5" /> 图文动态
@@ -3606,10 +3606,10 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                   <button
                     type="button"
                     onClick={() => setFormMediaType('video')}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
                       formMediaType === 'video'
-                        ? 'bg-purple-600/20 border-purple-500 text-purple-300'
-                        : 'bg-gray-900 border-gray-800 text-gray-400'
+                        ? 'bg-indigo-50 border-indigo-400 text-indigo-700'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <Video className="w-3.5 h-3.5" /> 视频动态
@@ -3618,41 +3618,41 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs text-gray-300 font-medium mb-1">来源</label>
+                <label className="block text-xs text-slate-700 font-bold mb-1">来源</label>
                 <input
                   type="text"
                   value={formSource}
                   onChange={(e) => setFormSource(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
                 />
               </div>
             </div>
 
             {formMediaType === 'video' && (
-              <div className="bg-purple-950/20 border border-purple-500/30 rounded-xl p-4 space-y-3">
-                <div className="text-xs font-semibold text-purple-300 flex items-center gap-1.5">
-                  <Video className="w-4 h-4" />
+              <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 space-y-3">
+                <div className="text-xs font-extrabold text-indigo-800 flex items-center gap-1.5">
+                  <Video className="w-4 h-4 text-indigo-600" />
                   视频媒体配置（支持上传视频文件或填写外部视频地址）
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="block text-xs text-gray-400 mb-1">视频文件地址 / 外链 URL *</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">视频文件地址 / 外链 URL *</label>
                     <input
                       type="text"
                       value={formVideoUrl}
                       onChange={(e) => setFormVideoUrl(e.target.value)}
                       placeholder="https://.../video.mp4"
-                      className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">视频时长（选填，如 04:52）</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">视频时长（选填，如 04:52）</label>
                     <input
                       type="text"
                       value={formVideoDuration}
                       onChange={(e) => setFormVideoDuration(e.target.value)}
                       placeholder="04:52"
-                      className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs font-mono text-white"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
                     />
                   </div>
                 </div>
@@ -3660,40 +3660,40 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
             )}
 
             <div>
-              <label className="block text-xs text-gray-300 font-medium mb-1">简介摘要</label>
+              <label className="block text-xs text-slate-700 font-bold mb-1">简介摘要</label>
               <textarea
                 rows={2}
                 value={formSummary}
                 onChange={(e) => setFormSummary(e.target.value)}
                 placeholder="简要描述本条赛事动态亮点..."
-                className="w-full px-3.5 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-gray-300 font-medium mb-1">
+              <label className="block text-xs text-slate-700 font-bold mb-1">
                 {formMediaType === 'article' ? '图文正文（富文本编辑器 · 支持插入多张高清图片）' : '视频详细说明与看点介绍'}
               </label>
               <textarea
                 rows={8}
                 value={formContent}
                 onChange={(e) => setFormContent(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white leading-relaxed"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 leading-relaxed focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 space-y-3">
-              <label className="block text-xs text-gray-300 font-medium">
+            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-3">
+              <label className="block text-xs text-slate-700 font-bold">
                 {formMediaType === 'video' ? '视频封面图（必填，支持自动截取首帧） *' : '图文卡片封面图（推荐 16:9）'}
               </label>
               {formCover && (
-                <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-700">
+                <div className="relative aspect-video rounded-lg overflow-hidden border border-slate-200">
                   <img src={formCover} alt="cover" className="w-full h-full object-cover" />
                   {formMediaType === 'video' && (
-                    <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-white/90 text-gray-900 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-slate-900/35 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-md">
                         <Play className="w-5 h-5 fill-current ml-0.5" />
                       </div>
                     </div>
@@ -3705,7 +3705,7 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                 value={formCover}
                 onChange={(e) => setFormCover(e.target.value)}
                 placeholder="输入封面图 URL..."
-                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs text-white"
+                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
               />
               {formMediaType === 'video' && (
                 <button
@@ -3715,23 +3715,23 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                       'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80'
                     )
                   }
-                  className="w-full py-1.5 rounded bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs cursor-pointer"
+                  className="w-full py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold transition-colors cursor-pointer"
                 >
                   自动截取视频高清首帧作为封面
                 </button>
               )}
             </div>
 
-            <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 space-y-4">
-              <h4 className="text-xs font-bold text-white">发布与置顶设置</h4>
+            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-4">
+              <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">发布与置顶设置</h4>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setFormPublishMode('immediate')}
-                  className={`py-2 px-3 rounded-lg text-xs font-medium border cursor-pointer ${
+                  className={`py-2 px-3 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
                     formPublishMode === 'immediate'
-                      ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                      : 'bg-gray-900 border-gray-800 text-gray-400'
+                      ? 'bg-sky-50 border-[#0284C7] text-[#0284C7]'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   立即发布
@@ -3739,10 +3739,10 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormPublishMode('scheduled')}
-                  className={`py-2 px-3 rounded-lg text-xs font-medium border cursor-pointer ${
+                  className={`py-2 px-3 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
                     formPublishMode === 'scheduled'
-                      ? 'bg-amber-600/20 border-amber-500 text-amber-300'
-                      : 'bg-gray-900 border-gray-800 text-gray-400'
+                      ? 'bg-amber-50 border-amber-400 text-amber-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   定时发布
@@ -3754,28 +3754,28 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                   type="datetime-local"
                   value={formScheduleTime}
                   onChange={(e) => setFormScheduleTime(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0284C7]"
                 />
               )}
 
-              <label className="flex items-center justify-between pt-2 border-t border-gray-800 cursor-pointer">
-                <span className="text-xs text-gray-300">置顶该条赛事动态</span>
+              <label className="flex items-center justify-between pt-2 border-t border-slate-200 cursor-pointer">
+                <span className="text-xs text-slate-700 font-bold">置顶该条赛事动态</span>
                 <input
                   type="checkbox"
                   checked={formIsPinned}
                   onChange={(e) => setFormIsPinned(e.target.checked)}
-                  className="rounded border-gray-700 bg-gray-800 text-blue-600"
+                  className="rounded border-slate-300 text-[#0284C7] focus:ring-[#0284C7]"
                 />
               </label>
 
               {formIsPinned && (
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">置顶有效期（选填）</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">置顶有效期（选填）</label>
                   <input
                     type="datetime-local"
                     value={formPinExpire}
                     onChange={(e) => setFormPinExpire(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0284C7]"
                   />
                 </div>
               )}
@@ -3785,14 +3785,14 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
               <button
                 type="button"
                 onClick={() => handleSaveMoment(false)}
-                className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
               >
                 发布赛事动态
               </button>
               <button
                 type="button"
                 onClick={() => handleSaveMoment(true)}
-                className="w-full py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
               >
                 保存草稿
               </button>
@@ -3804,28 +3804,28 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {toastMsg && (
-        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-emerald-950/95 border border-emerald-500/50 text-emerald-200 px-4 py-3 rounded-xl shadow-2xl text-sm">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold">
+          <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* 顶部栏 */}
-      <div className="bg-[#111827] border border-gray-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Video className="w-5 h-5 text-purple-400" />
+          <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+            <Video className="w-5 h-5 text-[#0284C7]" />
             内容管理 · 赛事动态管理（图文与视频）
           </h2>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             管理前台【赛事动态】页面的进展报道、专家观点、团队风采及赛事花絮，支持图文卡片与视频卡片混排。
           </p>
         </div>
         <button
           onClick={openCreateForm}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
         >
           <Plus className="w-4 h-4" />
           新增赛事动态
@@ -3833,23 +3833,23 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
       </div>
 
       {/* 筛选栏 */}
-      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div>
-          <label className="block text-xs text-gray-400 mb-1">标题/名称（模糊搜索）</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">标题/名称（模糊搜索）</label>
           <input
             type="text"
             value={searchTitle}
             onChange={(e) => setSearchTitle(e.target.value)}
             placeholder="搜索动态标题..."
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">分类</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">分类</label>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value as 'ALL' | MomentCategory)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           >
             <option value="ALL">全部栏目分类</option>
             {MOMENT_CATEGORIES.map((c) => (
@@ -3860,11 +3860,11 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">媒体类型</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">媒体类型</label>
           <select
             value={filterMediaType}
             onChange={(e) => setFilterMediaType(e.target.value as 'ALL' | MomentMediaType)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           >
             <option value="ALL">全部（图文 + 视频）</option>
             <option value="article">图文</option>
@@ -3872,11 +3872,11 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">发布状态</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">发布状态</label>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as 'ALL' | ContentPublishStatus)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           >
             <option value="ALL">全部状态</option>
             <option value="published">已发布</option>
@@ -3886,31 +3886,31 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">开始日期</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">开始日期</label>
           <input
             type="date"
             value={dateStart}
             onChange={(e) => setDateStart(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">结束日期</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">结束日期</label>
           <input
             type="date"
             value={dateEnd}
             onChange={(e) => setDateEnd(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           />
         </div>
       </div>
 
       {/* 列表表格 */}
-      <div className="bg-[#111827] border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-900/90 border-b border-gray-800 text-xs text-gray-400">
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-4">标题</th>
                 <th className="py-3.5 px-3">封面（视频带播放角标）</th>
                 <th className="py-3.5 px-3">分类</th>
@@ -3922,19 +3922,19 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                 <th className="py-3.5 px-4 text-right">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/70 text-sm">
+            <tbody className="divide-y divide-slate-100 text-xs bg-white">
               {filteredMoments.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-800/40 transition-colors">
+                <tr key={item.id} className="hover:bg-sky-50/40 transition-colors">
                   <td className="py-3.5 px-4 max-w-sm">
-                    <div className="font-semibold text-white line-clamp-1">{item.title}</div>
-                    <div className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.summary}</div>
+                    <div className="font-bold text-slate-900 line-clamp-1">{item.title}</div>
+                    <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{item.summary}</div>
                   </td>
                   <td className="py-3.5 px-3">
-                    <div className="relative w-24 h-13 rounded overflow-hidden border border-gray-700">
+                    <div className="relative w-24 h-13 rounded overflow-hidden border border-slate-200">
                       <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
                       {item.mediaType === 'video' && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <div className="w-6 h-6 rounded-full bg-white/90 text-gray-900 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-slate-900/35 flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-xs">
                             <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                           </div>
                         </div>
@@ -3942,32 +3942,32 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                     </div>
                   </td>
                   <td className="py-3.5 px-3">
-                    <span className="px-2.5 py-0.5 rounded text-xs bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                    <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-sky-50 text-[#0284C7] border border-sky-200">
                       {item.category}
                     </span>
                   </td>
                   <td className="py-3.5 px-3">
                     {item.mediaType === 'video' ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                         <Video className="w-3 h-3" /> 视频 ({item.videoDuration || '04:00'})
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-300 border border-gray-700">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                         <ImageIcon className="w-3 h-3" /> 图文
                       </span>
                     )}
                   </td>
-                  <td className="py-3.5 px-3 text-xs text-gray-300">{item.source}</td>
+                  <td className="py-3.5 px-3 text-xs text-slate-600">{item.source}</td>
                   <td className="py-3.5 px-3 text-center">
                     <span
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
                         item.publishStatus === 'published'
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : item.publishStatus === 'scheduled'
-                          ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
                           : item.publishStatus === 'draft'
-                          ? 'bg-gray-700/60 text-gray-300 border-gray-600'
-                          : 'bg-red-500/15 text-red-400 border-red-500/30'
+                          ? 'bg-slate-100 text-slate-600 border-slate-200'
+                          : 'bg-red-50 text-red-600 border-red-200'
                       }`}
                     >
                       {item.publishStatus === 'published'
@@ -3981,19 +3981,19 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                   </td>
                   <td className="py-3.5 px-3 text-center">
                     {item.isPinned ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-300">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                         <Pin className="w-3 h-3" /> 置顶
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-500">否</span>
+                      <span className="text-xs text-slate-400">否</span>
                     )}
                   </td>
-                  <td className="py-3.5 px-3 font-mono text-xs text-gray-400 tabular-nums">{item.publishTime}</td>
+                  <td className="py-3.5 px-3 font-mono text-xs text-slate-500 tabular-nums">{item.publishTime}</td>
                   <td className="py-3.5 px-4 text-right">
                     <div className="inline-flex items-center gap-1.5">
                       <button
                         onClick={() => openEditForm(item)}
-                        className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         编辑
                       </button>
@@ -4003,7 +4003,7 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                             prev.map((m) => (m.id === item.id ? { ...m, isPinned: !m.isPinned } : m))
                           )
                         }
-                        className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-amber-300 text-xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         {item.isPinned ? '取消置顶' : '置顶'}
                       </button>
@@ -4017,13 +4017,13 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                             )
                           )
                         }
-                        className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-blue-300 text-xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200/80 text-[#0284C7] text-xs font-bold transition-colors cursor-pointer"
                       >
                         {item.publishStatus === 'published' ? '下线' : '发布'}
                       </button>
                       <button
                         onClick={() => setDeletingItem(item)}
-                        className="px-2.5 py-1 rounded bg-red-500/15 hover:bg-red-500/25 text-red-300 text-xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200/80 text-red-600 text-xs font-bold transition-colors cursor-pointer"
                       >
                         删除
                       </button>
@@ -4037,16 +4037,16 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
       </div>
 
       {deletingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="bg-[#111827] border border-gray-700 rounded-xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-base font-bold text-white">确认删除该条赛事动态？</h3>
-            <p className="text-sm text-gray-300">
-              即将删除《<span className="text-white font-medium">{deletingItem.title}</span>》，此操作不可撤销。
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-extrabold text-slate-900">确认删除该条赛事动态？</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              即将删除《<span className="text-slate-900 font-bold">{deletingItem.title}</span>》，此操作不可撤销。
             </p>
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 onClick={() => setDeletingItem(null)}
-                className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 text-sm cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
               >
                 取消
               </button>
@@ -4056,12 +4056,1774 @@ export const AdminMomentsManagement: React.FC<AdminMomentsManagementProps> = ({
                   triggerToast(`已删除动态《${deletingItem.title}》`);
                   setDeletingItem(null);
                 }}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold cursor-pointer shadow-xs"
               >
                 确认删除
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// 六（补充 A）、后台【内容管理 -> 通知公告】组件（与赛事新闻、赛事动态风格排版完全一致）
+// ============================================================================
+
+export type NoticeCategoryType = '章程与指南' | '赛程与靶场' | '资格与获奖公示' | '纪律与规范';
+
+export interface ManagedNoticeItem extends NoticeItem {
+  publishStatus: ContentPublishStatus;
+  publishTime: string;
+  pinExpireTime?: string;
+}
+
+export const INITIAL_MANAGED_NOTICES: ManagedNoticeItem[] = [
+  ...NOTICE_ITEMS.map((n, index) => ({
+    ...n,
+    category: (n.category || '章程与指南') as NoticeCategoryType,
+    publishStatus: 'published' as ContentPublishStatus,
+    publishTime: `${n.fullDate} ${index % 2 === 0 ? '09:30' : '15:00'}`,
+    pinExpireTime: n.isPinned ? '2026-12-31 23:59' : undefined,
+    viewsCount: n.viewsCount || 12800 - index * 650,
+  })),
+  {
+    id: 'notice-scheduled-1',
+    title: '【定时发布】关于公布第五届“XX杯”全国网数智安全大赛总决赛线下场地与差旅报到须知的通知',
+    date: '11-05',
+    fullDate: '2026-11-05',
+    isPinned: false,
+    category: '赛程与靶场',
+    summary: '明确全国总决赛北京国家会议中心报到流程、参赛证件核验通道及线下实网靶场物理隔离要求。',
+    viewsCount: 0,
+    department: '“XX杯”全国网数智安全大赛组委会会务组',
+    docNumber: '网数智赛会〔2026〕015号',
+    content: [
+      '各晋级全国总决赛高校战队领队、指导教师及参赛队员：',
+      '第五届“XX杯”全国网数智安全大赛全国总决赛暨颁奖盛典定于2026年12月19日至20日在北京国家会议中心举行。请各入围战队于12月18日14:00-20:00凭身份证与学生证原件完成现场签到与抽签。',
+    ],
+    attachments: [
+      { name: '附件：总决赛参赛队报到回执与安全保密承诺书.docx', size: '520 KB' },
+    ],
+    publishStatus: 'scheduled',
+    publishTime: '2026-11-05 09:00',
+  },
+  {
+    id: 'notice-draft-1',
+    title: '【内部草稿】关于增补第五届“XX杯”专项赛区高校联络员与技术观察员的通知（待审签）',
+    date: '10-29',
+    fullDate: '2026-10-29',
+    isPinned: false,
+    category: '章程与指南',
+    summary: '拟面向全国八大分赛区增补30名高校赛事联络员，负责分赛区学籍核验协查与赛事组织联动。',
+    viewsCount: 0,
+    department: '大赛高校联络工作组',
+    docNumber: '网数智赛联〔2026〕009号（草稿）',
+    content: [
+      '各有关高校网络空间安全学院：',
+      '为进一步提升分赛区资格审查效率，组委会拟增补高校联络员及技术观察员，具体推荐表待秘书长审签后正式下发。',
+    ],
+    publishStatus: 'draft',
+    publishTime: '2026-10-29 16:00',
+  },
+];
+
+const MANAGED_NOTICE_CATEGORIES: NoticeCategoryType[] = [
+  '章程与指南',
+  '赛程与靶场',
+  '资格与获奖公示',
+  '纪律与规范',
+];
+
+interface AdminNoticesManagementProps {
+  noticesList: ManagedNoticeItem[];
+  onChangeNoticesList: React.Dispatch<React.SetStateAction<ManagedNoticeItem[]>>;
+}
+
+export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
+  noticesList,
+  onChangeNoticesList,
+}) => {
+  // 筛选条件：标题/文号、公告分类、发布状态、发布时间范围
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [filterCategory, setFilterCategory] = useState<'ALL' | NoticeCategoryType>('ALL');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | ContentPublishStatus>('ALL');
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
+
+  // 新增 / 编辑表单状态
+  const [editingItem, setEditingItem] = useState<ManagedNoticeItem | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<ManagedNoticeItem | null>(null);
+
+  const [formTitle, setFormTitle] = useState('');
+  const [formCategory, setFormCategory] = useState<NoticeCategoryType>('章程与指南');
+  const [formDocNumber, setFormDocNumber] = useState('网数智赛字〔2026〕016号');
+  const [formDepartment, setFormDepartment] = useState('“XX杯”全国网数智安全大赛组委会秘书处');
+  const [formSummary, setFormSummary] = useState('');
+  const [formContentText, setFormContentText] = useState('');
+  const [formAttachments, setFormAttachments] = useState<{ name: string; size: string }[]>([]);
+  const [newAttachmentName, setNewAttachmentName] = useState('');
+  const [newAttachmentSize, setNewAttachmentSize] = useState('1.2 MB');
+  const [formPublishMode, setFormPublishMode] = useState<'immediate' | 'scheduled'>('immediate');
+  const [formScheduleTime, setFormScheduleTime] = useState('2026-11-01T09:00');
+  const [formIsPinned, setFormIsPinned] = useState(false);
+  const [formPinExpire, setFormPinExpire] = useState('');
+
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3200);
+  };
+
+  const filteredNotices = useMemo(() => {
+    return noticesList.filter((item) => {
+      if (searchKeyword.trim()) {
+        const kw = searchKeyword.trim().toLowerCase();
+        const matchTitle = item.title.toLowerCase().includes(kw);
+        const matchDoc = item.docNumber.toLowerCase().includes(kw);
+        const matchDept = item.department.toLowerCase().includes(kw);
+        if (!matchTitle && !matchDoc && !matchDept) return false;
+      }
+      if (filterCategory !== 'ALL' && (item.category || '章程与指南') !== filterCategory) {
+        return false;
+      }
+      if (filterStatus !== 'ALL' && item.publishStatus !== filterStatus) {
+        return false;
+      }
+      const itemDate = (item.publishTime || item.fullDate).slice(0, 10);
+      if (dateStart && itemDate < dateStart) return false;
+      if (dateEnd && itemDate > dateEnd) return false;
+      return true;
+    });
+  }, [noticesList, searchKeyword, filterCategory, filterStatus, dateStart, dateEnd]);
+
+  const openCreateForm = () => {
+    setEditingItem(null);
+    setFormTitle('');
+    setFormCategory('章程与指南');
+    setFormDocNumber(`网数智赛字〔2026〕0${noticesList.length + 5}号`);
+    setFormDepartment('“XX杯”全国网数智安全大赛组委会秘书处');
+    setFormSummary('');
+    setFormContentText(
+      '各有关高等院校、参赛指导教师及参赛战队：\n\n请在此输入官方通知公告正文内容，支持多段落红头公文格式排版。'
+    );
+    setFormAttachments([]);
+    setNewAttachmentName('');
+    setNewAttachmentSize('1.5 MB');
+    setFormPublishMode('immediate');
+    setFormScheduleTime('2026-11-01T09:00');
+    setFormIsPinned(false);
+    setFormPinExpire('');
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (item: ManagedNoticeItem) => {
+    setEditingItem(item);
+    setFormTitle(item.title);
+    setFormCategory((item.category as NoticeCategoryType) || '章程与指南');
+    setFormDocNumber(item.docNumber || '网数智赛字〔2026〕001号');
+    setFormDepartment(item.department || '“XX杯”全国网数智安全大赛组委会秘书处');
+    setFormSummary(item.summary || '');
+    setFormContentText((item.content || []).join('\n\n'));
+    setFormAttachments(item.attachments ? [...item.attachments] : []);
+    setNewAttachmentName('');
+    setNewAttachmentSize('1.5 MB');
+    setFormPublishMode(item.publishStatus === 'scheduled' ? 'scheduled' : 'immediate');
+    setFormScheduleTime(
+      (item.publishTime || `${item.fullDate} 09:00`).replace(' ', 'T').slice(0, 16)
+    );
+    setFormIsPinned(item.isPinned);
+    setFormPinExpire(item.pinExpireTime ? item.pinExpireTime.replace(' ', 'T').slice(0, 16) : '');
+    setIsFormOpen(true);
+  };
+
+  const handleSaveNotice = (saveAsDraft: boolean) => {
+    if (!formTitle.trim()) {
+      triggerToast('请填写通知公告标题');
+      return;
+    }
+    if (!formDocNumber.trim()) {
+      triggerToast('请填写公文发文字号');
+      return;
+    }
+    if (!formContentText.trim()) {
+      triggerToast('请填写通知公告正文内容');
+      return;
+    }
+
+    const nowStr = '2026-10-28 14:30';
+    const finalStatus: ContentPublishStatus = saveAsDraft
+      ? 'draft'
+      : formPublishMode === 'scheduled'
+      ? 'scheduled'
+      : 'published';
+    const finalPublishTime =
+      formPublishMode === 'scheduled'
+        ? formScheduleTime.replace('T', ' ')
+        : editingItem?.publishTime || nowStr;
+    const fullDateStr = finalPublishTime.slice(0, 10);
+    const shortDateStr = fullDateStr.slice(5, 10);
+    const paragraphs = formContentText
+      .split(/\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    const newRecord: ManagedNoticeItem = {
+      id: editingItem ? editingItem.id : `notice-${Date.now()}`,
+      title: formTitle.trim(),
+      category: formCategory,
+      docNumber: formDocNumber.trim(),
+      department: formDepartment.trim() || '“XX杯”全国网数智安全大赛组委会秘书处',
+      date: shortDateStr,
+      fullDate: fullDateStr,
+      summary: formSummary.trim() || paragraphs[1] || paragraphs[0] || '',
+      content: paragraphs,
+      attachments: formAttachments.length > 0 ? formAttachments : undefined,
+      isPinned: formIsPinned,
+      pinExpireTime: formIsPinned && formPinExpire ? formPinExpire.replace('T', ' ') : undefined,
+      publishStatus: finalStatus,
+      publishTime: finalPublishTime,
+      viewsCount: editingItem ? editingItem.viewsCount || 1200 : 1,
+    };
+
+    if (editingItem) {
+      onChangeNoticesList((prev) => prev.map((n) => (n.id === editingItem.id ? newRecord : n)));
+      triggerToast(`已更新通知公告《${newRecord.title}》，前台已实时同步`);
+    } else {
+      onChangeNoticesList((prev) => [newRecord, ...prev]);
+      triggerToast(
+        saveAsDraft
+          ? `已保存通知草稿《${newRecord.title}》`
+          : `已发布通知公告《${newRecord.title}》，前台【通知公告】与首页已同步上线`
+      );
+    }
+    setIsFormOpen(false);
+  };
+
+  const handleTogglePin = (item: ManagedNoticeItem) => {
+    onChangeNoticesList((prev) =>
+      prev.map((n) => (n.id === item.id ? { ...n, isPinned: !n.isPinned } : n))
+    );
+    triggerToast(
+      item.isPinned
+        ? `已取消置顶《${item.title}》`
+        : `已设为置顶公文《${item.title}》，前台将带红标优先展示`
+    );
+  };
+
+  const handleTogglePublishOffline = (item: ManagedNoticeItem) => {
+    const nextStatus: ContentPublishStatus =
+      item.publishStatus === 'published' ? 'offline' : 'published';
+    onChangeNoticesList((prev) =>
+      prev.map((n) => (n.id === item.id ? { ...n, publishStatus: nextStatus } : n))
+    );
+    triggerToast(
+      nextStatus === 'published'
+        ? `已发布上线《${item.title}》，前台立即可见`
+        : `已下线《${item.title}》，前台【通知公告】不再展示`
+    );
+  };
+
+  if (isFormOpen) {
+    return (
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-2xs space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsFormOpen(false)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              返回通知公告列表
+            </button>
+            <h2 className="text-lg font-extrabold text-slate-900">
+              {editingItem ? '编辑官方通知公告' : '新增官方通知公告'}
+            </h2>
+          </div>
+          <span className="text-xs text-slate-500">
+            支持红头公文格式、发文字号、随文附件配置、定时发布与置顶控制
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs text-slate-700 font-bold">
+                  通知公告标题 <span className="text-red-500">*</span>
+                </label>
+                <span className="text-xs font-mono text-slate-400">{formTitle.length} / 80</span>
+              </div>
+              <input
+                type="text"
+                maxLength={80}
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
+                placeholder="例如：关于发布《第五届“XX杯”网数智安全大赛参赛指南》的通知"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs text-slate-700 font-bold mb-1">公告分类</label>
+                <select
+                  value={formCategory}
+                  onChange={(e) => setFormCategory(e.target.value as NoticeCategoryType)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+                >
+                  {MANAGED_NOTICE_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-700 font-bold mb-1">
+                  发文字号 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formDocNumber}
+                  onChange={(e) => setFormDocNumber(e.target.value)}
+                  placeholder="如：网数智赛字〔2026〕016号"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-mono placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-700 font-bold mb-1">发文机构/部门</label>
+                <input
+                  type="text"
+                  value={formDepartment}
+                  onChange={(e) => setFormDepartment(e.target.value)}
+                  placeholder="如：“XX杯”全国网数智安全大赛组委会秘书处"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-700 font-bold mb-1">
+                公文提要 / 摘要（选填，用于前台通知公告列表摘要展示）
+              </label>
+              <textarea
+                rows={2}
+                value={formSummary}
+                onChange={(e) => setFormSummary(e.target.value)}
+                placeholder="请输入1-2句通知核心提要，留空将自动提取正文首段..."
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+              />
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                <label className="text-xs text-slate-700 font-bold">
+                  通知正文内容（每段之间请换行，首段以冒号结尾将自动识别为公文抬头）{' '}
+                  <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormContentText(
+                      (prev) =>
+                        prev +
+                        '\n\n特此通知。请各参赛高校领队及指导教师督促本院系参赛战队按时完成相关工作。'
+                    )
+                  }
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-xs font-bold text-[#0284C7] cursor-pointer transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  插入标准公文结语
+                </button>
+              </div>
+              <textarea
+                rows={10}
+                value={formContentText}
+                onChange={(e) => setFormContentText(e.target.value)}
+                placeholder="请输入公文正文内容..."
+                className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 leading-relaxed focus:bg-white focus:outline-none focus:border-[#0284C7]"
+              />
+            </div>
+          </div>
+
+          {/* 右侧：随文附件管理 + 发布与置顶设置 */}
+          <div className="space-y-4">
+            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-3">
+              <label className="block text-xs text-slate-700 font-bold">
+                随文附件管理（前台通知详情页提供下载）
+              </label>
+              {formAttachments.length === 0 ? (
+                <div className="p-3 rounded-lg border border-dashed border-slate-300 bg-white text-xs text-slate-400 text-center">
+                  当前未添加随文附件
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {formAttachments.map((att, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-white border border-slate-200 text-xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-slate-800 font-bold truncate">{att.name}</div>
+                        <div className="text-slate-400 font-mono">{att.size}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormAttachments((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="text-red-600 hover:text-red-500 font-bold px-2 py-1 cursor-pointer shrink-0"
+                      >
+                        移除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-slate-200 space-y-2">
+                <input
+                  type="text"
+                  value={newAttachmentName}
+                  onChange={(e) => setNewAttachmentName(e.target.value)}
+                  placeholder="附件名称（如：附件1：参赛指南.pdf）"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
+                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newAttachmentSize}
+                    onChange={(e) => setNewAttachmentSize(e.target.value)}
+                    placeholder="大小（如 2.4 MB）"
+                    className="w-28 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 font-mono placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const name =
+                        newAttachmentName.trim() ||
+                        `附件${formAttachments.length + 1}：大赛官方规范文件.pdf`;
+                      setFormAttachments((prev) => [
+                        ...prev,
+                        { name, size: newAttachmentSize.trim() || '1.5 MB' },
+                      ]);
+                      setNewAttachmentName('');
+                    }}
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-xs text-[#0284C7] font-bold transition-colors cursor-pointer"
+                  >
+                    + 添加随文附件
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-4">
+              <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                发布与置顶设置
+              </h4>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">发布方式</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormPublishMode('immediate')}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
+                      formPublishMode === 'immediate'
+                        ? 'bg-sky-50 border-[#0284C7] text-[#0284C7]'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    立即发布
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormPublishMode('scheduled')}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
+                      formPublishMode === 'scheduled'
+                        ? 'bg-amber-50 border-amber-400 text-amber-700'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    定时发布
+                  </button>
+                </div>
+              </div>
+
+              {formPublishMode === 'scheduled' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">预设发布时间</label>
+                  <input
+                    type="datetime-local"
+                    value={formScheduleTime}
+                    onChange={(e) => setFormScheduleTime(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0284C7]"
+                  />
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-slate-200">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="text-xs text-slate-700 font-bold">是否置顶该条通知公文</span>
+                  <input
+                    type="checkbox"
+                    checked={formIsPinned}
+                    onChange={(e) => setFormIsPinned(e.target.checked)}
+                    className="rounded border-slate-300 text-[#0284C7] focus:ring-[#0284C7]"
+                  />
+                </label>
+              </div>
+
+              {formIsPinned && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">
+                    置顶有效期（选填，到期自动取消置顶）
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formPinExpire}
+                    onChange={(e) => setFormPinExpire(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0284C7]"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => handleSaveNotice(false)}
+                className="w-full py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+              >
+                {formPublishMode === 'scheduled' ? '确认定时发布' : '立即发布上线'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaveNotice(true)}
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+              >
+                保存为草稿
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {toastMsg && (
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold">
+          <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* 顶部栏 */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+            <Volume2 className="w-5 h-5 text-[#0284C7]" />
+            内容管理 · 通知公告管理
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            管理前台【通知公告】频道及首页公告栏的官方红头公文、赛程通知、资格公示与纪律规范，支持置顶排序、随文附件与上下线控制。
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openCreateForm}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+        >
+          <Plus className="w-4 h-4" />
+          新增通知公告
+        </button>
+      </div>
+
+      {/* 搜索筛选栏 */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">标题 / 文号（模糊搜索）</label>
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder="搜索通知标题、发文字号..."
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">公告分类</label>
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value as 'ALL' | NoticeCategoryType)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+          >
+            <option value="ALL">全部公告分类</option>
+            {MANAGED_NOTICE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">发布状态</label>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as 'ALL' | ContentPublishStatus)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+          >
+            <option value="ALL">全部状态</option>
+            <option value="published">已发布</option>
+            <option value="scheduled">待发布（定时）</option>
+            <option value="draft">草稿</option>
+            <option value="offline">已下线</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">发布开始日期</label>
+          <input
+            type="date"
+            value={dateStart}
+            onChange={(e) => setDateStart(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">发布结束日期</label>
+          <input
+            type="date"
+            value={dateEnd}
+            onChange={(e) => setDateEnd(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+          />
+        </div>
+      </div>
+
+      {/* 列表表格 */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4">通知标题 / 提要</th>
+                <th className="py-3.5 px-3">发文字号</th>
+                <th className="py-3.5 px-3">公告分类</th>
+                <th className="py-3.5 px-3">发文机构</th>
+                <th className="py-3.5 px-3 text-center">随文附件</th>
+                <th className="py-3.5 px-3 text-center">发布状态</th>
+                <th className="py-3.5 px-3 text-center">是否置顶</th>
+                <th className="py-3.5 px-3">发布时间</th>
+                <th className="py-3.5 px-4 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs bg-white">
+              {filteredNotices.map((item) => (
+                <tr key={item.id} className="hover:bg-sky-50/40 transition-colors">
+                  <td className="py-3.5 px-4 max-w-md">
+                    <div className="font-bold text-slate-900 line-clamp-1">{item.title}</div>
+                    <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                      {item.summary || item.content[0]}
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-3 font-mono text-xs text-slate-600 whitespace-nowrap">
+                    {item.docNumber}
+                  </td>
+                  <td className="py-3.5 px-3 whitespace-nowrap">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-50 text-[#0284C7] border border-sky-200">
+                      {item.category || '章程与指南'}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-3 text-slate-600 text-xs max-w-[180px] truncate">
+                    {item.department}
+                  </td>
+                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                    {item.attachments && item.attachments.length > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Download className="w-3 h-3" /> {item.attachments.length} 份
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">无</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                        item.publishStatus === 'published'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : item.publishStatus === 'scheduled'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : item.publishStatus === 'draft'
+                          ? 'bg-slate-100 text-slate-600 border-slate-200'
+                          : 'bg-red-50 text-red-600 border-red-200'
+                      }`}
+                    >
+                      {item.publishStatus === 'published'
+                        ? '已发布'
+                        : item.publishStatus === 'scheduled'
+                        ? '待发布'
+                        : item.publishStatus === 'draft'
+                        ? '草稿'
+                        : '已下线'}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                    {item.isPinned ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <Pin className="w-3 h-3" /> 置顶中
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">否</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-3 font-mono text-xs text-slate-500 tabular-nums whitespace-nowrap">
+                    {item.publishTime || item.fullDate}
+                  </td>
+                  <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(item)}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        编辑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePin(item)}
+                        className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-700 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        {item.isPinned ? '取消置顶' : '置顶'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePublishOffline(item)}
+                        className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200/80 text-[#0284C7] text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        {item.publishStatus === 'published' ? '下线' : '发布'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingItem(item)}
+                        className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200/80 text-red-600 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 删除二次确认弹窗 */}
+      {deletingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-extrabold text-slate-900">确认删除该份通知公告？</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              即将永久删除《<span className="text-slate-900 font-bold">{deletingItem.title}</span>
+              》，删除后前台不再展示且不可恢复。
+            </p>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingItem(null)}
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeNoticesList((prev) => prev.filter((n) => n.id !== deletingItem.id));
+                  triggerToast(`已删除通知公告《${deletingItem.title}》`);
+                  setDeletingItem(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold cursor-pointer shadow-xs"
+              >
+                确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// 六（补充 B）、后台【认证管理 -> 学生认证 / 教师认证】人工审核模块（与内容管理风格排版一致）
+// ============================================================================
+
+export type VerificationReviewStatus = 'pending' | 'approved' | 'rejected';
+
+export interface VerificationApplicationRecord {
+  id: string;
+  applicantType: 'student' | 'teacher';
+  username: string;
+  realName: string;
+  idCard: string;
+  phone: string;
+  email: string;
+  university: string;
+  institutionCode: string;
+  majorOrDept: string; // 学生为专业，教师为所属院系/部门
+  studentOrStaffId: string; // 学生为学号/学信网验证码，教师为教工号
+  levelOrTitle: string; // 学生为培养层次（本科/硕士/博士/专科），教师为职称（教授/副教授/讲师）
+  submitChannel: string; // 如：人工兜底·学信网报告 / 人工兜底·学生证 / 教师资格与工牌人工审核
+  materialFileName: string;
+  materialPreviewUrl: string;
+  applicantNote: string;
+  submittedAt: string;
+  reviewStatus: VerificationReviewStatus;
+  reviewedAt?: string;
+  reviewer?: string;
+  reviewComment?: string;
+}
+
+export const INITIAL_VERIFICATION_RECORDS: VerificationApplicationRecord[] = [
+  // ================= 学生认证申请记录 =================
+  {
+    id: 'v-stu-1',
+    applicantType: 'student',
+    username: 'chen_yuxuan',
+    realName: '陈宇轩',
+    idCard: '110108200408153912',
+    phone: '13910682341',
+    email: 'chenyuxuan@buaa.edu.cn',
+    university: '北京航空航天大学',
+    institutionCode: '4111010006',
+    majorOrDept: '网络空间安全学院 · 信息安全专业',
+    studentOrStaffId: '24061298',
+    levelOrTitle: '全日制本科',
+    submitChannel: '人工兜底 · 教育部学籍在线验证报告',
+    materialFileName: '教育部学籍在线验证报告_陈宇轩_2026.pdf',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '大一转专业学籍库尚在同步中，已上传学信网带二维码在线验证报告扫描件。',
+    submittedAt: '2026-10-28 09:45:12',
+    reviewStatus: 'pending',
+  },
+  {
+    id: 'v-stu-2',
+    applicantType: 'student',
+    username: 'su_mingzhe',
+    realName: '苏明哲',
+    idCard: '310115200211046238',
+    phone: '13764298105',
+    email: 'sumingzhe@pku.edu.cn',
+    university: '北京大学',
+    institutionCode: '4111010001',
+    majorOrDept: '计算机科学技术研究所 · 网络安全方向',
+    studentOrStaffId: '2501210846',
+    levelOrTitle: '全日制硕士研究生',
+    submitChannel: '人工兜底 · 研究生证与在读证明',
+    materialFileName: '北京大学研究生证及教务部在读证明_苏明哲.jpg',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '国家工程中心联合培养硕士生，已附研究生院盖章在读证明与学生证内页。',
+    submittedAt: '2026-10-28 08:20:05',
+    reviewStatus: 'pending',
+  },
+  {
+    id: 'v-stu-3',
+    applicantType: 'student',
+    username: 'luo_jiaqi',
+    realName: '罗嘉琪',
+    idCard: '33010620050321184X',
+    phone: '15858129043',
+    email: 'luojiaqi@zju.edu.cn',
+    university: '浙江大学',
+    institutionCode: '4133010335',
+    majorOrDept: '计算机科学与技术学院 · 信息安全',
+    studentOrStaffId: '3230104592',
+    levelOrTitle: '全日制本科',
+    submitChannel: '人工兜底 · 学生证钢印注册页',
+    materialFileName: '浙江大学学生证注册页高清扫描_罗嘉琪.png',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '姓名含生僻异体字导致自动接口超时，申请人工复核学生证钢印页。',
+    submittedAt: '2026-10-27 19:15:40',
+    reviewStatus: 'pending',
+  },
+  {
+    id: 'v-stu-4',
+    applicantType: 'student',
+    username: 'linyuanhang',
+    realName: '林远航',
+    idCard: '110108200305162819',
+    phone: '13810246921',
+    email: 'linyuanhang@buaa.edu.cn',
+    university: '北京航空航天大学',
+    institutionCode: '4111010006',
+    majorOrDept: '网络空间安全学院',
+    studentOrStaffId: 'BY2406118',
+    levelOrTitle: '全日制本科',
+    submitChannel: '学信网在线验证码核验 + 人工备案',
+    materialFileName: '教育部学籍在线验证报告_林远航_BY2406118.pdf',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '北航天枢攻防战队队长学籍认证材料备案。',
+    submittedAt: '2026-10-15 09:10:00',
+    reviewStatus: 'approved',
+    reviewedAt: '2026-10-15 10:00:00',
+    reviewer: '高校管理员 (buaa_admin)',
+    reviewComment: '学信网在线验证码核验一致，北航网安学院在籍学生，予以通过。',
+  },
+  {
+    id: 'v-stu-5',
+    applicantType: 'student',
+    username: 'han_haoran',
+    realName: '韩浩然',
+    idCard: '610113200409184417',
+    phone: '18629047128',
+    email: 'hanhaoran@xidian.edu.cn',
+    university: '西安电子科技大学',
+    institutionCode: '4161010701',
+    majorOrDept: '网络与信息安全学院 · 密码科学与技术',
+    studentOrStaffId: '22009200418',
+    levelOrTitle: '全日制本科',
+    submitChannel: '人工兜底 · 学生证照片',
+    materialFileName: '西电学生证封面照片_韩浩然.jpg',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '申请密码赛道学生学籍人工审核。',
+    submittedAt: '2026-10-26 16:40:22',
+    reviewStatus: 'rejected',
+    reviewedAt: '2026-10-26 17:30:10',
+    reviewer: '大赛资格审查专员 (admin)',
+    reviewComment: '仅上传了学生证外壳封面，未包含内页姓名、学号、钢印及本学期注册章，请补传清晰内页或学信网报告。',
+  },
+
+  // ================= 教师认证申请记录 =================
+  {
+    id: 'v-tea-1',
+    applicantType: 'teacher',
+    username: 'prof_shen_pku',
+    realName: '沈怀瑾',
+    idCard: '110108198204193316',
+    phone: '13810369284',
+    email: 'shenhuaijin@pku.edu.cn',
+    university: '北京大学',
+    institutionCode: '4111010001',
+    majorOrDept: '计算机科学与技术学院',
+    studentOrStaffId: 'PKU-T2016048',
+    levelOrTitle: '教授 / 博导',
+    submitChannel: '指导教师资格人工审核（工作证 + 教师资格证）',
+    materialFileName: '北京大学教职工工作证与高校教师资格证_沈怀瑾.jpg',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1568667256549-094345857637?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '拟担任北京大学“未名湖畔攻防战队”主赛道指导教师，已上传人事部签发教工卡扫描件。',
+    submittedAt: '2026-10-28 10:12:30',
+    reviewStatus: 'pending',
+  },
+  {
+    id: 'v-tea-2',
+    applicantType: 'teacher',
+    username: 'teacher_gu_zju',
+    realName: '顾清源',
+    idCard: '330106198611251934',
+    phone: '13958046219',
+    email: 'guqingyuan@zju.edu.cn',
+    university: '浙江大学',
+    institutionCode: '4133010335',
+    majorOrDept: '网络空间安全学院',
+    studentOrStaffId: 'ZJU-0019482',
+    levelOrTitle: '副教授',
+    submitChannel: '指导教师资格人工审核（校园一卡通教工卡）',
+    materialFileName: '浙江大学教工卡正反面及院系聘任证明_顾清源.pdf',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '负责浙大网安战队AI大模型内生安全专项赛赛前技术指导。',
+    submittedAt: '2026-10-27 21:05:18',
+    reviewStatus: 'pending',
+  },
+  {
+    id: 'v-tea-3',
+    applicantType: 'teacher',
+    username: 'teacher_zhao_buaa',
+    realName: '赵振宇',
+    idCard: '110108197908124015',
+    phone: '13810557890',
+    email: 'zhaozhenyu@buaa.edu.cn',
+    university: '北京航空航天大学',
+    institutionCode: '4111010006',
+    majorOrDept: '网络空间安全学院',
+    studentOrStaffId: 'BUAA-T2012089',
+    levelOrTitle: '教授',
+    submitChannel: '指导教师资格人工审核（工作证 + 教师资格证）',
+    materialFileName: '北京航空航天大学工作证_赵振宇教授.jpg',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '北航天枢攻防战队、北航智盾先锋队指导教师。',
+    submittedAt: '2026-10-14 14:20:00',
+    reviewStatus: 'approved',
+    reviewedAt: '2026-10-14 16:05:00',
+    reviewer: '高校管理员 (buaa_admin)',
+    reviewComment: '北航人事处教工号核验属实，教师资格证齐全，审核通过。',
+  },
+  {
+    id: 'v-tea-4',
+    applicantType: 'teacher',
+    username: 'teacher_xu_bupt',
+    realName: '许建峰',
+    idCard: '11010819880309215X',
+    phone: '13611094582',
+    email: 'xujianfeng@bupt.edu.cn',
+    university: '北京邮电大学',
+    institutionCode: '4111010013',
+    majorOrDept: '网络空间安全学院',
+    studentOrStaffId: 'BUPT-2017112',
+    levelOrTitle: '讲师',
+    submitChannel: '指导教师资格人工审核（工作证照片）',
+    materialFileName: '北邮工作证翻拍照片_许建峰.jpg',
+    materialPreviewUrl:
+      'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=900&q=80',
+    applicantNote: '申请指导教师资格认证。',
+    submittedAt: '2026-10-25 11:30:00',
+    reviewStatus: 'rejected',
+    reviewedAt: '2026-10-25 15:12:40',
+    reviewer: '大赛资格审查专员 (admin)',
+    reviewComment: '工作证照片反光严重，教工号与发证公章模糊不清，请重新拍摄清晰无反光原件上传。',
+  },
+];
+
+interface AdminVerificationManagementProps {
+  applicantType: 'student' | 'teacher';
+  records: VerificationApplicationRecord[];
+  onChangeRecords: React.Dispatch<React.SetStateAction<VerificationApplicationRecord[]>>;
+  institutions: InstitutionRecord[];
+  reviewerName: string;
+  onApproveSyncUser?: (record: VerificationApplicationRecord) => void;
+  onRejectSyncUser?: (record: VerificationApplicationRecord, reason: string) => void;
+}
+
+export const AdminVerificationManagement: React.FC<AdminVerificationManagementProps> = ({
+  applicantType,
+  records,
+  onChangeRecords,
+  institutions,
+  reviewerName,
+  onApproveSyncUser,
+  onRejectSyncUser,
+}) => {
+  const isStudentMode = applicantType === 'student';
+
+  // 筛选条件
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [filterUniversity, setFilterUniversity] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | VerificationReviewStatus>('ALL');
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
+
+  // 查看材料与审核详情弹窗
+  const [inspectingRecord, setInspectingRecord] = useState<VerificationApplicationRecord | null>(
+    null
+  );
+  // 驳回原因填写弹窗
+  const [rejectingRecord, setRejectingRecord] = useState<VerificationApplicationRecord | null>(
+    null
+  );
+  const [rejectReasonInput, setRejectReasonInput] = useState('');
+  const [rejectError, setRejectError] = useState<string | null>(null);
+
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  // 当前子菜单（学生或教师）下的全部记录
+  const scopedRecords = useMemo(
+    () => records.filter((r) => r.applicantType === applicantType),
+    [records, applicantType]
+  );
+
+  const stats = useMemo(() => {
+    const pending = scopedRecords.filter((r) => r.reviewStatus === 'pending').length;
+    const approved = scopedRecords.filter((r) => r.reviewStatus === 'approved').length;
+    const rejected = scopedRecords.filter((r) => r.reviewStatus === 'rejected').length;
+    return { total: scopedRecords.length, pending, approved, rejected };
+  }, [scopedRecords]);
+
+  const universityOptions = useMemo(() => {
+    const set = new Set<string>(scopedRecords.map((r) => r.university));
+    institutions.slice(0, 10).forEach((inst) => set.add(inst.name));
+    return Array.from(set);
+  }, [scopedRecords, institutions]);
+
+  const filteredRecords = useMemo(() => {
+    return scopedRecords.filter((item) => {
+      if (searchKeyword.trim()) {
+        const kw = searchKeyword.trim().toLowerCase();
+        const matchName = item.realName.toLowerCase().includes(kw);
+        const matchUser = item.username.toLowerCase().includes(kw);
+        const matchPhone = item.phone.includes(kw);
+        const matchIdCard = item.idCard.toLowerCase().includes(kw);
+        const matchStuId = item.studentOrStaffId.toLowerCase().includes(kw);
+        if (!matchName && !matchUser && !matchPhone && !matchIdCard && !matchStuId) {
+          return false;
+        }
+      }
+      if (filterUniversity !== 'ALL' && item.university !== filterUniversity) {
+        return false;
+      }
+      if (filterStatus !== 'ALL' && item.reviewStatus !== filterStatus) {
+        return false;
+      }
+      const submitDate = item.submittedAt.slice(0, 10);
+      if (dateStart && submitDate < dateStart) return false;
+      if (dateEnd && submitDate > dateEnd) return false;
+      return true;
+    });
+  }, [scopedRecords, searchKeyword, filterUniversity, filterStatus, dateStart, dateEnd]);
+
+  const handleApproveRecord = (rec: VerificationApplicationRecord) => {
+    const nowTime = '2026-10-28 15:20:00';
+    const comment = isStudentMode
+      ? '教育部学籍在线验证报告/学生证材料核验清晰无误，学籍状态正常，人工审核通过。'
+      : '高校工作证与教工号核验属实，符合大赛指导教师资格要求，人工审核通过。';
+
+    const updatedRec: VerificationApplicationRecord = {
+      ...rec,
+      reviewStatus: 'approved',
+      reviewedAt: nowTime,
+      reviewer: reviewerName,
+      reviewComment: comment,
+    };
+
+    onChangeRecords((prev) => prev.map((item) => (item.id === rec.id ? updatedRec : item)));
+    if (inspectingRecord?.id === rec.id) {
+      setInspectingRecord(updatedRec);
+    }
+    if (onApproveSyncUser) {
+      onApproveSyncUser(updatedRec);
+    }
+    triggerToast(
+      `已审核通过【${rec.realName}（${rec.university}）】的${
+        isStudentMode ? '学生学籍认证' : '指导教师资格认证'
+      }，前台认证状态与全平台用户库已实时同步！`
+    );
+  };
+
+  const handleOpenRejectModal = (rec: VerificationApplicationRecord) => {
+    setRejectingRecord(rec);
+    setRejectReasonInput(
+      isStudentMode
+        ? '上传的学生证/学信网报告截图模糊或未显示有效注册章，请重新上传清晰完整的学籍证明材料。'
+        : '上传的教师工作证/资格证照片模糊或缺少学校人事部门公章，请重新上传清晰原件照片。'
+    );
+    setRejectError(null);
+  };
+
+  const handleConfirmReject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectingRecord) return;
+    if (!rejectReasonInput.trim()) {
+      setRejectError('请填写具体的驳回原因，以便前台申请人对照修改并重新提交材料');
+      return;
+    }
+
+    const nowTime = '2026-10-28 15:25:00';
+    const reason = rejectReasonInput.trim();
+    const updatedRec: VerificationApplicationRecord = {
+      ...rejectingRecord,
+      reviewStatus: 'rejected',
+      reviewedAt: nowTime,
+      reviewer: reviewerName,
+      reviewComment: reason,
+    };
+
+    onChangeRecords((prev) =>
+      prev.map((item) => (item.id === rejectingRecord.id ? updatedRec : item))
+    );
+    if (inspectingRecord?.id === rejectingRecord.id) {
+      setInspectingRecord(updatedRec);
+    }
+    if (onRejectSyncUser) {
+      onRejectSyncUser(updatedRec, reason);
+    }
+    triggerToast(
+      `已驳回【${rejectingRecord.realName}】的${
+        isStudentMode ? '学生认证' : '教师认证'
+      }申请，驳回原因已同步推送至申请人个人中心！`
+    );
+    setRejectingRecord(null);
+  };
+
+  return (
+    <div className="space-y-5">
+      {toastMsg && (
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg text-xs font-bold">
+          <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* 顶部栏（与院校管理、用户管理及内容管理浅色风格一致） */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-[#0284C7]" />
+            {isStudentMode
+              ? '认证管理 · 学生认证人工审核'
+              : '认证管理 · 教师认证人工审核'}
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            {isStudentMode
+              ? '人工复核前台参赛学生通过兜底通道提交的学信网在线验证报告、学生证注册页及联培在读证明，审核结果实时联动个人中心与组队资格。'
+              : '人工审核前台高校指导教师提交的学校工作证、教工卡及教师资格证材料，通过后自动授予指导教师身份并解锁带队权限。'}
+          </p>
+        </div>
+
+        {/* 右侧状态统计胶囊 */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => setFilterStatus('ALL')}
+            className={`px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              filterStatus === 'ALL'
+                ? 'bg-sky-50 border-[#0284C7] text-[#0284C7] font-bold shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            全部申请 ({stats.total})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterStatus('pending')}
+            className={`px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              filterStatus === 'pending'
+                ? 'bg-amber-50 border-amber-400 text-amber-700 font-bold shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-amber-700/80 hover:bg-amber-50/60'
+            }`}
+          >
+            待人工审核 ({stats.pending})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterStatus('approved')}
+            className={`px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              filterStatus === 'approved'
+                ? 'bg-emerald-50 border-emerald-400 text-emerald-700 font-bold shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-emerald-700/80 hover:bg-emerald-50/60'
+            }`}
+          >
+            已通过 ({stats.approved})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterStatus('rejected')}
+            className={`px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              filterStatus === 'rejected'
+                ? 'bg-red-50 border-red-400 text-red-600 font-bold shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-red-600/80 hover:bg-red-50/60'
+            }`}
+          >
+            已驳回 ({stats.rejected})
+          </button>
+        </div>
+      </div>
+
+      {/* 搜索筛选栏（与内容管理 5 列网格完全一致） */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">
+            申请人检索（姓名/账号/手机/{isStudentMode ? '学号' : '教工号'}）
+          </label>
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder={`搜索姓名、手机号、${isStudentMode ? '学号' : '教工号'}...`}
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">申报高等院校</label>
+          <select
+            value={filterUniversity}
+            onChange={(e) => setFilterUniversity(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+          >
+            <option value="ALL">全部申报高校</option>
+            {universityOptions.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">审核状态</label>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as 'ALL' | VerificationReviewStatus)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+          >
+            <option value="ALL">全部审核状态</option>
+            <option value="pending">待审核</option>
+            <option value="approved">已通过</option>
+            <option value="rejected">已驳回</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">提交开始日期</label>
+          <input
+            type="date"
+            value={dateStart}
+            onChange={(e) => setDateStart(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 mb-1">提交结束日期</label>
+          <input
+            type="date"
+            value={dateEnd}
+            onChange={(e) => setDateEnd(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+          />
+        </div>
+      </div>
+
+      {/* 数据列表表格 */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4">申请人实名信息</th>
+                <th className="py-3.5 px-3">申报院校 / {isStudentMode ? '专业' : '院系部门'}</th>
+                <th className="py-3.5 px-3">{isStudentMode ? '学号 & 培养层次' : '教工号 & 职称'}</th>
+                <th className="py-3.5 px-3">提交证明材料（点击预览）</th>
+                <th className="py-3.5 px-3 text-center">审核状态</th>
+                <th className="py-3.5 px-3">提交时间 / 审核记录</th>
+                <th className="py-3.5 px-4 text-right">人工审核操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs bg-white">
+              {filteredRecords.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                    当前筛选条件下暂无{isStudentMode ? '学生学籍' : '指导教师'}人工认证申请记录
+                  </td>
+                </tr>
+              ) : (
+                filteredRecords.map((item) => (
+                  <tr key={item.id} className="hover:bg-sky-50/40 transition-colors">
+                    {/* 1. 申请人实名信息 */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900">{item.realName}</span>
+                        <span className="text-[11px] font-mono text-slate-400">({item.username})</span>
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-500 mt-0.5">
+                        身份证：{item.idCard.replace(/^(\d{6})\d{8}(\w{4})$/, '$1********$2')}
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-500 mt-0.5">
+                        手机：{item.phone}
+                      </div>
+                    </td>
+
+                    {/* 2. 申报院校 / 专业或院系 */}
+                    <td className="py-3.5 px-3 max-w-xs">
+                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                        <span className="truncate">{item.university}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-600 mt-0.5 truncate">
+                        {item.majorOrDept}
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                        教育部识别码：{item.institutionCode}
+                      </div>
+                    </td>
+
+                    {/* 3. 学号/教工号 & 层次/职称 */}
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      <div className="font-mono text-xs text-[#0284C7] font-bold">
+                        {isStudentMode ? '学号：' : '教工号：'}
+                        {item.studentOrStaffId}
+                      </div>
+                      <div className="mt-1">
+                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-50 text-[#0284C7] border border-sky-200">
+                          {item.levelOrTitle}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* 4. 提交证明材料预览 */}
+                    <td className="py-3.5 px-3 max-w-xs">
+                      <div
+                        onClick={() => setInspectingRecord(item)}
+                        className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 hover:bg-sky-50/70 border border-slate-200 hover:border-sky-300 cursor-pointer group transition-colors"
+                      >
+                        <img
+                          src={item.materialPreviewUrl}
+                          alt={item.materialFileName}
+                          className="w-14 h-10 object-cover rounded border border-slate-200 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs text-[#0284C7] group-hover:text-[#0369A1] font-bold truncate">
+                            {item.materialFileName}
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                            {item.submitChannel}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* 5. 审核状态 */}
+                    <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                          item.reviewStatus === 'approved'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : item.reviewStatus === 'pending'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-red-50 text-red-600 border-red-200'
+                        }`}
+                      >
+                        {item.reviewStatus === 'approved'
+                          ? '已通过'
+                          : item.reviewStatus === 'pending'
+                          ? '待审核'
+                          : '已驳回'}
+                      </span>
+                      {item.reviewComment && (
+                        <div
+                          className="text-[11px] text-slate-500 max-w-[160px] truncate mx-auto mt-1"
+                          title={item.reviewComment}
+                        >
+                          {item.reviewComment}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* 6. 提交时间与审核人 */}
+                    <td className="py-3.5 px-3 font-mono text-xs text-slate-500 tabular-nums whitespace-nowrap">
+                      <div>提交：{item.submittedAt.slice(0, 16)}</div>
+                      {item.reviewedAt && (
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          审核：{item.reviewedAt.slice(0, 16)}
+                        </div>
+                      )}
+                      {item.reviewer && (
+                        <div className="text-[11px] text-slate-400">经办：{item.reviewer}</div>
+                      )}
+                    </td>
+
+                    {/* 7. 操作栏 */}
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setInspectingRecord(item)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          查看材料
+                        </button>
+                        {item.reviewStatus !== 'approved' && (
+                          <button
+                            type="button"
+                            onClick={() => handleApproveRecord(item)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            通过
+                          </button>
+                        )}
+                        {item.reviewStatus !== 'rejected' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRejectModal(item)}
+                            className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            驳回
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 弹窗 1：查看认证申请材料与详情审核弹窗 */}
+      {inspectingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-5 my-8">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+              <div>
+                <div className="text-xs text-[#0284C7] font-bold">
+                  {inspectingRecord.applicantType === 'student'
+                    ? '学生学籍人工认证材料核验单'
+                    : '高校指导教师资格人工认证核验单'}
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-900 mt-0.5">
+                  申请人：{inspectingRecord.realName}（{inspectingRecord.university}）
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingRecord(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* 左侧：申报核心字段明细 */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 text-xs">
+                <div className="text-slate-800 font-extrabold pb-2 border-b border-slate-200">
+                  一、实名与院校申报信息
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-slate-400 block">申请人账号</span>
+                    <span className="text-slate-900 font-mono font-bold">
+                      {inspectingRecord.username}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">真实姓名（已过公安实名）</span>
+                    <span className="text-emerald-600 font-bold">
+                      {inspectingRecord.realName} ✓
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-400 block">居民身份证号</span>
+                    <span className="text-slate-800 font-mono">{inspectingRecord.idCard}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">绑定手机号</span>
+                    <span className="text-slate-800 font-mono">{inspectingRecord.phone}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">电子邮箱</span>
+                    <span className="text-slate-800 font-mono truncate block">
+                      {inspectingRecord.email}
+                    </span>
+                  </div>
+                  <div className="col-span-2 pt-2 border-t border-slate-200">
+                    <span className="text-slate-400 block">申报高等院校（含教育部10位标识码）</span>
+                    <span className="text-slate-900 font-extrabold text-sm">
+                      {inspectingRecord.university}（{inspectingRecord.institutionCode}）
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-400 block">
+                      {inspectingRecord.applicantType === 'student'
+                        ? '就读院系与专业'
+                        : '所属院系/部门'}
+                    </span>
+                    <span className="text-slate-800 font-bold">
+                      {inspectingRecord.majorOrDept}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">
+                      {inspectingRecord.applicantType === 'student' ? '学生学号' : '教师教工号'}
+                    </span>
+                    <span className="text-[#0284C7] font-mono font-bold">
+                      {inspectingRecord.studentOrStaffId}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">
+                      {inspectingRecord.applicantType === 'student' ? '培养层次' : '教职职称'}
+                    </span>
+                    <span className="text-slate-800 font-bold">{inspectingRecord.levelOrTitle}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200">
+                  <span className="text-slate-500 font-bold block mb-1">申请人补充说明：</span>
+                  <p className="text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 leading-relaxed">
+                    {inspectingRecord.applicantNote || '无补充说明'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 右侧：上传的证明材料高清预览与审核状态 */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-3 text-xs">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                    <span className="text-slate-800 font-extrabold">二、提交的认证证明材料</span>
+                    <span className="text-[#0284C7] font-mono font-bold">{inspectingRecord.submitChannel}</span>
+                  </div>
+
+                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-white relative">
+                    <img
+                      src={inspectingRecord.materialPreviewUrl}
+                      alt={inspectingRecord.materialFileName}
+                      className="w-full h-52 object-cover"
+                    />
+                    <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                      <span className="text-slate-800 font-bold truncate">
+                        {inspectingRecord.materialFileName}
+                      </span>
+                      <span className="text-emerald-600 font-bold shrink-0 ml-2">原件扫描已验签</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-bold">当前审核状态：</span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                        inspectingRecord.reviewStatus === 'approved'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : inspectingRecord.reviewStatus === 'pending'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-red-50 text-red-600 border-red-200'
+                      }`}
+                    >
+                      {inspectingRecord.reviewStatus === 'approved'
+                        ? '已通过'
+                        : inspectingRecord.reviewStatus === 'pending'
+                        ? '待人工审核'
+                        : '已驳回'}
+                    </span>
+                  </div>
+                  {inspectingRecord.reviewComment && (
+                    <div className="text-slate-700 pt-1.5 border-t border-slate-100">
+                      <span className="text-slate-400 font-bold">审核意见：</span>
+                      {inspectingRecord.reviewComment}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+              <span className="text-xs text-slate-500">
+                提示：点击【审核通过】或【驳回申请】后，结果将立即同步至前台【个人中心 - 用户认证】。
+              </span>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setInspectingRecord(null)}
+                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+                >
+                  关闭窗口
+                </button>
+                {inspectingRecord.reviewStatus !== 'rejected' && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenRejectModal(inspectingRecord)}
+                    className="px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-bold cursor-pointer"
+                  >
+                    驳回申请
+                  </button>
+                )}
+                {inspectingRecord.reviewStatus !== 'approved' && (
+                  <button
+                    type="button"
+                    onClick={() => handleApproveRecord(inspectingRecord)}
+                    className="px-5 py-2 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer shadow-xs"
+                  >
+                    审核通过
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 弹窗 2：人工驳回原因填写弹窗 */}
+      {rejectingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <form
+            onSubmit={handleConfirmReject}
+            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-slate-900">
+                驳回{isStudentMode ? '学生学籍认证' : '指导教师认证'}申请
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRejectingRecord(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              正在驳回申请人 <span className="text-slate-900 font-bold">{rejectingRecord.realName}</span>（
+              {rejectingRecord.university}）提交的材料，请填写具体驳回原因：
+            </p>
+
+            {rejectError && (
+              <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600 font-bold">
+                {rejectError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                驳回原因说明 <span className="text-red-500">*</span>（前台个人中心将原样展示该原因）
+              </label>
+              <textarea
+                rows={3}
+                value={rejectReasonInput}
+                onChange={(e) => setRejectReasonInput(e.target.value)}
+                placeholder="请输入具体的材料问题或驳回原因..."
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-red-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectingRecord(null)}
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold cursor-pointer shadow-xs"
+              >
+                确认驳回并通知用户
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

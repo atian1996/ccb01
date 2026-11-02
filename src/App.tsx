@@ -36,6 +36,7 @@ import {
   CreditCard,
   Landmark,
   QrCode,
+  Check,
 } from 'lucide-react';
 import {
   BANNER_SLIDES,
@@ -70,6 +71,8 @@ import {
 import {
   StandaloneAuthPage,
   StandaloneUserCenterPage,
+  INITIAL_PLATFORM_MESSAGES,
+  type PlatformMessageItem,
   type AuditLogEntry,
   type UserProfileData,
 } from './components/AuthAndUserCenter';
@@ -97,9 +100,13 @@ import {
   INITIAL_INSTITUTIONS,
   INITIAL_MANAGED_NEWS,
   INITIAL_MANAGED_MOMENTS,
+  INITIAL_MANAGED_NOTICES,
+  INITIAL_VERIFICATION_RECORDS,
   type InstitutionRecord,
   type ManagedNewsItem,
   type ManagedMomentItem,
+  type ManagedNoticeItem,
+  type VerificationApplicationRecord,
   FrontendNoticesPage,
   FrontendNoticeDetailPage,
   FrontendHelpCenterPage,
@@ -130,14 +137,20 @@ export default function App() {
   >('home');
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register' | 'forgot'>('login');
   const [userCenterInitialTab, setUserCenterInitialTab] = useState<
-    'profile' | 'certification' | 'registrations' | 'competitions'
+    'profile' | 'certification' | 'registrations' | 'competitions' | 'messages'
   >('profile');
 
-  // --- 后台【院校管理】、【内容管理 -> 赛事新闻 / 赛事动态】与前台实时共享状态 ---
+  // --- 后台【院校管理】、【内容管理 -> 通知公告 / 赛事新闻 / 赛事动态】、【认证管理】与前台实时共享状态 ---
   const [institutions, setInstitutions] = useState<InstitutionRecord[]>(INITIAL_INSTITUTIONS);
   const [platformUsers, setPlatformUsers] = useState<PlatformDirectoryUser[]>(
     PLATFORM_DIRECTORY_USERS
   );
+  const [managedNotices, setManagedNotices] = useState<ManagedNoticeItem[]>(
+    INITIAL_MANAGED_NOTICES
+  );
+  const [verificationRecords, setVerificationRecords] = useState<
+    VerificationApplicationRecord[]
+  >(INITIAL_VERIFICATION_RECORDS);
   const [managedNews, setManagedNews] = useState<ManagedNewsItem[]>(INITIAL_MANAGED_NEWS);
   const [managedMoments, setManagedMoments] = useState<ManagedMomentItem[]>(
     INITIAL_MANAGED_MOMENTS
@@ -146,6 +159,18 @@ export default function App() {
   const [initialSelectedNewsId, setInitialSelectedNewsId] = useState<string | null>(null);
   const [initialSelectedMomentId, setInitialSelectedMomentId] = useState<string | null>(null);
   const [globalSearchOpen, setGlobalSearchOpen] = useState<boolean>(false);
+
+  // 前台展示的已发布通知公告列表（按置顶优先、发布日期倒序）
+  const publishedNotices = useMemo<NoticeItem[]>(() => {
+    return [...managedNotices]
+      .filter((n) => n.publishStatus === 'published')
+      .sort((a, b) => {
+        if (Boolean(b.isPinned) !== Boolean(a.isPinned)) {
+          return Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned));
+        }
+        return b.fullDate.localeCompare(a.fullDate);
+      });
+  }, [managedNotices]);
 
   // 合并后台管理的新闻/动态与首页静态精选条目，使首页点击任意条目也可无缝进入二级详情页
   const allFrontendNews = useMemo<ManagedNewsItem[]>(() => {
@@ -384,50 +409,111 @@ export default function App() {
     selectedSubTrackName?: string;
   } | null>(null);
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'notif-1',
-      title: '【重要】队伍资格审核被驳回通知',
-      desc: '您发起的「北航凌云密算战队」已被高校管理员驳回（原因：指导教师跨校不合规），请前往【我的报名】修改成员并重新提交。',
-      time: '5分钟前',
-      unread: true,
-    },
-    {
-      id: 'notif-2',
-      title: '收到 3 条新的战队入队邀请',
-      desc: '周子航、王博远、宋知行分别邀请您加入参赛战队，请前往【个人中心 -> 我的报名 -> 我参与的】及时处理。',
-      time: '18分钟前',
-      unread: true,
-    },
-    {
-      id: 'notif-3',
-      title: '队员拒绝入队提醒',
-      desc: '「北航天枢攻防战队」中的受邀队员 张子轩（队员A）已拒绝入队邀请，请及时补充邀请替补队员。',
-      time: '1小时前',
-      unread: true,
-    },
-    {
-      id: 'notif-4',
-      title: '学籍认证已通过审核',
-      desc: '您的教育部学籍在线验证码已核验通过，现可创建或加入战队。',
-      time: '2小时前',
-      unread: false,
-    },
-    {
-      id: 'notif-5',
-      title: '线上靶场连通性测试提醒',
-      desc: '网络安全攻防实战赛将于11月18日开放赛前热身靶场，请提前下载客户端。',
-      time: '昨天',
-      unread: false,
-    },
-    {
-      id: 'notif-6',
-      title: '先导赛电子证书已签发',
-      desc: '2026大模型与人工智能安全先导赛获奖证书现已支持在线编号核验（如：XXCUP-2026-09218）。',
-      time: '2天前',
-      unread: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<PlatformMessageItem[]>(
+    INITIAL_PLATFORM_MESSAGES
+  );
+
+  // 消息卡片/顶部铃铛快捷点击【同意】加入队伍时的认证状态拦截弹窗
+  const [inviteVerifyInterceptModal, setInviteVerifyInterceptModal] = useState<{
+    open: boolean;
+    teamLabel: string;
+  } | null>(null);
+
+  // 消息快捷操作成功反馈浮层
+  const [msgActionToast, setMsgActionToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!msgActionToast) return;
+    const t = setTimeout(() => setMsgActionToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [msgActionToast]);
+
+  // 快捷操作拦截 + 数据状态同步：在消息卡片或铃铛悬浮框中直接点击【同意】加入队伍
+  const handleAcceptInviteFromMessage = (msg: PlatformMessageItem) => {
+    // 1. 后台校验该用户的实名与学籍/教师认证状态
+    if (
+      !currentUser.isVerified ||
+      currentUser.realNameStatus !== 'verified' ||
+      currentUser.academicStatus !== 'verified'
+    ) {
+      setInviteVerifyInterceptModal({
+        open: true,
+        teamLabel: msg.inviteTeamPayload?.teamName || msg.title,
+      });
+      return;
+    }
+
+    // 2. 认证通过 -> 更新消息状态为“已同意”并标记已读
+    setNotifications((prev) =>
+      prev.map((item) =>
+        item.id === msg.id
+          ? { ...item, inviteStatus: 'accepted', unread: false }
+          : item
+      )
+    );
+
+    // 3. 在“我的报名 - 我参与的队伍”中立刻同步出现该队伍（或更新状态为 joined）
+    setParticipatedTeams((prev) => {
+      if (msg.relatedParticipatedTeamId) {
+        const exists = prev.some((p) => p.id === msg.relatedParticipatedTeamId);
+        if (exists) {
+          return prev.map((p) =>
+            p.id === msg.relatedParticipatedTeamId ? { ...p, status: 'joined' } : p
+          );
+        }
+      }
+      if (msg.inviteTeamPayload) {
+        return [{ ...msg.inviteTeamPayload, status: 'joined' }, ...prev];
+      }
+      return prev;
+    });
+
+    setMsgActionToast(
+      `已同意入队邀请！该队伍已同步至【个人中心 -> 我的报名 -> 我参与的队伍】`
+    );
+  };
+
+  // 在消息卡片或铃铛悬浮框中点击【拒绝】加入队伍
+  const handleRejectInviteFromMessage = (msg: PlatformMessageItem) => {
+    setNotifications((prev) =>
+      prev.map((item) =>
+        item.id === msg.id
+          ? { ...item, inviteStatus: 'rejected', unread: false }
+          : item
+      )
+    );
+
+    if (msg.relatedParticipatedTeamId) {
+      setParticipatedTeams((prev) =>
+        prev.map((p) =>
+          p.id === msg.relatedParticipatedTeamId
+            ? { ...p, status: 'declined', declineReason: '在我的消息中拒绝邀请' }
+            : p
+        )
+      );
+    }
+
+    setMsgActionToast('已拒绝该组队邀请，状态已同步更新');
+  };
+
+  // 当用户在“我的报名 - 我参与的队伍”中同意或拒绝邀请时，反向同步更新“我的消息”状态
+  const handleUpdateParticipatedTeamsSync = (nextTeams: ParticipatedTeamRecord[]) => {
+    setParticipatedTeams(nextTeams);
+    setNotifications((prev) =>
+      prev.map((msg) => {
+        if (!msg.relatedParticipatedTeamId) return msg;
+        const matchedTeam = nextTeams.find((t) => t.id === msg.relatedParticipatedTeamId);
+        if (!matchedTeam) return msg;
+        if (matchedTeam.status === 'joined' && msg.inviteStatus !== 'accepted') {
+          return { ...msg, inviteStatus: 'accepted', unread: false };
+        }
+        if (matchedTeam.status === 'declined' && msg.inviteStatus !== 'rejected') {
+          return { ...msg, inviteStatus: 'rejected', unread: false };
+        }
+        return msg;
+      })
+    );
+  };
 
   const [myRegistrations, setMyRegistrations] = useState<RegistrationSubmission[]>([
     {
@@ -648,7 +734,10 @@ export default function App() {
       const found = COMPETITION_TRACKS.find((t) => t.id === slide.targetId) || COMPETITION_TRACKS[0];
       handleNavigateToTrackDetail(found);
     } else if (slide.targetType === 'notice') {
-      const found = NOTICE_ITEMS.find((n) => n.id === slide.targetId) || NOTICE_ITEMS[0];
+      const found =
+        publishedNotices.find((n) => n.id === slide.targetId) ||
+        publishedNotices[0] ||
+        NOTICE_ITEMS[0];
       setInitialSelectedNoticeId(found.id);
       setCurrentView('notice-detail');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -768,53 +857,7 @@ export default function App() {
   }
 
   // =========================================================================
-  // 独立页面路由 2：【个人中心】独立页面（个人信息 / 用户认证 / 我的报名 / 安全审计）
-  // =========================================================================
-  if (currentView === 'user-center') {
-    const isDefaultDemoStudent =
-      currentUser.username === 'linyuanhang' || currentUser.name === '林远航';
-    return (
-      <StandaloneUserCenterPage
-        user={currentUser}
-        initialTab={userCenterInitialTab}
-        onUpdateUser={handleUpdateCurrentUser}
-        onBackHome={() => {
-          setCurrentView('home');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onLogout={() => {
-          setIsLoggedIn(false);
-          setCurrentView('home');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        registrations={myRegistrations}
-        captainTeams={captainTeams}
-        onUpdateCaptainTeams={setCaptainTeams}
-        participatedTeams={isDefaultDemoStudent ? participatedTeams : []}
-        onUpdateParticipatedTeams={setParticipatedTeams}
-        onContinueEditDraft={(team) => {
-          setSelectedCompetitionId(team.competitionId);
-          setRegInitialSubTrack(team.subTrackName);
-          setEditingDraftTeam(team);
-          setCurrentView('registration-form');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onAddAuditLog={handleAddAuditLog}
-        enabledSchools={enabledSchoolNames}
-        competitions={competitions}
-        platformUsers={platformUsers}
-        registrationConfigs={registrationConfigs}
-        onViewCompetitionDetail={(compId) => {
-          setSelectedCompetitionId(compId);
-          setCurrentView('competition-detail');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-      />
-    );
-  }
-
-  // =========================================================================
-  // 独立页面路由 2.5：【运营管理后台】独立页面（左侧导航栏 + 赛事管理 + 报名管理 + 内容管理 + 系统管理）
+  // 独立页面路由 2：【运营管理后台】独立页面（左侧导航栏 + 赛事管理 + 报名管理 + 认证管理 + 内容管理 + 系统管理）
   // =========================================================================
   if (currentView === 'admin') {
     return (
@@ -833,6 +876,119 @@ export default function App() {
         onUpdateManagedNews={setManagedNews}
         managedMoments={managedMoments}
         onUpdateManagedMoments={setManagedMoments}
+        managedNotices={managedNotices}
+        onUpdateManagedNotices={setManagedNotices}
+        verificationRecords={verificationRecords}
+        onUpdateVerificationRecords={setVerificationRecords}
+        onApproveVerificationSync={(record) => {
+          const nextBaseRole = record.applicantType === 'teacher' ? '教师' : '学生';
+          const nextIdentity = record.applicantType === 'teacher' ? 'teacher' : 'student';
+          setPlatformUsers((prev) =>
+            prev.map((u) => {
+              if (
+                (u.username || '').toLowerCase() === record.username.toLowerCase() ||
+                (record.phone && u.phone === record.phone)
+              ) {
+                return {
+                  ...u,
+                  university: record.university,
+                  identityType: nextIdentity,
+                  baseRole: nextBaseRole,
+                  isRealNameVerified: true,
+                  isAcademicOrTeacherVerified: true,
+                };
+              }
+              return u;
+            })
+          );
+          if (
+            (currentUser.username || '').toLowerCase() === record.username.toLowerCase() ||
+            (record.phone && currentUser.phone === record.phone)
+          ) {
+            setCurrentUser((prev) => ({
+              ...prev,
+              role: nextIdentity,
+              roleLabel: nextIdentity === 'teacher' ? '指导教师' : '参赛学生',
+              identityType: nextIdentity,
+              university: record.university,
+              majorOrDept: record.majorOrDept,
+              studentId: record.studentOrStaffId,
+              academicStatus: 'verified',
+              academicVerifiedAt: '2026-10-28',
+              academicRejectReason: undefined,
+              isVerified: prev.realNameStatus === 'verified',
+            }));
+          }
+          setNotifications((prev) => [
+            {
+              id: `notif-verify-pass-${Date.now()}`,
+              title: `【认证通过】${
+                record.applicantType === 'student' ? '学生学籍' : '指导教师资格'
+              }人工审核已通过`,
+              desc: `提交的 ${record.university}（${record.majorOrDept}）认证材料已由管理员审核通过，认证状态已更新为【已认证】。`,
+              time: '刚刚',
+              unread: true,
+            },
+            ...prev,
+          ]);
+          handleAddAuditLog({
+            operator: currentUser.username || 'admin',
+            ip: currentUser.currentLoginIp,
+            location: currentUser.currentLoginLocation,
+            device: 'Windows 11 / Chrome 130.0',
+            action: `审核通过${record.applicantType === 'student' ? '学生认证' : '教师认证'}`,
+            result: '成功',
+            detail: `申请人：${record.realName} (${record.username})，所属高校：${record.university}`,
+          });
+        }}
+        onRejectVerificationSync={(record, reason) => {
+          setPlatformUsers((prev) =>
+            prev.map((u) => {
+              if (
+                (u.username || '').toLowerCase() === record.username.toLowerCase() ||
+                (record.phone && u.phone === record.phone)
+              ) {
+                return {
+                  ...u,
+                  isAcademicOrTeacherVerified: false,
+                };
+              }
+              return u;
+            })
+          );
+          if (
+            (currentUser.username || '').toLowerCase() === record.username.toLowerCase() ||
+            (record.phone && currentUser.phone === record.phone)
+          ) {
+            setCurrentUser((prev) => ({
+              ...prev,
+              academicStatus: 'rejected',
+              academicRejectReason: reason,
+              isVerified: false,
+            }));
+          }
+          setNotifications((prev) => [
+            {
+              id: `notif-verify-rej-${Date.now()}`,
+              title: `【认证驳回】${
+                record.applicantType === 'student' ? '学生学籍' : '指导教师资格'
+              }人工审核未通过`,
+              desc: `您提交的 ${record.university} 认证材料被驳回（原因：${reason}），请前往【个人中心 -> 用户认证】重新上传材料提交。`,
+              time: '刚刚',
+              unread: true,
+            },
+            ...prev,
+          ]);
+          handleAddAuditLog({
+            operator: currentUser.username || 'admin',
+            ip: currentUser.currentLoginIp,
+            location: currentUser.currentLoginLocation,
+            device: 'Windows 11 / Chrome 130.0',
+            action: `驳回${record.applicantType === 'student' ? '学生认证' : '教师认证'}`,
+            result: '失败',
+            detail: `申请人：${record.realName} (${record.username})，驳回原因：${reason}`,
+          });
+        }}
         onAddAuditLog={handleAddAuditLog}
         onSendSystemNotification={(title, desc) => {
           setNotifications((prev) => [
@@ -1031,8 +1187,15 @@ export default function App() {
               </div>
             ) : (
               <div className="flex items-center gap-2.5">
-                {/* 通知铃铛（消息提示） */}
-                <div className="relative">
+                {/* 通知铃铛（消息提醒下拉面板：支持鼠标悬浮或点击触发，宽约350px，与个人中心“我的消息”100%同步） */}
+                <div
+                  className="relative"
+                  onMouseEnter={() => {
+                    setBellDropdownOpen(true);
+                    setUserDropdownOpen(false);
+                  }}
+                  onMouseLeave={() => setBellDropdownOpen(false)}
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -1045,47 +1208,226 @@ export default function App() {
                     <Bell className="w-5 h-5" />
                     {unreadCount > 0 && (
                       <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[#F53F3F] text-white text-[10px] font-bold flex items-center justify-center font-mono-num">
-                        {unreadCount}
+                        {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
                   </button>
 
                   {bellDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
-                      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-800">
-                          系统消息通知 ({unreadCount}条未读)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
-                          }
-                          className="text-xs text-[#1664FF] hover:underline cursor-pointer"
-                        >
-                          全部标为已读
-                        </button>
-                      </div>
-                      <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                        {notifications.map((item) => (
-                          <div
-                            key={item.id}
-                            onClick={() =>
-                              setNotifications((prev) =>
-                                prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
-                              )
-                            }
-                            className={`p-3.5 text-left hover:bg-blue-50/50 transition-colors cursor-pointer ${
-                              item.unread ? 'bg-blue-50/30' : ''
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-semibold text-slate-900">{item.title}</span>
-                              <span className="text-[11px] text-slate-400 shrink-0">{item.time}</span>
-                            </div>
-                            <p className="text-xs text-slate-600 mt-1 leading-relaxed">{item.desc}</p>
+                    <div className="absolute right-0 top-full pt-2 z-50">
+                      <div className="w-[350px] bg-white rounded-xl border border-slate-200 shadow-2xl overflow-hidden">
+                        {/* 头部：左侧写“消息提醒”，右侧写“未读 (X)” */}
+                        <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-slate-900">
+                            消息提醒
+                          </span>
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className={`text-xs font-bold font-mono-num ${
+                                unreadCount > 0 ? 'text-[#F53F3F]' : 'text-slate-400'
+                              }`}
+                            >
+                              未读 ({unreadCount > 99 ? '99+' : unreadCount})
+                            </span>
+                            {unreadCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setNotifications((prev) =>
+                                    prev.map((n) => ({ ...n, unread: false }))
+                                  )
+                                }
+                                className="text-[11px] text-[#1664FF] hover:underline font-medium cursor-pointer"
+                              >
+                                全部已读
+                              </button>
+                            )}
                           </div>
-                        ))}
+                        </div>
+
+                        {/* 列表区：展示最新 4 条未读消息（如果没有未读，展示最近 4 条已读消息，标灰） */}
+                        <div className="divide-y divide-slate-100">
+                          {(() => {
+                            const unreadList = notifications.filter((n) => n.unread);
+                            const isShowingReadFallback = unreadList.length === 0;
+                            const displayItems = isShowingReadFallback
+                              ? notifications.slice(0, 4)
+                              : unreadList.slice(0, 4);
+
+                            if (displayItems.length === 0) {
+                              return (
+                                <div className="py-8 text-center text-xs text-slate-400">
+                                  暂无消息提醒
+                                </div>
+                              );
+                            }
+
+                            return displayItems.map((item) => {
+                              const isInvitePending =
+                                (item.actionType === 'invite_actions' ||
+                                  item.scenarioType === 'team_invite') &&
+                                (!item.inviteStatus || item.inviteStatus === 'pending');
+                              const isAvatar =
+                                item.iconStyle === 'avatar' || Boolean(item.senderName);
+                              const compactText = item.shortTitle || item.title;
+
+                              return (
+                                <div
+                                  key={item.id}
+                                  onClick={() => {
+                                    setNotifications((prev) =>
+                                      prev.map((n) =>
+                                        n.id === item.id ? { ...n, unread: false } : n
+                                      )
+                                    );
+                                    setBellDropdownOpen(false);
+                                    setUserCenterInitialTab('messages');
+                                    setCurrentView('user-center');
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  }}
+                                  className={`px-3.5 py-3 flex items-center justify-between gap-2.5 transition-colors cursor-pointer ${
+                                    isShowingReadFallback
+                                      ? 'bg-slate-50/40 text-slate-400 hover:bg-slate-100/70'
+                                      : 'bg-white hover:bg-blue-50/40'
+                                  }`}
+                                >
+                                  {/* 左侧极简小图标/对方头像小图 + 标题 + (时间) */}
+                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                    {isAvatar ? (
+                                      item.senderAvatarUrl ? (
+                                        <img
+                                          src={item.senderAvatarUrl}
+                                          alt={item.senderName || '头像'}
+                                          className={`w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0 ${
+                                            isShowingReadFallback ? 'grayscale opacity-60' : ''
+                                          }`}
+                                        />
+                                      ) : (
+                                        <div
+                                          className={`w-7 h-7 rounded-full text-white text-[11px] font-bold flex items-center justify-center shrink-0 ${
+                                            isShowingReadFallback
+                                              ? 'bg-slate-300'
+                                              : 'bg-[#1664FF]'
+                                          }`}
+                                        >
+                                          {(item.senderName || item.title).slice(0, 1)}
+                                        </div>
+                                      )
+                                    ) : item.iconStyle === 'error' ? (
+                                      <div
+                                        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                          isShowingReadFallback
+                                            ? 'bg-slate-100 text-slate-400'
+                                            : 'bg-red-50 text-[#F53F3F] border border-red-200'
+                                        }`}
+                                      >
+                                        <AlertTriangle className="w-3.5 h-3.5" />
+                                      </div>
+                                    ) : item.iconStyle === 'success' ? (
+                                      <div
+                                        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                          isShowingReadFallback
+                                            ? 'bg-slate-100 text-slate-400'
+                                            : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                        }`}
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                          isShowingReadFallback
+                                            ? 'bg-slate-100 text-slate-400'
+                                            : 'bg-blue-50 text-[#1664FF] border border-blue-200'
+                                        }`}
+                                      >
+                                        <Bell className="w-3.5 h-3.5" />
+                                      </div>
+                                    )}
+
+                                    <div className="min-w-0 flex-1 text-left">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        {item.unread && (
+                                          <span className="w-1.5 h-1.5 rounded-full bg-[#F53F3F] shrink-0" />
+                                        )}
+                                        <span
+                                          className={`text-xs truncate ${
+                                            isShowingReadFallback
+                                              ? 'text-slate-400 font-normal'
+                                              : 'text-slate-800 font-bold'
+                                          }`}
+                                          title={item.desc}
+                                        >
+                                          {compactText}
+                                        </span>
+                                        <span className="text-[11px] text-slate-400 font-mono-num shrink-0">
+                                          ({item.time})
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 面板内的快捷交互：若为未处理的邀请类消息，右侧直接显示极简版【同意】/【拒绝】微缩按钮 */}
+                                  {isInvitePending && (
+                                    <div
+                                      className="flex items-center gap-1 shrink-0"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        type="button"
+                                        title="同意加入队伍"
+                                        onClick={() => handleAcceptInviteFromMessage(item)}
+                                        className="px-2 py-1 rounded bg-[#1664FF] hover:bg-[#0E4FD6] text-white text-[11px] font-bold flex items-center gap-0.5 cursor-pointer transition-colors"
+                                      >
+                                        <Check className="w-3 h-3" />
+                                        <span>同意</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        title="拒绝邀请"
+                                        onClick={() => handleRejectInviteFromMessage(item)}
+                                        className="px-2 py-1 rounded bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-[11px] font-semibold flex items-center gap-0.5 cursor-pointer transition-colors"
+                                      >
+                                        <X className="w-3 h-3" />
+                                        <span>拒绝</span>
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {item.actionType === 'invite_actions' &&
+                                    item.inviteStatus === 'accepted' && (
+                                      <span className="text-[11px] text-slate-400 shrink-0">
+                                        已同意
+                                      </span>
+                                    )}
+                                  {item.actionType === 'invite_actions' &&
+                                    item.inviteStatus === 'rejected' && (
+                                      <span className="text-[11px] text-slate-400 shrink-0">
+                                        已拒绝
+                                      </span>
+                                    )}
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+
+                        {/* 底部操作区：居中展示【查看全部消息 >】按钮，点击跳转至“个人中心 - 我的消息”Tab */}
+                        <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBellDropdownOpen(false);
+                              setUserCenterInitialTab('messages');
+                              setCurrentView('user-center');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="w-full py-1 text-xs font-bold text-[#1664FF] hover:text-[#0E4FD6] flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <span>查看全部消息</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1183,6 +1525,26 @@ export default function App() {
                         type="button"
                         onClick={() => {
                           setUserDropdownOpen(false);
+                          setUserCenterInitialTab('messages');
+                          setCurrentView('user-center');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-[#1664FF] flex items-center justify-between cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <Bell className="w-4 h-4 text-[#1664FF]" />
+                          <span>我的消息</span>
+                        </span>
+                        {unreadCount > 0 && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-[#F53F3F] text-white text-[10px] font-bold font-mono-num">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
                           setCurrentView('admin');
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
@@ -1212,9 +1574,75 @@ export default function App() {
         </div>
       </header>
 
-      {currentView === 'notices' ? (
+      {currentView === 'user-center' ? (
+        <StandaloneUserCenterPage
+          user={currentUser}
+          initialTab={userCenterInitialTab}
+          onUpdateUser={handleUpdateCurrentUser}
+          onBackHome={() => {
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onLogout={() => {
+            setIsLoggedIn(false);
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          registrations={myRegistrations}
+          captainTeams={captainTeams}
+          onUpdateCaptainTeams={setCaptainTeams}
+          participatedTeams={
+            currentUser.username === 'linyuanhang' || currentUser.name === '林远航'
+              ? participatedTeams
+              : []
+          }
+          onUpdateParticipatedTeams={handleUpdateParticipatedTeamsSync}
+          onContinueEditDraft={(team) => {
+            setSelectedCompetitionId(team.competitionId);
+            setRegInitialSubTrack(team.subTrackName);
+            setEditingDraftTeam(team);
+            setCurrentView('registration-form');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onAddAuditLog={handleAddAuditLog}
+          enabledSchools={enabledSchoolNames}
+          competitions={competitions}
+          platformUsers={platformUsers}
+          registrationConfigs={registrationConfigs}
+          onViewCompetitionDetail={(compId) => {
+            setSelectedCompetitionId(compId);
+            setCurrentView('competition-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onSubmitVerificationApplication={(newRec) => {
+            setVerificationRecords((prev) => [
+              {
+                ...newRec,
+                id: `ver-${newRec.applicantType === 'student' ? 'stu' : 'tea'}-${Date.now()}`,
+                reviewStatus: 'pending',
+              },
+              ...prev,
+            ]);
+          }}
+          messages={notifications}
+          onMarkAllMessagesRead={() =>
+            setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
+          }
+          onMarkMessageRead={(msgId) =>
+            setNotifications((prev) =>
+              prev.map((n) => (n.id === msgId ? { ...n, unread: false } : n))
+            )
+          }
+          onAcceptInviteMessage={handleAcceptInviteFromMessage}
+          onRejectInviteMessage={handleRejectInviteFromMessage}
+          onGoToAdminBackend={() => {
+            setCurrentView('admin');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : currentView === 'notices' ? (
         <FrontendNoticesPage
-          noticesList={NOTICE_ITEMS}
+          noticesList={publishedNotices}
           onSelectNotice={(noticeId) => {
             setInitialSelectedNoticeId(noticeId);
             setCurrentView('notice-detail');
@@ -1223,8 +1651,8 @@ export default function App() {
         />
       ) : currentView === 'notice-detail' ? (
         <FrontendNoticeDetailPage
-          noticesList={NOTICE_ITEMS}
-          selectedNoticeId={initialSelectedNoticeId || NOTICE_ITEMS[0]?.id || ''}
+          noticesList={publishedNotices}
+          selectedNoticeId={initialSelectedNoticeId || publishedNotices[0]?.id || ''}
           onSelectNotice={(noticeId) => {
             setInitialSelectedNoticeId(noticeId);
             setCurrentView('notice-detail');
@@ -1701,7 +2129,7 @@ export default function App() {
 
                   {/* 公告列表（还原设计图：红底置顶角标 + 标题 + 右侧日期） */}
                   <div className="flex-1 flex flex-col justify-between divide-y divide-slate-100/80">
-                    {NOTICE_ITEMS.slice(0, 8).map((notice) => (
+                    {publishedNotices.slice(0, 8).map((notice) => (
                       <div
                         key={notice.id}
                         onClick={() => {
@@ -2734,13 +3162,73 @@ export default function App() {
         </div>
       )}
 
+      {/* 消息操作顶部轻提示 Toast */}
+      {msgActionToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[80] px-5 py-2.5 bg-slate-900/95 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-2xl border border-slate-700 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{msgActionToast}</span>
+        </div>
+      )}
+
+      {/* 入队邀请快捷操作拦截弹窗：未完成实名/学籍认证时弹窗提示并跳转【用户认证】Tab */}
+      {inviteVerifyInterceptModal && (
+        <div className="fixed inset-0 z-[75] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                <span className="font-bold text-sm">请先完成认证</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInviteVerifyInterceptModal(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+                系统检测到您的账号尚未完成<strong>实名认证与学籍/教职工认证</strong>，暂无法同意加入队伍
+                {inviteVerifyInterceptModal.teamLabel ? (
+                  <span className="font-bold text-[#0284C7]">【{inviteVerifyInterceptModal.teamLabel}】</span>
+                ) : null}
+                。请先完成认证后再处理入队邀请。
+              </div>
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setInviteVerifyInterceptModal(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  稍后再说
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInviteVerifyInterceptModal(null);
+                    setBellDropdownOpen(false);
+                    setUserCenterInitialTab('certification');
+                    setCurrentView('user-center');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-5 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer"
+                >
+                  确定（去认证）
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 站内全局全文检索弹窗（覆盖赛事新闻、通知公告、赛事动态） */}
       <GlobalSiteSearchModal
         isOpen={globalSearchOpen}
         onClose={() => setGlobalSearchOpen(false)}
         newsList={allFrontendNews}
         momentsList={allFrontendMoments}
-        noticesList={NOTICE_ITEMS}
+        noticesList={publishedNotices}
         onNavigateToNews={(newsId) => {
           setInitialSelectedNewsId(newsId);
           setCurrentView('news-detail');

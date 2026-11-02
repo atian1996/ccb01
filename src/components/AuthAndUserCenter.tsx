@@ -32,6 +32,8 @@ import {
   Trophy,
   Users,
   Calendar,
+  Bell,
+  Building2,
 } from 'lucide-react';
 import {
   computeCompetitionStatus,
@@ -52,6 +54,338 @@ import {
   type PlatformDirectoryUser,
 } from './TeamRegistrationSystem';
 import type { EventRegistrationConfig } from './AdminRegistrationManagement';
+import type { VerificationApplicationRecord } from './InstitutionAndContentManagement';
+
+// ============================================================================
+// 站内消息中心（顶部铃铛下拉面板 + 个人中心“我的消息”TAB 100% 同步数据结构）
+// ============================================================================
+export type MessageCategoryTab = 'invite' | 'review' | 'system';
+
+export type MessageRolePerspective =
+  | '队长视角'
+  | '队员/指导教师视角'
+  | '高校管理员视角'
+  | '秘书处视角'
+  | '全角色通用';
+
+export type MessageScenarioType =
+  | 'member_feedback' // 1. 队长视角：成员反馈（队员/老师同意或拒绝）
+  | 'review_rejected' // 1. 队长视角：审核驳回（高校/秘书处驳回）
+  | 'review_progress' // 1. 队长视角：审核进度（高校通过，待秘书处）
+  | 'registration_success' // 1. 队长视角：报名成功（秘书处终审通过）
+  | 'team_invite' // 2. 队员/指导教师视角：入队邀请（队长发出邀请）
+  | 'removed_from_team' // 2. 队员/指导教师视角：被移出队伍（纯通知，无按钮）
+  | 'team_status_change' // 2. 队员/指导教师视角：队伍状态提醒（队伍被驳回/通过）
+  | 'univ_todo' // 3. 高校管理员视角：待办提醒（本校有队伍提交审核）
+  | 'univ_channel_open' // 3. 高校管理员视角：通道开启（秘书处开启高校审核）
+  | 'sec_todo' // 4. 秘书处视角：待办提醒（高校审核通过队伍）
+  | 'cert_result'; // 5. 全角色通用：认证结果（实名/学籍/教师认证审核完）
+
+export type MessageRightActionType =
+  | 'invite_actions' // 【同意】【拒绝】（已处理后显示灰色“已同意”或“已拒绝”）
+  | 'go_modify' // 【去修改】
+  | 'view_detail' // 【查看详情】
+  | 'go_admin' // 【去后台处理】
+  | 'go_cert' // 【去查看】
+  | 'none'; // 无（纯通知，如被移出队伍）
+
+export interface PlatformMessageItem {
+  id: string;
+  title: string;
+  /** 供顶部 350px 铃铛下拉面板极简展示的短标题，例如“周子航邀请您加入队伍”、“您的队伍被驳回” */
+  shortTitle?: string;
+  desc: string;
+  time: string;
+  unread: boolean;
+  category?: MessageCategoryTab;
+  rolePerspective?: MessageRolePerspective;
+  scenarioType?: MessageScenarioType;
+  messageTypeLabel?: string;
+  /** 左侧图标样式：'avatar' 为用户交互类显示对方头像；其余为系统/审核类带颜色图标 */
+  iconStyle?: 'avatar' | 'success' | 'error' | 'warning' | 'info';
+  senderName?: string;
+  senderAvatarUrl?: string;
+  actionType?: MessageRightActionType;
+  /** 邀请类消息的处理状态 */
+  inviteStatus?: 'pending' | 'accepted' | 'rejected';
+  /** 关联的“我参与的队伍”ID（用于点击【同意】/【拒绝】双向同步到我的报名-我参与的队伍） */
+  relatedParticipatedTeamId?: string;
+  /** 若同意的是一条新邀请，携带完整队伍信息以便立刻插入到“我参与的队伍”列表 */
+  inviteTeamPayload?: ParticipatedTeamRecord;
+  /** 关联的队长发起队伍ID（用于点击【去修改】或【查看详情】定位到对应队伍） */
+  relatedCaptainTeamId?: string;
+}
+
+export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
+  // 1. 队员/指导教师视角 —— 入队邀请（未读、待处理，对应 part-team-1）
+  {
+    id: 'msg-invite-1',
+    title: '周子航 邀请您加入队伍',
+    shortTitle: '周子航邀请您加入队伍',
+    desc: '邀请您加入【2026“XX杯”车联网与智能工业控制系统安全极客邀请赛】的【北航车联护盾联队】担任【队员】',
+    time: '5分钟前',
+    unread: true,
+    category: 'invite',
+    rolePerspective: '队员/指导教师视角',
+    scenarioType: 'team_invite',
+    messageTypeLabel: '入队邀请',
+    iconStyle: 'avatar',
+    senderName: '周子航',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80',
+    actionType: 'invite_actions',
+    inviteStatus: 'pending',
+    relatedParticipatedTeamId: 'part-team-1',
+  },
+  // 2. 队长视角 —— 审核驳回（未读，高校审核驳回，对应 cap-team-4）
+  {
+    id: 'msg-reject-1',
+    title: '审核被驳回，请修改',
+    shortTitle: '您的队伍被驳回',
+    desc: '您的队伍【北航凌云密算战队】在【高校审核】中被驳回，原因：队伍简介中未注明所依托的学院实验室安全合规备案号，且指导教师信息需补充确认',
+    time: '15分钟前',
+    unread: true,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_rejected',
+    messageTypeLabel: '审核驳回',
+    iconStyle: 'error',
+    actionType: 'go_modify',
+    relatedCaptainTeamId: 'cap-team-4',
+  },
+  // 3. 队员/指导教师视角 —— 入队邀请（未读、待处理，对应新队伍 part-team-new-star，点击同意后立刻新增出现在“我的报名-我参与的队伍”中！）
+  {
+    id: 'msg-invite-2',
+    title: '陆景川 邀请您加入队伍',
+    shortTitle: '陆景川邀请您加入队伍',
+    desc: '邀请您加入【2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛】的【北航星辰二进制战队】担任【队员】',
+    time: '28分钟前',
+    unread: true,
+    category: 'invite',
+    rolePerspective: '队员/指导教师视角',
+    scenarioType: 'team_invite',
+    messageTypeLabel: '入队邀请',
+    iconStyle: 'avatar',
+    senderName: '陆景川',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=160&q=80',
+    actionType: 'invite_actions',
+    inviteStatus: 'pending',
+    relatedParticipatedTeamId: 'part-team-new-star',
+    inviteTeamPayload: {
+      id: 'part-team-new-star',
+      competitionId: 'comp-2026-main',
+      competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+      subTrackName: '二进制漏洞挖掘与Pwn赛道',
+      teamName: '北航星辰二进制战队',
+      teamLogo: 'default-logo',
+      teamIntro: '专注Linux内核态漏洞挖掘、堆利用原语构造与自动化CTF二进制攻防对抗。',
+      captainName: '陆景川',
+      captainPhone: '138****5520',
+      university: '北京航空航天大学',
+      myRoleInTeam: '参赛队员',
+      status: 'joined',
+      invitedAt: '2026-10-28 11:05',
+      teammatesSummary: ['陆景川（队长 · 北京航空航天大学）', '林远航（队员 · 已同意）', '赵振宇 教授（指导教师 · 已同意）'],
+    },
+  },
+  // 4. 队长视角 —— 成员反馈（未读，队员拒绝加入）
+  {
+    id: 'msg-feedback-reject',
+    title: '张子轩 已拒绝加入',
+    shortTitle: '张子轩已拒绝加入队伍',
+    desc: '拒绝了加入【北航红蓝极客战队】（原因：下周有操作系统课程设计答辩，时间冲突）',
+    time: '45分钟前',
+    unread: true,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'member_feedback',
+    messageTypeLabel: '成员反馈',
+    iconStyle: 'avatar',
+    senderName: '张子轩',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=160&q=80',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-1',
+  },
+  // 5. 队员/指导教师视角 —— 入队邀请（未读、待处理，对应 part-team-3 宋知行）
+  {
+    id: 'msg-invite-3',
+    title: '宋知行 邀请您加入队伍',
+    shortTitle: '宋知行邀请您加入队伍',
+    desc: '邀请您加入【2026“XX杯”云原生与零信任架构安全攻防挑战赛】的【北航云原生星云战队】担任【队员】',
+    time: '1小时前',
+    unread: true,
+    category: 'invite',
+    rolePerspective: '队员/指导教师视角',
+    scenarioType: 'team_invite',
+    messageTypeLabel: '入队邀请',
+    iconStyle: 'avatar',
+    senderName: '宋知行',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80',
+    actionType: 'invite_actions',
+    inviteStatus: 'pending',
+    relatedParticipatedTeamId: 'part-team-3',
+  },
+  // 6. 队长视角 —— 成员反馈（队员/老师同意加入）
+  {
+    id: 'msg-feedback-accept',
+    title: '赵振宇 教授 已同意加入',
+    shortTitle: '赵振宇教授已同意加入',
+    desc: '已确认加入您的队伍【北航红蓝极客战队】担任指导教师',
+    time: '2小时前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'member_feedback',
+    messageTypeLabel: '成员反馈',
+    iconStyle: 'avatar',
+    senderName: '赵振宇',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=160&q=80',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-1',
+  },
+  // 7. 队长视角 —— 审核进度（高校通过，待秘书处）
+  {
+    id: 'msg-review-progress',
+    title: '高校审核已通过',
+    shortTitle: '队伍已通过高校审核',
+    desc: '您的队伍【SkyHawk-0day（林远航单兵队）】已通过高校审核，进入秘书处终审环节',
+    time: '3小时前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '审核进度',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-7',
+  },
+  // 8. 队长视角 —— 报名成功（秘书处终审通过）
+  {
+    id: 'msg-reg-success',
+    title: '恭喜！报名成功',
+    shortTitle: '恭喜！队伍报名成功',
+    desc: '您的队伍【北航智盾先锋队】已通过所有审核，请留意后续赛事通知',
+    time: '5小时前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'registration_success',
+    messageTypeLabel: '报名成功',
+    iconStyle: 'success',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-3',
+  },
+  // 9. 队员/指导教师视角 —— 被移出队伍（纯通知，无按钮）
+  {
+    id: 'msg-removed-team',
+    title: '移出队伍通知',
+    shortTitle: '您已被移出队伍',
+    desc: '您已被【陈思远】移出【北航固件狩猎二队】',
+    time: '昨天 18:20',
+    unread: false,
+    category: 'system',
+    rolePerspective: '队员/指导教师视角',
+    scenarioType: 'removed_from_team',
+    messageTypeLabel: '被移出队伍',
+    iconStyle: 'warning',
+    actionType: 'none',
+  },
+  // 10. 队员/指导教师视角 —— 队伍状态提醒（队伍被驳回/通过）
+  {
+    id: 'msg-team-status-change',
+    title: '队伍审核状态变更',
+    shortTitle: '所在队伍审核状态变更',
+    desc: '您所在的【北航多模态鉴伪实验室战队】报名已通过秘书处终审',
+    time: '昨天 14:10',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员/指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '队伍状态提醒',
+    iconStyle: 'success',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-7',
+  },
+  // 11. 高校管理员视角 —— 待办提醒（本校有队伍提交审核）
+  {
+    id: 'msg-univ-todo',
+    title: '新报名队伍待审核',
+    shortTitle: '本校有新队伍待审核',
+    desc: '本校有 2 支新队伍提交了报名，请及时处理',
+    time: '昨天 11:00',
+    unread: true,
+    category: 'review',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_todo',
+    messageTypeLabel: '待办提醒',
+    iconStyle: 'info',
+    actionType: 'go_admin',
+  },
+  // 12. 高校管理员视角 —— 通道开启（秘书处开启高校审核）
+  {
+    id: 'msg-univ-channel-open',
+    title: '高校审核通道已开启',
+    shortTitle: '高校审核通道已开启',
+    desc: '2026第五届“XX杯”全国网数智安全大赛的报名审核已开启，请前往后台审核本校队伍',
+    time: '2天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_channel_open',
+    messageTypeLabel: '通道开启',
+    iconStyle: 'info',
+    actionType: 'go_admin',
+  },
+  // 13. 秘书处视角 —— 待办提醒（高校审核通过队伍）
+  {
+    id: 'msg-sec-todo',
+    title: '待终审队伍提醒',
+    shortTitle: '有队伍等待秘书处终审',
+    desc: '有 4 支队伍已通过高校审核，等待秘书处终审',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '秘书处视角',
+    scenarioType: 'sec_todo',
+    messageTypeLabel: '待办提醒',
+    iconStyle: 'info',
+    actionType: 'go_admin',
+  },
+  // 14. 全角色通用（系统类） —— 认证结果（实名认证审核通过）
+  {
+    id: 'msg-cert-pass',
+    title: '实名认证审核通过',
+    shortTitle: '实名认证审核通过',
+    desc: '您的实名认证已通过，现已解锁全部赛事报名与战队组建权限',
+    time: '3天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '全角色通用',
+    scenarioType: 'cert_result',
+    messageTypeLabel: '认证结果',
+    iconStyle: 'success',
+    actionType: 'go_cert',
+  },
+  // 15. 全角色通用（系统类） —— 认证结果（学籍认证被驳回示例）
+  {
+    id: 'msg-cert-reject',
+    title: '学籍认证被驳回',
+    shortTitle: '学籍认证被驳回',
+    desc: '驳回原因：证件照片模糊，请前往用户认证模块重新上传清晰的学生证注册页或学信网报告',
+    time: '4天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '全角色通用',
+    scenarioType: 'cert_result',
+    messageTypeLabel: '认证结果',
+    iconStyle: 'error',
+    actionType: 'go_cert',
+  },
+];
 
 export interface AuditLogEntry {
   id: string;
@@ -2924,7 +3258,7 @@ export const StandaloneAuthPage: React.FC<{
 // ============================================================================
 export const StandaloneUserCenterPage: React.FC<{
   user: UserProfileData;
-  initialTab?: 'profile' | 'certification' | 'registrations' | 'competitions';
+  initialTab?: 'profile' | 'certification' | 'registrations' | 'competitions' | 'messages';
   onUpdateUser: (updated: UserProfileData) => void;
   onBackHome: () => void;
   onLogout: () => void;
@@ -2940,6 +3274,15 @@ export const StandaloneUserCenterPage: React.FC<{
   platformUsers?: PlatformDirectoryUser[];
   registrationConfigs?: EventRegistrationConfig[];
   onViewCompetitionDetail?: (competitionId: string) => void;
+  onSubmitVerificationApplication?: (
+    record: Omit<VerificationApplicationRecord, 'id' | 'reviewStatus'>
+  ) => void;
+  messages?: PlatformMessageItem[];
+  onMarkAllMessagesRead?: () => void;
+  onMarkMessageRead?: (msgId: string) => void;
+  onAcceptInviteMessage?: (msg: PlatformMessageItem) => void;
+  onRejectInviteMessage?: (msg: PlatformMessageItem) => void;
+  onGoToAdminBackend?: () => void;
 }> = ({
   user,
   initialTab = 'profile',
@@ -2957,10 +3300,53 @@ export const StandaloneUserCenterPage: React.FC<{
   platformUsers,
   registrationConfigs,
   onViewCompetitionDetail,
+  onSubmitVerificationApplication,
+  messages = INITIAL_PLATFORM_MESSAGES,
+  onMarkAllMessagesRead,
+  onMarkMessageRead,
+  onAcceptInviteMessage,
+  onRejectInviteMessage,
+  onGoToAdminBackend,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'profile' | 'certification' | 'registrations' | 'competitions'
+    'profile' | 'certification' | 'registrations' | 'competitions' | 'messages'
   >(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  // “我的消息”页面内部筛选状态：分类Tab（全部 / 组队邀请 / 审核与反馈 / 系统通知）与角色视角筛选
+  const [msgCategoryTab, setMsgCategoryTab] = useState<'all' | MessageCategoryTab>('all');
+  const [msgRoleFilter, setMsgRoleFilter] = useState<'all' | MessageRolePerspective>('all');
+  const [detailModalMessage, setDetailModalMessage] = useState<PlatformMessageItem | null>(null);
+
+  const unreadMsgCount = React.useMemo(
+    () => messages.filter((m) => m.unread).length,
+    [messages]
+  );
+
+  const filteredMessages = React.useMemo(() => {
+    return messages.filter((m) => {
+      const resolvedCat: MessageCategoryTab =
+        m.category ||
+        (m.scenarioType === 'team_invite'
+          ? 'invite'
+          : m.scenarioType === 'removed_from_team' ||
+            m.scenarioType === 'univ_channel_open' ||
+            m.scenarioType === 'cert_result'
+          ? 'system'
+          : 'review');
+      if (msgCategoryTab !== 'all' && resolvedCat !== msgCategoryTab) {
+        return false;
+      }
+      if (msgRoleFilter !== 'all' && (m.rolePerspective || '全角色通用') !== msgRoleFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [messages, msgCategoryTab, msgRoleFilter]);
+
   const [snapshotDrawerItem, setSnapshotDrawerItem] = useState<{
     competitionTitle: string;
     myRole: '队长' | '队员' | '指导教师';
@@ -3418,6 +3804,7 @@ export const StandaloneUserCenterPage: React.FC<{
       setStuFormError('请上传学信网在线验证报告或学生证照片作为人工审核凭证');
       return;
     }
+    const nowStr = '2026-10-28 10:25:00';
     const updated: UserProfileData = {
       ...user,
       role: 'student',
@@ -3426,13 +3813,32 @@ export const StandaloneUserCenterPage: React.FC<{
       university: stuSchool,
       majorOrDept: stuMajor.trim(),
       academicStatus: 'pending',
-      academicSubmittedAt: '2026-10-28 10:25:00',
+      academicSubmittedAt: nowStr,
       academicRejectReason: undefined,
       isVerified: false,
     };
     onUpdateUser(updated);
+    onSubmitVerificationApplication?.({
+      applicantType: 'student',
+      username: user.username,
+      realName: user.name || user.username,
+      idCard: '110108200305162819',
+      phone: user.phone || '13810246921',
+      email: user.email || `${user.username}@edu.cn`,
+      university: stuSchool,
+      institutionCode: '4111010006',
+      majorOrDept: stuMajor.trim(),
+      studentOrStaffId: user.studentId || 'STU2026001',
+      levelOrTitle: '全日制本科',
+      submitChannel: '人工兜底 · 学信网报告/学生证照片',
+      materialFileName: stuManualFileName,
+      materialPreviewUrl:
+        'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80',
+      applicantNote: '前台个人中心提交学生学籍人工兜底审核申请。',
+      submittedAt: nowStr,
+    });
     setAdminNotificationBanner(
-      `【系统通知】已根据您选择的学校（${stuSchool}），自动向【${stuSchool}高校管理员】发送学生学籍人工审核通知。`
+      `【系统通知】已根据您选择的学校（${stuSchool}），自动向后台【认证管理 -> 学生认证】推送人工审核申请。`
     );
     onAddAuditLog({
       operator: user.username,
@@ -3441,12 +3847,12 @@ export const StandaloneUserCenterPage: React.FC<{
       device: 'Windows 11 / Chrome 130.0',
       action: '提交学生学籍人工兜底认证',
       result: '成功',
-      detail: `已上传证明材料(${stuManualFileName})并推送至${stuSchool}高校管理员审核`,
+      detail: `已上传证明材料(${stuManualFileName})并推送至后台【认证管理-学生认证】审核`,
     });
     setAcademicModalOpen(null);
   };
 
-  // 教师认证表单提交（直接变为“审核中”，并通知该校高校管理员）
+  // 教师认证表单提交（直接变为“审核中”，并推送至后台【认证管理 -> 教师认证】）
   const handleTeacherSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setTeaFormError(null);
@@ -3467,6 +3873,7 @@ export const StandaloneUserCenterPage: React.FC<{
       return;
     }
 
+    const nowStr = '2026-10-28 10:30:00';
     const updated: UserProfileData = {
       ...user,
       role: 'teacher',
@@ -3476,13 +3883,32 @@ export const StandaloneUserCenterPage: React.FC<{
       majorOrDept: teaDept.trim(),
       studentId: teaStaffId.trim(),
       academicStatus: 'pending',
-      academicSubmittedAt: '2026-10-28 10:30:00',
+      academicSubmittedAt: nowStr,
       academicRejectReason: undefined,
       isVerified: false,
     };
     onUpdateUser(updated);
+    onSubmitVerificationApplication?.({
+      applicantType: 'teacher',
+      username: user.username,
+      realName: user.name || user.username,
+      idCard: '110108198505162819',
+      phone: user.phone || '13810246921',
+      email: user.email || `${user.username}@edu.cn`,
+      university: teaSchool,
+      institutionCode: '4111010006',
+      majorOrDept: teaDept.trim(),
+      studentOrStaffId: teaStaffId.trim(),
+      levelOrTitle: '高校专任教师',
+      submitChannel: '指导教师资格人工审核（工作证 + 教师资格证）',
+      materialFileName: teaFileName,
+      materialPreviewUrl:
+        'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=900&q=80',
+      applicantNote: '前台个人中心提交指导教师资格认证申请。',
+      submittedAt: nowStr,
+    });
     setAdminNotificationBanner(
-      `【系统通知】已根据您填写的学校（${teaSchool}），自动向【${teaSchool}高校管理员】发送指导教师资格待审核通知。`
+      `【系统通知】已根据您填写的学校（${teaSchool}），自动向后台【认证管理 -> 教师认证】发送指导教师资格待审核通知。`
     );
     onAddAuditLog({
       operator: user.username,
@@ -3501,46 +3927,48 @@ export const StandaloneUserCenterPage: React.FC<{
   const isRealNameVerified = user.realNameStatus === 'verified';
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
-      {/* 顶部栏 */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+    <div className="flex-1 flex flex-col bg-[#F8FAFC] text-[#0F172A]">
+      {/* 个人中心面包屑与快捷信息栏（顶部已展示平台主导航栏） */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs sm:text-sm">
             <button
               type="button"
               onClick={onBackHome}
-              className="flex items-center gap-2 text-sm font-bold text-[#0284C7] hover:text-[#0369A1] cursor-pointer"
+              className="flex items-center gap-1.5 font-bold text-[#1664FF] hover:text-[#0E4FD6] cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>返回大赛官网首页</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>返回大赛首页</span>
             </button>
-            <span className="text-slate-300">|</span>
-            <span className="text-base font-extrabold text-slate-900">
-              个人中心 —{' '}
+            <span className="text-slate-300">/</span>
+            <span className="font-bold text-slate-800">
+              个人中心 &rsaquo;{' '}
               {activeTab === 'profile'
                 ? '个人信息'
                 : activeTab === 'certification'
                 ? '用户认证'
                 : activeTab === 'registrations'
                 ? '我的报名'
-                : '我的竞赛'}
+                : activeTab === 'competitions'
+                ? '我的竞赛'
+                : '我的消息'}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-600">
-              当前账号：<strong>{user.username}</strong>
+            <span className="text-xs text-slate-500">
+              当前登录账号：<strong className="text-slate-800">{user.username}</strong>
             </span>
             <button
               type="button"
               onClick={onLogout}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-red-50 hover:text-red-600 text-xs font-semibold text-slate-600 cursor-pointer transition-colors"
+              className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:text-red-600 text-xs font-semibold text-slate-600 cursor-pointer transition-colors"
             >
               退出登录
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* 未完成实名与学籍/教师认证时：顶部黄色引导横幅 */}
       {(!isRealNameVerified || !isAcademicVerified) && (
@@ -3606,7 +4034,10 @@ export const StandaloneUserCenterPage: React.FC<{
               {
                 id: 'registrations',
                 label: `我的报名 (${
-                  captainTeams.filter((t) => isTeamOwnedByUser(t, user)).length
+                  captainTeams.filter((t) => isTeamOwnedByUser(t, user)).length +
+                  (user.username === 'linyuanhang' || user.name === '林远航'
+                    ? participatedTeams.length
+                    : 0)
                 })`,
                 icon: FileText,
               },
@@ -3614,6 +4045,12 @@ export const StandaloneUserCenterPage: React.FC<{
                 id: 'competitions',
                 label: `我的竞赛 (${myApprovedCompetitions.length})`,
                 icon: Trophy,
+              },
+              {
+                id: 'messages',
+                label: '我的消息',
+                icon: Bell,
+                badgeCount: unreadMsgCount,
               },
             ].map((item) => {
               const Icon = item.icon;
@@ -3623,14 +4060,25 @@ export const StandaloneUserCenterPage: React.FC<{
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id as typeof activeTab)}
-                  className={`w-full px-4 py-2.5 rounded-lg text-left text-xs font-bold flex items-center gap-2.5 cursor-pointer transition-colors ${
+                  className={`w-full px-4 py-2.5 rounded-lg text-left text-xs font-bold flex items-center justify-between gap-2.5 cursor-pointer transition-colors ${
                     active
                       ? 'bg-[#0284C7] text-white'
                       : 'text-slate-700 hover:bg-sky-50 hover:text-[#0284C7]'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
+                  <span className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </span>
+                  {'badgeCount' in item && typeof item.badgeCount === 'number' && item.badgeCount > 0 && (
+                    <span
+                      className={`min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center font-mono-num ${
+                        active ? 'bg-white text-[#0284C7]' : 'bg-[#F53F3F] text-white'
+                      }`}
+                    >
+                      {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -4375,8 +4823,480 @@ export const StandaloneUserCenterPage: React.FC<{
               )}
             </div>
           )}
+
+          {/* =================================================================
+              Tab 5：我的消息（与顶部导航栏右侧铃铛按钮消息内容 100% 同步）
+             ================================================================= */}
+          {activeTab === 'messages' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+              {/* 1. 顶部区：左侧显示“我的消息”，右侧显示“未读消息：X 条” + 【全部标记为已读】文本按钮 */}
+              <div className="px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-slate-900">我的消息</h2>
+                  <span className="px-2.5 py-0.5 rounded-md bg-sky-50 border border-sky-200 text-[11px] font-semibold text-[#0284C7]">
+                    与顶部铃铛通知实时同步
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* 便捷演示开关：一键切换实名/学籍认证状态以测试点击【同意】时的未认证拦截弹窗 */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (user.isVerified && user.realNameStatus === 'verified' && user.academicStatus === 'verified') {
+                        onUpdateUser({
+                          ...user,
+                          isVerified: false,
+                          academicStatus: 'unverified',
+                        });
+                      } else {
+                        onUpdateUser({
+                          ...user,
+                          name: user.name || '林远航',
+                          university: user.university || '北京航空航天大学',
+                          majorOrDept: user.majorOrDept || '网络空间安全学院',
+                          realNameStatus: 'verified',
+                          academicStatus: 'verified',
+                          isVerified: true,
+                        });
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                      user.isVerified && user.realNameStatus === 'verified' && user.academicStatus === 'verified'
+                        ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-800'
+                        : 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-800'
+                    }`}
+                  >
+                    {user.isVerified && user.realNameStatus === 'verified' && user.academicStatus === 'verified'
+                      ? '演示测试：模拟未完成认证（测试点击【同意】弹窗拦截）'
+                      : '当前为未认证状态（点击恢复为已认证）'}
+                  </button>
+
+                  <div className="flex items-center gap-3 text-xs sm:text-sm">
+                    <span className="text-slate-600 font-medium">
+                      未读消息：
+                      <strong
+                        className={`font-mono-num font-extrabold ${
+                          unreadMsgCount > 0 ? 'text-[#F53F3F]' : 'text-slate-900'
+                        }`}
+                      >
+                        {unreadMsgCount}
+                      </strong>{' '}
+                      条
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      disabled={unreadMsgCount === 0}
+                      onClick={() => onMarkAllMessagesRead && onMarkAllMessagesRead()}
+                      className={`font-bold transition-colors ${
+                        unreadMsgCount > 0
+                          ? 'text-[#0284C7] hover:text-[#0369A1] hover:underline cursor-pointer'
+                          : 'text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      全部标记为已读
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. 分类Tab区：【全部】、【组队邀请】、【审核与反馈】、【系统通知】 + 角色视角切换 */}
+              <div className="px-6 pt-3 pb-3 bg-slate-50/70 border-b border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  {(
+                    [
+                      { id: 'all', label: '全部' },
+                      { id: 'invite', label: '组队邀请' },
+                      { id: 'review', label: '审核与反馈' },
+                      { id: 'system', label: '系统通知' },
+                    ] as const
+                  ).map((tab) => {
+                    const active = msgCategoryTab === tab.id;
+                    const catList = messages.filter((m) => {
+                      if (tab.id === 'all') return true;
+                      const resolvedCat: MessageCategoryTab =
+                        m.category ||
+                        (m.scenarioType === 'team_invite'
+                          ? 'invite'
+                          : m.scenarioType === 'removed_from_team' ||
+                            m.scenarioType === 'univ_channel_open' ||
+                            m.scenarioType === 'cert_result'
+                          ? 'system'
+                          : 'review');
+                      return resolvedCat === tab.id;
+                    });
+                    const catUnread = catList.filter((m) => m.unread).length;
+
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setMsgCategoryTab(tab.id)}
+                        className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
+                          active
+                            ? 'bg-[#0284C7] text-white shadow-2xs'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:border-[#0284C7] hover:text-[#0284C7]'
+                        }`}
+                      >
+                        <span>{tab.label}</span>
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.2 rounded-full ${
+                            active
+                              ? 'bg-white/20 text-white'
+                              : catUnread > 0
+                              ? 'bg-red-50 text-[#F53F3F] font-extrabold'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {catList.length}
+                        </span>
+                        {catUnread > 0 && !active && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#F53F3F]" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 辅助角色视角筛选（展示队长、队员/指导教师、高校管理员、秘书处、全角色通用 5 类视角） */}
+                <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                  <span className="text-slate-400 font-medium mr-1">角色场景预览：</span>
+                  {(
+                    [
+                      { id: 'all', label: '全部角色' },
+                      { id: '队长视角', label: '队长视角' },
+                      { id: '队员/指导教师视角', label: '队员/指导教师' },
+                      { id: '高校管理员视角', label: '高校管理员' },
+                      { id: '秘书处视角', label: '秘书处' },
+                      { id: '全角色通用', label: '通用系统' },
+                    ] as const
+                  ).map((rp) => {
+                    const isSelected = msgRoleFilter === rp.id;
+                    return (
+                      <button
+                        key={rp.id}
+                        type="button"
+                        onClick={() => setMsgRoleFilter(rp.id)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-semibold cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-sky-100 text-[#0284C7] border border-sky-300 font-bold'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {rp.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. 列表区：消息流横向卡片，按时间倒序排列，左中右结构 */}
+              <div className="divide-y divide-slate-100">
+                {filteredMessages.length === 0 ? (
+                  <div className="py-16 text-center text-xs sm:text-sm text-slate-400 space-y-2">
+                    <Bell className="w-8 h-8 text-slate-300 mx-auto stroke-[1.5]" />
+                    <div>当前分类下暂无消息通知</div>
+                  </div>
+                ) : (
+                  filteredMessages.map((msg) => {
+                    const isUserAvatar = msg.iconStyle === 'avatar' || Boolean(msg.senderName);
+                    const resolvedAction: MessageRightActionType =
+                      msg.actionType ||
+                      (msg.scenarioType === 'team_invite'
+                        ? 'invite_actions'
+                        : msg.scenarioType === 'review_rejected'
+                        ? 'go_modify'
+                        : msg.scenarioType === 'removed_from_team'
+                        ? 'none'
+                        : msg.scenarioType === 'univ_todo' ||
+                          msg.scenarioType === 'univ_channel_open' ||
+                          msg.scenarioType === 'sec_todo'
+                        ? 'go_admin'
+                        : msg.scenarioType === 'cert_result'
+                        ? 'go_cert'
+                        : 'view_detail');
+
+                    return (
+                      <div
+                        key={msg.id}
+                        onClick={() => {
+                          if (msg.unread && onMarkMessageRead) {
+                            onMarkMessageRead(msg.id);
+                          }
+                        }}
+                        className={`px-6 py-4 flex items-center justify-between gap-4 transition-colors ${
+                          msg.unread ? 'bg-sky-50/35 hover:bg-sky-50/70' : 'bg-white hover:bg-slate-50/80'
+                        }`}
+                      >
+                        {/* 左侧头像/图标：用户交互类显示对方头像；系统/审核类显示带颜色的系统Icon */}
+                        <div className="shrink-0">
+                          {isUserAvatar ? (
+                            msg.senderAvatarUrl ? (
+                              <img
+                                src={msg.senderAvatarUrl}
+                                alt={msg.senderName || '用户头像'}
+                                className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-2xs"
+                              />
+                            ) : (
+                              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0284C7] to-[#0369A1] text-white text-sm font-extrabold flex items-center justify-center shadow-2xs">
+                                {(msg.senderName || msg.title).slice(0, 1)}
+                              </div>
+                            )
+                          ) : msg.iconStyle === 'success' ? (
+                            <div className="w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                              <CheckCircle2 className="w-5 h-5" />
+                            </div>
+                          ) : msg.iconStyle === 'error' ? (
+                            <div className="w-11 h-11 rounded-full bg-red-50 border border-red-200 text-[#F53F3F] flex items-center justify-center">
+                              <AlertTriangle className="w-5 h-5" />
+                            </div>
+                          ) : msg.iconStyle === 'warning' ? (
+                            <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center">
+                              <AlertTriangle className="w-5 h-5" />
+                            </div>
+                          ) : (
+                            <div className="w-11 h-11 rounded-full bg-sky-50 border border-sky-200 text-[#0284C7] flex items-center justify-center">
+                              <Bell className="w-5 h-5" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 中部内容：第一行标题（未读时加粗，带小红点）；第二行摘要内容（超过一行省略号截断）；第三行时间 */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          {/* 第一行：标题（未读加粗 + 小红点 + 角色/类型标签） */}
+                          <div className="flex items-center gap-2 min-w-0">
+                            {msg.unread && (
+                              <span
+                                className="w-2 h-2 rounded-full bg-[#F53F3F] shrink-0"
+                                title="未读消息"
+                              />
+                            )}
+                            <span
+                              className={`text-sm truncate ${
+                                msg.unread
+                                  ? 'font-extrabold text-slate-900'
+                                  : 'font-medium text-slate-700'
+                              }`}
+                            >
+                              {msg.title}
+                            </span>
+                            {msg.messageTypeLabel && (
+                              <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+                                {msg.messageTypeLabel}
+                              </span>
+                            )}
+                            {msg.rolePerspective && (
+                              <span className="hidden md:inline-flex px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0284C7] border border-sky-200/80 shrink-0">
+                                {msg.rolePerspective}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* 第二行：摘要内容（超过一行省略号截断） */}
+                          <p
+                            className={`text-xs sm:text-sm truncate ${
+                              msg.unread ? 'text-slate-700 font-medium' : 'text-slate-500'
+                            }`}
+                            title={msg.desc}
+                          >
+                            {msg.desc}
+                          </p>
+
+                          {/* 第三行：时间 */}
+                          <div className="text-xs text-slate-400 font-mono-num">
+                            {msg.time}
+                          </div>
+                        </div>
+
+                        {/* 右侧操作区 */}
+                        <div
+                          className="shrink-0 flex items-center gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* 1. 邀请类：未处理显示高亮主色【同意】和普通【拒绝】按钮；已处理显示灰色文字 已同意 或 已拒绝 */}
+                          {resolvedAction === 'invite_actions' && (
+                            <>
+                              {(!msg.inviteStatus || msg.inviteStatus === 'pending') ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onAcceptInviteMessage && onAcceptInviteMessage(msg)
+                                    }
+                                    className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold shadow-2xs cursor-pointer transition-colors"
+                                  >
+                                    同意
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onRejectInviteMessage && onRejectInviteMessage(msg)
+                                    }
+                                    className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold cursor-pointer transition-colors"
+                                  >
+                                    拒绝
+                                  </button>
+                                </div>
+                              ) : msg.inviteStatus === 'accepted' ? (
+                                <span className="text-xs font-semibold text-slate-400 px-2 py-1 select-none">
+                                  已同意
+                                </span>
+                              ) : (
+                                <span className="text-xs font-semibold text-slate-400 px-2 py-1 select-none">
+                                  已拒绝
+                                </span>
+                              )}
+                            </>
+                          )}
+
+                          {/* 2. 需处理类（如被驳回）：展示【去修改】按钮 */}
+                          {resolvedAction === 'go_modify' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (msg.unread && onMarkMessageRead) {
+                                  onMarkMessageRead(msg.id);
+                                }
+                                setActiveTab('registrations');
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer transition-colors"
+                            >
+                              去修改
+                            </button>
+                          )}
+
+                          {/* 3. 高校管理员 / 秘书处待办或通道开启：展示【去后台处理】按钮 */}
+                          {resolvedAction === 'go_admin' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (msg.unread && onMarkMessageRead) {
+                                  onMarkMessageRead(msg.id);
+                                }
+                                if (onGoToAdminBackend) {
+                                  onGoToAdminBackend();
+                                }
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer transition-colors"
+                            >
+                              去后台处理
+                            </button>
+                          )}
+
+                          {/* 4. 全角色通用认证结果类：展示【去查看】按钮 */}
+                          {resolvedAction === 'go_cert' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (msg.unread && onMarkMessageRead) {
+                                  onMarkMessageRead(msg.id);
+                                }
+                                setActiveTab('certification');
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-sky-50 text-[#0284C7] border border-sky-200 text-xs font-bold cursor-pointer transition-colors"
+                            >
+                              去查看
+                            </button>
+                          )}
+
+                          {/* 5. 纯通知类（除“被移出队伍”无按钮外）：展示【查看详情】文本链接 */}
+                          {resolvedAction === 'view_detail' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (msg.unread && onMarkMessageRead) {
+                                  onMarkMessageRead(msg.id);
+                                }
+                                setDetailModalMessage(msg);
+                              }}
+                              className="text-xs font-bold text-[#0284C7] hover:text-[#0369A1] hover:underline px-2 py-1 cursor-pointer transition-colors"
+                            >
+                              查看详情
+                            </button>
+                          )}
+
+                          {/* 6. 被移出队伍：无操作按钮（纯通知） */}
+                          {resolvedAction === 'none' && null}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* =====================================================================
+          弹窗：【我的消息 -> 查看详情】消息全文与关联业务跳转弹窗
+         ===================================================================== */}
+      {detailModalMessage && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4" />
+                <span className="font-bold text-sm">
+                  消息详情{detailModalMessage.messageTypeLabel ? ` · ${detailModalMessage.messageTypeLabel}` : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailModalMessage(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                <h3 className="text-base font-extrabold text-slate-900">
+                  {detailModalMessage.title}
+                </h3>
+                <span className="text-xs text-slate-400 font-mono-num shrink-0">
+                  {detailModalMessage.time}
+                </span>
+              </div>
+              {detailModalMessage.rolePerspective && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-500">触发角色场景：</span>
+                  <span className="px-2 py-0.5 rounded bg-sky-50 border border-sky-200 text-[#0284C7] font-bold">
+                    {detailModalMessage.rolePerspective}
+                  </span>
+                </div>
+              )}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                {detailModalMessage.desc}
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDetailModalMessage(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
+                >
+                  关闭
+                </button>
+                {(detailModalMessage.relatedCaptainTeamId ||
+                  detailModalMessage.relatedParticipatedTeamId ||
+                  detailModalMessage.category === 'review') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetailModalMessage(null);
+                      setActiveTab('registrations');
+                    }}
+                    className="px-4 py-2 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer"
+                  >
+                    前往【我的报名】查看队伍 &rarr;
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =====================================================================
           抽屉/弹窗：【我的竞赛 -> 查看队伍详情】（只读展示报名成功时的基本信息快照）

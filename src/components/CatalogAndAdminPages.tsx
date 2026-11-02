@@ -60,12 +60,23 @@ import {
   AdminInstitutionManagement,
   AdminNewsManagement,
   AdminMomentsManagement,
+  AdminNoticesManagement,
+  AdminVerificationManagement,
   type InstitutionRecord,
   type ManagedNewsItem,
   type ManagedMomentItem,
+  type ManagedNoticeItem,
+  type VerificationApplicationRecord,
 } from './InstitutionAndContentManagement';
 import { AdminUserManagement } from './AdminUserManagement';
-import { Settings, UserCog } from 'lucide-react';
+import {
+  Settings,
+  UserCog,
+  Volume2,
+  ShieldCheck,
+  GraduationCap,
+  UserCheck,
+} from 'lucide-react';
 
 // ============================================================================
 // 通用组件 1：赛事封面渲染器（支持自定义图片 URL / 本地上传 Base64 或内置 SVG 视觉封面）
@@ -857,6 +868,14 @@ interface AdminDashboardPageProps {
   onUpdateManagedNews: React.Dispatch<React.SetStateAction<ManagedNewsItem[]>>;
   managedMoments: ManagedMomentItem[];
   onUpdateManagedMoments: React.Dispatch<React.SetStateAction<ManagedMomentItem[]>>;
+  managedNotices: ManagedNoticeItem[];
+  onUpdateManagedNotices: React.Dispatch<React.SetStateAction<ManagedNoticeItem[]>>;
+  verificationRecords: VerificationApplicationRecord[];
+  onUpdateVerificationRecords: React.Dispatch<
+    React.SetStateAction<VerificationApplicationRecord[]>
+  >;
+  onApproveVerificationSync?: (record: VerificationApplicationRecord) => void;
+  onRejectVerificationSync?: (record: VerificationApplicationRecord, reason: string) => void;
   onAddAuditLog: (entry: Omit<AuditLogEntry, 'id' | 'time'>) => void;
   onSendSystemNotification: (title: string, desc: string) => void;
   onBackToFrontend: () => void;
@@ -881,6 +900,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   onUpdateManagedNews,
   managedMoments,
   onUpdateManagedMoments,
+  managedNotices,
+  onUpdateManagedNotices,
+  verificationRecords,
+  onUpdateVerificationRecords,
+  onApproveVerificationSync,
+  onRejectVerificationSync,
   onAddAuditLog,
   onSendSystemNotification,
   onBackToFrontend,
@@ -907,11 +932,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const [activeMenu, setActiveMenu] = useState<
     | 'competitions'
     | 'registrations'
+    | 'verify-student'
+    | 'verify-teacher'
     | 'institutions'
     | 'users'
+    | 'content-announcements'
     | 'content-news'
     | 'content-moments'
   >(initialDetectedRole === 'school_admin' ? 'registrations' : 'competitions');
+  const [verifyMenuExpanded, setVerifyMenuExpanded] = useState<boolean>(true);
   const [contentMenuExpanded, setContentMenuExpanded] = useState<boolean>(true);
   const [systemMenuExpanded, setSystemMenuExpanded] = useState<boolean>(true);
   const [subView, setSubView] = useState<'list' | 'form'>('list');
@@ -1249,24 +1278,24 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const previewStatusLabel = getCompetitionStatusLabel(previewCalcStatus);
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-900 flex flex-col lg:flex-row">
-      {/* 左侧导航栏（Sidebar） */}
-      <aside className="w-full lg:w-64 xl:w-72 bg-[#072A47] text-white shrink-0 flex flex-col justify-between border-r border-slate-800">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col lg:flex-row">
+      {/* 左侧导航栏（Sidebar - 统一浅色工作台风格） */}
+      <aside className="w-full lg:w-64 xl:w-72 bg-white text-slate-800 shrink-0 flex flex-col justify-between border-r border-slate-200/90 shadow-2xs">
         <div>
           {/* 后台品牌 Header */}
-          <div className="h-16 px-5 flex items-center gap-3 border-b border-white/10">
+          <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-200/80 bg-gradient-to-r from-sky-50/70 to-white">
             <div className="w-9 h-9 rounded-xl bg-[#0284C7] flex items-center justify-center text-white shadow-xs">
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-sm font-extrabold tracking-tight text-white">“XX杯”运营管理后台</div>
-              <div className="text-[11px] text-sky-300/80">赛事与内容配置中心</div>
+              <div className="text-sm font-extrabold tracking-tight text-slate-900">“XX杯”运营管理后台</div>
+              <div className="text-[11px] font-medium text-slate-500">赛事与内容配置中心</div>
             </div>
           </div>
 
           {/* 导航菜单列表（高校管理员权限隔离：左侧菜单仅显示【报名管理】菜单） */}
           <div className="p-4 space-y-1.5">
-            <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-sky-300/60">
+            <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               {adminRole === 'school_admin'
                 ? '高校管理员专属工作台'
                 : '核心业务管理'}
@@ -1282,14 +1311,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
                   activeMenu === 'competitions'
                     ? 'bg-[#0284C7] text-white shadow-xs'
-                    : 'text-sky-100/80 hover:bg-white/10'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 <span className="flex items-center gap-2.5">
                   <LayoutDashboard className="w-4 h-4" />
                   <span>赛事管理</span>
                 </span>
-                <span className="text-xs font-mono-num bg-white/20 px-2 py-0.5 rounded-md">
+                <span
+                  className={`text-xs font-mono-num px-2 py-0.5 rounded-md ${
+                    activeMenu === 'competitions'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                  }`}
+                >
                   {competitions.length}
                 </span>
               </button>
@@ -1303,58 +1338,179 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
                 activeMenu === 'registrations' || adminRole === 'school_admin'
                   ? 'bg-[#0284C7] text-white shadow-xs'
-                  : 'text-sky-100/80 hover:bg-white/10'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               <span className="flex items-center gap-2.5">
                 <Users className="w-4 h-4" />
                 <span>报名管理</span>
               </span>
-              <span className="text-xs font-mono-num bg-white/20 px-2 py-0.5 rounded-md">
+              <span
+                className={`text-xs font-mono-num px-2 py-0.5 rounded-md ${
+                  activeMenu === 'registrations' || adminRole === 'school_admin'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                }`}
+              >
                 {registrationConfigs.length}
               </span>
             </button>
 
             {adminRole !== 'school_admin' && (
               <>
-                {/* 内容管理（含二级子菜单：赛事新闻、赛事动态） */}
+                {/* 认证管理（报名管理后新增一级菜单，含二级子菜单：学生认证、教师认证） */}
                 <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setVerifyMenuExpanded((v) => !v)}
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      activeMenu === 'verify-student' || activeMenu === 'verify-teacher'
+                        ? 'bg-sky-50 text-[#0284C7] border border-sky-200/80'
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <ShieldCheck className="w-4 h-4 text-[#0284C7]" />
+                      <span>认证管理</span>
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform ${
+                        verifyMenuExpanded ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {verifyMenuExpanded && (
+                    <div className="mt-1.5 ml-4 pl-3 border-l-2 border-slate-200 space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenu('verify-student')}
+                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                          activeMenu === 'verify-student'
+                            ? 'bg-[#0284C7] text-white shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <GraduationCap className="w-3.5 h-3.5" />
+                          <span>学生认证</span>
+                        </span>
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'verify-student'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
+                          {
+                            verificationRecords.filter(
+                              (r) => r.applicantType === 'student'
+                            ).length
+                          }
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenu('verify-teacher')}
+                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                          activeMenu === 'verify-teacher'
+                            ? 'bg-[#0284C7] text-white shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <UserCheck className="w-3.5 h-3.5" />
+                          <span>教师认证</span>
+                        </span>
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'verify-teacher'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
+                          {
+                            verificationRecords.filter(
+                              (r) => r.applicantType === 'teacher'
+                            ).length
+                          }
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 内容管理（含二级子菜单：通知公告、赛事新闻、赛事动态） */}
+                <div className="pt-1">
                   <button
                     type="button"
                     onClick={() => setContentMenuExpanded((v) => !v)}
                     className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                      activeMenu === 'content-news' || activeMenu === 'content-moments'
-                        ? 'bg-white/15 text-white'
-                        : 'text-sky-100/80 hover:bg-white/10'
+                      activeMenu === 'content-announcements' ||
+                      activeMenu === 'content-news' ||
+                      activeMenu === 'content-moments'
+                        ? 'bg-sky-50 text-[#0284C7] border border-sky-200/80'
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <span className="flex items-center gap-2.5">
-                      <BookOpen className="w-4 h-4" />
+                      <BookOpen className="w-4 h-4 text-[#0284C7]" />
                       <span>内容管理</span>
                     </span>
                     <ChevronDown
-                      className={`w-4 h-4 transition-transform ${
+                      className={`w-4 h-4 text-slate-400 transition-transform ${
                         contentMenuExpanded ? 'rotate-180' : ''
                       }`}
                     />
                   </button>
 
                   {contentMenuExpanded && (
-                    <div className="mt-1.5 ml-4 pl-3 border-l border-white/15 space-y-1">
+                    <div className="mt-1.5 ml-4 pl-3 border-l-2 border-slate-200 space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenu('content-announcements')}
+                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                          activeMenu === 'content-announcements'
+                            ? 'bg-[#0284C7] text-white shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Volume2 className="w-3.5 h-3.5" />
+                          <span>通知公告</span>
+                        </span>
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'content-announcements'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
+                          {managedNotices.length}
+                        </span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setActiveMenu('content-news')}
                         className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
                           activeMenu === 'content-news'
                             ? 'bg-[#0284C7] text-white shadow-xs'
-                            : 'text-sky-100/75 hover:bg-white/10 hover:text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                       >
                         <span className="flex items-center gap-2">
                           <FileText className="w-3.5 h-3.5" />
                           <span>赛事新闻</span>
                         </span>
-                        <span className="text-[11px] font-mono-num bg-white/20 px-1.5 py-0.5 rounded">
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'content-news'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
                           {managedNews.length}
                         </span>
                       </button>
@@ -1365,14 +1521,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
                           activeMenu === 'content-moments'
                             ? 'bg-[#0284C7] text-white shadow-xs'
-                            : 'text-sky-100/75 hover:bg-white/10 hover:text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                       >
                         <span className="flex items-center gap-2">
                           <Video className="w-3.5 h-3.5" />
                           <span>赛事动态</span>
                         </span>
-                        <span className="text-[11px] font-mono-num bg-white/20 px-1.5 py-0.5 rounded">
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'content-moments'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
                           {managedMoments.length}
                         </span>
                       </button>
@@ -1387,37 +1549,43 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     onClick={() => setSystemMenuExpanded((v) => !v)}
                     className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
                       activeMenu === 'institutions' || activeMenu === 'users'
-                        ? 'bg-white/15 text-white'
-                        : 'text-sky-100/80 hover:bg-white/10'
+                        ? 'bg-sky-50 text-[#0284C7] border border-sky-200/80'
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     <span className="flex items-center gap-2.5">
-                      <Settings className="w-4 h-4" />
+                      <Settings className="w-4 h-4 text-[#0284C7]" />
                       <span>系统管理</span>
                     </span>
                     <ChevronDown
-                      className={`w-4 h-4 transition-transform ${
+                      className={`w-4 h-4 text-slate-400 transition-transform ${
                         systemMenuExpanded ? 'rotate-180' : ''
                       }`}
                     />
                   </button>
 
                   {systemMenuExpanded && (
-                    <div className="mt-1.5 ml-4 pl-3 border-l border-white/15 space-y-1">
+                    <div className="mt-1.5 ml-4 pl-3 border-l-2 border-slate-200 space-y-1">
                       <button
                         type="button"
                         onClick={() => setActiveMenu('institutions')}
                         className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
                           activeMenu === 'institutions'
                             ? 'bg-[#0284C7] text-white shadow-xs'
-                            : 'text-sky-100/75 hover:bg-white/10 hover:text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                       >
                         <span className="flex items-center gap-2">
                           <Building2 className="w-3.5 h-3.5" />
                           <span>院校管理</span>
                         </span>
-                        <span className="text-[11px] font-mono-num bg-white/20 px-1.5 py-0.5 rounded">
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'institutions'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
                           {institutions.length}
                         </span>
                       </button>
@@ -1428,14 +1596,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
                           activeMenu === 'users'
                             ? 'bg-[#0284C7] text-white shadow-xs'
-                            : 'text-sky-100/75 hover:bg-white/10 hover:text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                       >
                         <span className="flex items-center gap-2">
                           <UserCog className="w-3.5 h-3.5" />
                           <span>用户管理</span>
                         </span>
-                        <span className="text-[11px] font-mono-num bg-white/20 px-1.5 py-0.5 rounded">
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'users'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
                           {platformUsers.filter((u) => !u.isDeleted).length}
                         </span>
                       </button>
@@ -1447,18 +1621,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           </div>
         </div>
 
-        {/* 底部管理员信息与返回前台按钮 */}
-        <div className="p-4 border-t border-white/10 space-y-3 bg-[#051E34]">
+        {/* 底部管理员信息与返回前台按钮（浅色工作台底栏） */}
+        <div className="p-4 border-t border-slate-200/90 space-y-3 bg-slate-50/80">
           <div className="px-2 space-y-1 text-xs">
-            <div className="text-sky-200/70">当前登录身份：</div>
-            <div className="font-bold text-white leading-snug">
+            <div className="text-slate-500 font-medium">当前登录身份：</div>
+            <div className="font-extrabold text-slate-900 leading-snug">
               {effectiveAdminDisplayName}
             </div>
           </div>
           <button
             type="button"
             onClick={onBackToFrontend}
-            className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center justify-center gap-2 border border-white/15 transition-colors cursor-pointer"
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-sky-50 text-slate-700 hover:text-[#0284C7] text-xs font-bold flex items-center justify-center gap-2 border border-slate-200/90 shadow-2xs transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>返回前台官网</span>
@@ -1497,6 +1671,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </>
                 )}
               </>
+            ) : activeMenu === 'verify-student' ? (
+              <span className="font-bold text-slate-900">
+                认证管理 &rsaquo; 学生认证（学籍证明材料人工审核）
+              </span>
+            ) : activeMenu === 'verify-teacher' ? (
+              <span className="font-bold text-slate-900">
+                认证管理 &rsaquo; 教师认证（指导教师资格材料人工审核）
+              </span>
             ) : activeMenu === 'institutions' ? (
               <span className="font-bold text-slate-900">
                 系统管理 &rsaquo; 院校管理（教育部标准高校库与学籍认证控制）
@@ -1505,6 +1687,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               <span className="font-bold text-slate-900">
                 系统管理 &rsaquo; 用户管理（角色互斥与叠加 · 账号过期与导入导出）
               </span>
+            ) : activeMenu === 'content-announcements' ? (
+              <span className="font-bold text-slate-900">内容管理 &rsaquo; 通知公告</span>
             ) : activeMenu === 'content-news' ? (
               <span className="font-bold text-slate-900">内容管理 &rsaquo; 赛事新闻</span>
             ) : (
@@ -1629,6 +1813,26 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               onSendSystemNotification={onSendSystemNotification}
               onToast={showToast}
             />
+          ) : activeMenu === 'verify-student' ? (
+            <AdminVerificationManagement
+              applicantType="student"
+              records={verificationRecords}
+              onChangeRecords={onUpdateVerificationRecords}
+              institutions={institutions}
+              reviewerName={effectiveAdminDisplayName}
+              onApproveSyncUser={onApproveVerificationSync}
+              onRejectSyncUser={onRejectVerificationSync}
+            />
+          ) : activeMenu === 'verify-teacher' ? (
+            <AdminVerificationManagement
+              applicantType="teacher"
+              records={verificationRecords}
+              onChangeRecords={onUpdateVerificationRecords}
+              institutions={institutions}
+              reviewerName={effectiveAdminDisplayName}
+              onApproveSyncUser={onApproveVerificationSync}
+              onRejectSyncUser={onRejectVerificationSync}
+            />
           ) : activeMenu === 'institutions' ? (
             <AdminInstitutionManagement
               institutions={institutions}
@@ -1649,6 +1853,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               currentAdminDisplayName={effectiveAdminDisplayName}
               auditLogs={auditLogs}
               onAddAuditLog={onAddAuditLog}
+            />
+          ) : activeMenu === 'content-announcements' ? (
+            <AdminNoticesManagement
+              noticesList={managedNotices}
+              onChangeNoticesList={onUpdateManagedNotices}
             />
           ) : activeMenu === 'content-news' ? (
             <AdminNewsManagement
@@ -2505,7 +2714,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         value={formMarkdown}
                         onChange={(e) => setFormMarkdown(e.target.value)}
                         placeholder="请输入 Markdown 格式的赛事介绍..."
-                        className="w-full p-4 font-mono-num text-xs leading-relaxed bg-slate-900 text-slate-100 rounded-xl border border-slate-800 focus:border-[#0284C7] focus:outline-none"
+                        className="w-full p-4 font-mono-num text-xs leading-relaxed bg-slate-50 text-slate-900 rounded-xl border border-slate-200 focus:bg-white focus:border-[#0284C7] focus:outline-none"
                       />
                     </div>
                   )}
@@ -2548,15 +2757,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       {viewingCompetitionDetail && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full overflow-hidden shadow-2xl my-8">
-            <div className="px-6 py-4 bg-gradient-to-r from-[#072A47] to-[#0284C7] text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
-                <div className="text-xs text-sky-200">赛事管理 · 详情视图</div>
-                <h3 className="text-base font-extrabold">{viewingCompetitionDetail.title}</h3>
+                <div className="text-xs font-bold text-[#0284C7]">赛事管理 · 详情视图</div>
+                <h3 className="text-base font-extrabold text-slate-900 mt-0.5">{viewingCompetitionDetail.title}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setViewingCompetitionDetail(null)}
-                className="text-white/80 hover:text-white cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
