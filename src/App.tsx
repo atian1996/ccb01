@@ -63,7 +63,6 @@ import {
   type LeadershipOrg,
 } from './data/competitionData';
 import {
-  BannerIllustration,
   TrackCoverIllustration,
   FeaturedNewsIllustration,
   MomentCardVisual,
@@ -544,7 +543,6 @@ export default function App() {
   // --- Module 1: Banner Carousel State ---
   const [currentBannerIdx, setCurrentBannerIdx] = useState(0);
   const [bannerPaused, setBannerPaused] = useState(false);
-  const [countdown, setCountdown] = useState({ days: 18, hours: 14, minutes: 36, seconds: 42 });
 
   useEffect(() => {
     if (bannerPaused) return;
@@ -553,18 +551,6 @@ export default function App() {
     }, 5500);
     return () => clearInterval(timer);
   }, [bannerPaused]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return { days: Math.max(0, prev.days - 1), hours: 23, minutes: 59, seconds: 59 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // --- Module 4: Moments Carousel & Category Tab State（联动后台内容管理 -> 赛事动态已发布数据，默认展示进展报道） ---
   const [activeMomentTab, setActiveMomentTab] = useState<MomentCategory>('进展报道');
@@ -1828,121 +1814,12 @@ export default function App() {
                     isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                   }`}
                 >
-                  <BannerIllustration theme={slide.visualTheme} />
-
-                  <div className="relative z-20 max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
-                    <div className="max-w-2xl">
-                      {/* 顶部科技装饰条与赛事周期标识 */}
-                      <div className="mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="w-10 h-1.5 rounded-full bg-[#1664FF]" />
-                          <span className="text-xs font-bold text-[#1664FF] tracking-wider">
-                            {slide.kicker}
-                          </span>
-                          <span className="text-xs font-mono-num text-[#1D4ED8]/75">
-                            ({slide.displayPeriod})
-                          </span>
-                        </div>
-                        <div className="w-64 sm:w-80 h-2.5 border-t-2 border-l-2 border-r-2 border-[#4B94FF]/60" />
-                      </div>
-
-                      {/* 3D 立体冰蓝大标题 */}
-                      <div className="space-y-1 mb-3">
-                        <div
-                          className="text-4xl sm:text-5xl lg:text-[56px] font-black tracking-wider leading-[1.08] bg-gradient-to-b from-[#093687] via-[#1664FF] to-[#2B7BFF] bg-clip-text text-transparent"
-                          style={{
-                            filter: 'drop-shadow(0 3px 0 rgba(255,255,255,0.95)) drop-shadow(0 8px 16px rgba(22,100,255,0.18))',
-                          }}
-                        >
-                          “XX杯”
-                        </div>
-                        <h1
-                          className="text-3xl sm:text-5xl lg:text-[54px] font-black tracking-wide leading-[1.12] bg-gradient-to-b from-[#0A3B8C] via-[#1664FF] to-[#3B82F6] bg-clip-text text-transparent"
-                          style={{
-                            filter: 'drop-shadow(0 3px 0 rgba(255,255,255,0.95)) drop-shadow(0 8px 16px rgba(22,100,255,0.18))',
-                          }}
-                        >
-                          网数智安全大赛
-                        </h1>
-                      </div>
-
-                      {/* 英文全称装饰副标 */}
-                      <div className="text-[10px] sm:text-xs font-extrabold tracking-[0.26em] text-[#1D4ED8] uppercase mb-3">
-                        GREAT WALL CUP CYBER SECURITY COMPETITION
-                      </div>
-
-                      {/* 当前轮播页核心说明文字 */}
-                      <p className="text-xs sm:text-sm text-[#1E3A8A]/85 font-medium line-clamp-2 max-w-xl mb-4">
-                        {slide.title} —— {slide.subtitle}
-                      </p>
-
-                      {slide.visualTheme === 'countdown' && (
-                        <div
-                          className="inline-flex items-center gap-2.5 mb-4 px-3.5 py-1.5 rounded-lg bg-white/75 backdrop-blur-xs border border-blue-200 shadow-2xs"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span className="text-xs font-bold text-[#0D3B8C]">距初赛报名截止：</span>
-                          <div className="flex items-center gap-1 font-mono-num text-xs">
-                            <span className="bg-[#1664FF] text-white px-2 py-0.5 rounded font-bold">
-                              {String(countdown.days).padStart(2, '0')}天
-                            </span>
-                            <span className="text-[#1664FF] font-bold">:</span>
-                            <span className="bg-[#1664FF] text-white px-2 py-0.5 rounded font-bold">
-                              {String(countdown.hours).padStart(2, '0')}时
-                            </span>
-                            <span className="text-[#1664FF] font-bold">:</span>
-                            <span className="bg-[#1664FF] text-white px-2 py-0.5 rounded font-bold">
-                              {String(countdown.minutes).padStart(2, '0')}分
-                            </span>
-                            <span className="text-[#1664FF] font-bold">:</span>
-                            <span className="bg-[#0958D9] text-white px-2 py-0.5 rounded font-bold">
-                              {String(countdown.seconds).padStart(2, '0')}秒
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 底部口号横幅 + 快捷操作按钮 */}
-                      <div className="flex flex-wrap items-center gap-4">
-                        <div className="inline-flex items-center gap-2.5 text-sm sm:text-lg font-extrabold text-[#15459E] tracking-wider">
-                          <span className="text-[#4B94FF] font-black tracking-tighter">&lt;&lt;</span>
-                          <span>守护网络安全</span>
-                          <span>筑牢安全防线</span>
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1664FF]/15 text-[#1664FF]">
-                            <Shield className="w-3.5 h-3.5 fill-[#1664FF]/30" />
-                          </span>
-                          <span className="text-[#4B94FF] font-black tracking-tighter">&gt;&gt;</span>
-                        </div>
-
-                        <div
-                          className="flex items-center gap-2.5"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleBannerAction(slide)}
-                            className="px-4 py-1.5 text-xs font-bold text-white bg-[#1664FF] hover:bg-[#0E4FD6] rounded-full shadow-xs transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <span>{slide.ctaText}</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                          {slide.secondaryCtaText && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setInitialSelectedNoticeId(NOTICE_ITEMS[0].id);
-                                setCurrentView('notice-detail');
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                              className="px-3.5 py-1.5 text-xs font-semibold text-[#1664FF] bg-white/85 hover:bg-white border border-blue-200 rounded-full transition-colors cursor-pointer"
-                            >
-                              {slide.secondaryCtaText}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <img
+                    src={slide.imageUrl}
+                    alt={slide.title}
+                    draggable={false}
+                    className="w-full h-full object-cover block"
+                  />
                 </div>
               );
             })}

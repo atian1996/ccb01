@@ -9,7 +9,7 @@ export interface BannerSlide {
   targetId: string;
   visualTheme: 'summit' | 'countdown' | 'ai_track' | 'finals';
   displayPeriod: string;
-  countdownTarget?: string;
+  imageUrl: string;
 }
 
 export interface CompetitionTrack {
@@ -233,6 +233,222 @@ export interface RegistrationSubmission {
   status: '已通过初审' | '资格审核中';
 }
 
+const createStaticBannerDataUri = (svgContent: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(svgContent)}`;
+
+const BANNER_POSTER_1 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EBF3FF" />
+      <stop offset="50%" stop-color="#D7E8FF" />
+      <stop offset="100%" stop-color="#C2DCFF" />
+    </linearGradient>
+    <linearGradient id="titleGrad1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#093687" />
+      <stop offset="55%" stop-color="#1664FF" />
+      <stop offset="100%" stop-color="#2B7BFF" />
+    </linearGradient>
+    <linearGradient id="shieldOuter1" x1="1180" y1="60" x2="1520" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="50%" stop-color="#B8D8FF" />
+      <stop offset="100%" stop-color="#5B9EFF" />
+    </linearGradient>
+    <linearGradient id="shieldCore1" x1="1220" y1="95" x2="1480" y2="345" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2B7BFF" />
+      <stop offset="55%" stop-color="#0E4FD6" />
+      <stop offset="100%" stop-color="#082E85" />
+    </linearGradient>
+    <radialGradient id="glow1" cx="72%" cy="52%" r="40%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.92" />
+      <stop offset="50%" stop-color="#85B8FF" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#DCEBFF" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="460" fill="url(#bg1)" />
+  <ellipse cx="1380" cy="240" rx="560" ry="250" fill="url(#glow1)" />
+  <g stroke="#3B82F6" stroke-opacity="0.16" stroke-width="1.5">
+    <line x1="0" y1="360" x2="1920" y2="360" />
+    <line x1="0" y1="405" x2="1920" y2="405" />
+    <line x1="0" y1="445" x2="1920" y2="445" />
+    <line x1="960" y1="310" x2="680" y2="460" />
+    <line x1="1120" y1="310" x2="980" y2="460" />
+    <line x1="1280" y1="310" x2="1280" y2="460" />
+    <line x1="1440" y1="310" x2="1580" y2="460" />
+    <line x1="1600" y1="310" x2="1880" y2="460" />
+  </g>
+  <g transform="translate(960, 20)">
+    <g opacity="0.88">
+      <polygon points="80,220 125,195 170,220 125,245" fill="#F0F7FF" stroke="#85B8FF" stroke-width="1.5" />
+      <polygon points="80,220 125,245 125,310 80,285" fill="#CFE4FF" />
+      <polygon points="170,220 125,245 125,310 170,285" fill="#9EC5FF" />
+    </g>
+    <g opacity="0.92">
+      <polygon points="620,160 675,130 730,160 675,190" fill="#F5FAFF" stroke="#85B8FF" stroke-width="1.5" />
+      <polygon points="620,160 675,190 675,295 620,265" fill="#D4E7FF" />
+      <polygon points="730,160 675,190 675,295 730,265" fill="#9EC5FF" />
+    </g>
+    <ellipse cx="390" cy="365" rx="250" ry="52" fill="#9EC5FF" fill-opacity="0.45" stroke="#FFFFFF" stroke-width="2" />
+    <ellipse cx="390" cy="350" rx="205" ry="40" fill="#D6E8FF" stroke="#FFFFFF" stroke-width="2.5" />
+    <ellipse cx="390" cy="336" rx="155" ry="28" fill="#69A7FF" fill-opacity="0.35" stroke="#3B82F6" stroke-width="1.5" />
+    <path d="M390 42 L525 92 V202 C525 292 465 348 390 382 C315 348 255 292 255 202 V92 Z" fill="url(#shieldOuter1)" stroke="#FFFFFF" stroke-width="4" />
+    <path d="M390 64 L503 106 V200 C503 274 452 322 390 352 C328 322 277 274 277 200 V106 Z" fill="url(#shieldCore1)" stroke="#7CC0FF" stroke-width="2" />
+    <rect x="358" y="182" width="64" height="52" rx="10" fill="#E8F3FF" stroke="#FFFFFF" stroke-width="2" />
+    <path d="M372 182 V162 C372 150 380 142 390 142 C400 142 408 150 408 162 V182" stroke="#E8F3FF" stroke-width="8" stroke-linecap="round" fill="none" />
+    <circle cx="390" cy="203" r="6" fill="#0E4FD6" />
+    <path d="M390 209 V221" stroke="#0E4FD6" stroke-width="4" stroke-linecap="round" />
+  </g>
+  <g transform="translate(240, 82)">
+    <rect x="0" y="0" width="44" height="6" rx="3" fill="#1664FF" />
+    <text x="56" y="8" fill="#1664FF" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700" letter-spacing="1.5">2026年度国家级高水平数字安全赛事 · 全面启动</text>
+    <path d="M0 24 H340 V34" stroke="#4B94FF" stroke-opacity="0.65" stroke-width="2" fill="none" />
+    <text x="0" y="106" fill="url(#titleGrad1)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="64" font-weight="900" letter-spacing="4">“XX杯”</text>
+    <text x="0" y="182" fill="url(#titleGrad1)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="60" font-weight="900" letter-spacing="3">网数智安全大赛</text>
+    <text x="2" y="222" fill="#1D4ED8" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" font-weight="800" letter-spacing="5">GREAT WALL CUP CYBER SECURITY COMPETITION</text>
+    <text x="2" y="272" fill="#15459E" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="800" letter-spacing="3">&lt;&lt;  守护网络安全 · 筑牢安全防线  &gt;&gt;</text>
+  </g>
+</svg>`);
+
+const BANNER_POSTER_2 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E4F0FF" />
+      <stop offset="50%" stop-color="#CCE2FF" />
+      <stop offset="100%" stop-color="#B3D4FF" />
+    </linearGradient>
+    <linearGradient id="titleGrad2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#082F78" />
+      <stop offset="55%" stop-color="#1358E8" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="arenaCore2" x1="1200" y1="80" x2="1520" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="100%" stop-color="#092768" />
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="460" fill="url(#bg2)" />
+  <g stroke="#2563EB" stroke-opacity="0.14" stroke-width="1.5">
+    <line x1="0" y1="115" x2="1920" y2="115" />
+    <line x1="0" y1="230" x2="1920" y2="230" />
+    <line x1="0" y1="345" x2="1920" y2="345" />
+    <line x1="480" y1="0" x2="480" y2="460" />
+    <line x1="960" y1="0" x2="960" y2="460" />
+    <line x1="1440" y1="0" x2="1440" y2="460" />
+  </g>
+  <g transform="translate(1020, 35)">
+    <circle cx="340" cy="195" r="175" fill="#FFFFFF" fill-opacity="0.55" stroke="#60A5FA" stroke-width="2" stroke-dasharray="10 6" />
+    <circle cx="340" cy="195" r="135" fill="url(#arenaCore2)" stroke="#93C5FD" stroke-width="3" />
+    <polygon points="340,92 430,144 430,246 340,298 250,246 250,144" fill="#1E40AF" stroke="#60A5FA" stroke-width="2.5" />
+    <text x="340" y="188" text-anchor="middle" fill="#FFFFFF" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="34" font-weight="900" letter-spacing="3">CTF + AWD</text>
+    <text x="340" y="224" text-anchor="middle" fill="#93C5FD" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="16" font-weight="700" letter-spacing="2">实网攻防对抗靶场</text>
+    <rect x="80" y="70" width="145" height="64" rx="12" fill="#FFFFFF" fill-opacity="0.88" stroke="#60A5FA" stroke-width="2" />
+    <text x="152" y="98" text-anchor="middle" fill="#0F3C96" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="800">夺旗挑战赛</text>
+    <text x="152" y="120" text-anchor="middle" fill="#2563EB" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="12" font-weight="700">48小时线上选拔</text>
+    <rect x="460" y="255" width="160" height="64" rx="12" fill="#FFFFFF" fill-opacity="0.88" stroke="#60A5FA" stroke-width="2" />
+    <text x="540" y="283" text-anchor="middle" fill="#0F3C96" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="800">AWD Plus 决赛</text>
+    <text x="540" y="305" text-anchor="middle" fill="#2563EB" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="12" font-weight="700">漏洞挖掘与加固防御</text>
+  </g>
+  <g transform="translate(240, 82)">
+    <rect x="0" y="0" width="44" height="6" rx="3" fill="#1664FF" />
+    <text x="56" y="8" fill="#1664FF" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700" letter-spacing="1.5">网络安全攻防实战赛 · 核心主赛道火热报名中</text>
+    <path d="M0 24 H340 V34" stroke="#4B94FF" stroke-opacity="0.65" stroke-width="2" fill="none" />
+    <text x="0" y="106" fill="url(#titleGrad2)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="58" font-weight="900" letter-spacing="3">网络安全攻防实战赛</text>
+    <text x="0" y="178" fill="url(#titleGrad2)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="46" font-weight="900" letter-spacing="2">CTF夺旗挑战 + AWD Plus对抗</text>
+    <text x="2" y="222" fill="#1D4ED8" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" font-weight="800" letter-spacing="4">NATIONAL COLLEGE CYBER DEFENSE ARENA 2026</text>
+    <text x="2" y="272" fill="#15459E" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="800" letter-spacing="3">&lt;&lt;  以赛促学 · 锤炼实战化网安精英战队  &gt;&gt;</text>
+  </g>
+</svg>`);
+
+const BANNER_POSTER_3 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E6F4FF" />
+      <stop offset="50%" stop-color="#CDE8FF" />
+      <stop offset="100%" stop-color="#B6DCFF" />
+    </linearGradient>
+    <linearGradient id="titleGrad3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#073980" />
+      <stop offset="55%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#1664FF" />
+    </linearGradient>
+    <linearGradient id="cubeTop3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#BAE6FD" />
+    </linearGradient>
+    <linearGradient id="cubeLeft3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#0C4A6E" />
+    </linearGradient>
+    <linearGradient id="cubeRight3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#0369A1" />
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="460" fill="url(#bg3)" />
+  <g transform="translate(1030, 35)">
+    <ellipse cx="330" cy="345" rx="230" ry="44" fill="#7DD3FC" fill-opacity="0.4" stroke="#FFFFFF" stroke-width="2" />
+    <polygon points="330,65 460,135 330,205 200,135" fill="url(#cubeTop3)" stroke="#FFFFFF" stroke-width="3" />
+    <polygon points="200,135 330,205 330,340 200,270" fill="url(#cubeLeft3)" stroke="#7DD3FC" stroke-width="2" />
+    <polygon points="460,135 330,205 330,340 460,270" fill="url(#cubeRight3)" stroke="#7DD3FC" stroke-width="2" />
+    <circle cx="330" cy="135" r="24" fill="#0284C7" stroke="#FFFFFF" stroke-width="3" />
+    <text x="330" y="142" text-anchor="middle" fill="#FFFFFF" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="16" font-weight="900">AI</text>
+    <rect x="75" y="105" width="135" height="54" rx="10" fill="#FFFFFF" fill-opacity="0.9" stroke="#38BDF8" stroke-width="2" />
+    <text x="142" y="138" text-anchor="middle" fill="#0369A1" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="800">联邦学习 · 隐私计算</text>
+    <rect x="455" y="115" width="145" height="54" rx="10" fill="#FFFFFF" fill-opacity="0.9" stroke="#38BDF8" stroke-width="2" />
+    <text x="527" y="148" text-anchor="middle" fill="#0369A1" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="800">同态加密 · 数据脱敏</text>
+  </g>
+  <g transform="translate(240, 82)">
+    <rect x="0" y="0" width="44" height="6" rx="3" fill="#0284C7" />
+    <text x="56" y="8" fill="#0369A1" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700" letter-spacing="1.5">重要赛事公告 · 2026赛制全新升级</text>
+    <path d="M0 24 H340 V34" stroke="#38BDF8" stroke-opacity="0.75" stroke-width="2" fill="none" />
+    <text x="0" y="106" fill="url(#titleGrad3)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="56" font-weight="900" letter-spacing="3">数据安全与隐私计算</text>
+    <text x="0" y="178" fill="url(#titleGrad3)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="48" font-weight="900" letter-spacing="2">专项挑战赛独立赛道正式开启</text>
+    <text x="2" y="222" fill="#0369A1" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" font-weight="800" letter-spacing="4">DATA SECURITY &amp; PRIVACY COMPUTING CHALLENGE</text>
+    <text x="2" y="272" fill="#0C4A6E" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="800" letter-spacing="3">&lt;&lt;  护航数据要素流通 · 探索大模型内生安全  &gt;&gt;</text>
+  </g>
+</svg>`);
+
+const BANNER_POSTER_4 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EBF3FF" />
+      <stop offset="55%" stop-color="#D4E6FF" />
+      <stop offset="100%" stop-color="#BDD7FF" />
+    </linearGradient>
+    <linearGradient id="titleGrad4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#093687" />
+      <stop offset="55%" stop-color="#1664FF" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="certCard4" x1="1120" y1="75" x2="1560" y2="355" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#EFF6FF" />
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="460" fill="url(#bg4)" />
+  <g transform="translate(1020, 45)">
+    <rect x="110" y="35" width="440" height="290" rx="20" fill="url(#certCard4)" stroke="#60A5FA" stroke-width="3" />
+    <rect x="132" y="57" width="396" height="246" rx="12" fill="none" stroke="#BFDBFE" stroke-width="2" stroke-dasharray="6 4" />
+    <circle cx="465" cy="115" r="36" fill="#DBEAFE" stroke="#2563EB" stroke-width="2.5" />
+    <text x="465" y="112" text-anchor="middle" fill="#1D4ED8" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="900">国密签章</text>
+    <text x="465" y="130" text-anchor="middle" fill="#2563EB" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="11" font-weight="700">权威核验</text>
+    <text x="165" y="110" fill="#0F3C96" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="24" font-weight="900">荣誉获奖电子证书</text>
+    <rect x="165" y="135" width="220" height="10" rx="5" fill="#93C5FD" />
+    <rect x="165" y="160" width="180" height="10" rx="5" fill="#BFDBFE" />
+    <rect x="165" y="185" width="250" height="10" rx="5" fill="#BFDBFE" />
+    <rect x="165" y="228" width="330" height="42" rx="8" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5" />
+    <text x="330" y="254" text-anchor="middle" fill="#1D4ED8" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" font-weight="800" letter-spacing="1">防伪哈希校验 · 支持在线一键核验</text>
+  </g>
+  <g transform="translate(240, 82)">
+    <rect x="0" y="0" width="44" height="6" rx="3" fill="#1664FF" />
+    <text x="56" y="8" fill="#1664FF" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700" letter-spacing="1.5">权威认证 · 官方电子证书公开核验通道</text>
+    <path d="M0 24 H340 V34" stroke="#4B94FF" stroke-opacity="0.65" stroke-width="2" fill="none" />
+    <text x="0" y="106" fill="url(#titleGrad4)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="56" font-weight="900" letter-spacing="3">获奖电子证书防伪查询</text>
+    <text x="0" y="178" fill="url(#titleGrad4)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="48" font-weight="900" letter-spacing="2">国密数字签名与在线核验服务</text>
+    <text x="2" y="222" fill="#1D4ED8" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" font-weight="800" letter-spacing="4">OFFICIAL DIGITAL CERTIFICATE VERIFICATION</text>
+    <text x="2" y="272" fill="#15459E" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="800" letter-spacing="3">&lt;&lt;  一证一码防伪溯源 · 常年开放权威核验  &gt;&gt;</text>
+  </g>
+</svg>`);
+
 export const BANNER_SLIDES: BannerSlide[] = [
   {
     id: 'banner-1',
@@ -245,11 +461,12 @@ export const BANNER_SLIDES: BannerSlide[] = [
     targetId: 'track-net-2026',
     visualTheme: 'summit',
     displayPeriod: '2026.10.01 - 2026.12.20',
+    imageUrl: BANNER_POSTER_1,
   },
   {
     id: 'banner-2',
-    kicker: '网络安全攻防实战赛 · 报名冲刺阶段',
-    title: '距离线上选拔赛报名截止仅剩最后冲刺期',
+    kicker: '网络安全攻防实战赛 · 核心主赛道火热报名中',
+    title: '网络安全攻防实战赛：CTF夺旗挑战 + AWD Plus攻防对抗',
     subtitle: '采用“CTF夺旗挑战 + 真实业务场景AWD Plus攻防对抗”双轨赛制，请各参赛高校队长尽快完成学籍认证与指导教师绑定。',
     ctaText: '直达攻防赛道报名',
     secondaryCtaText: '查看赛程通知',
@@ -257,7 +474,7 @@ export const BANNER_SLIDES: BannerSlide[] = [
     targetId: 'track-net-2026',
     visualTheme: 'countdown',
     displayPeriod: '2026.10.15 - 2026.11.15',
-    countdownTarget: '2026-11-15T23:59:59',
+    imageUrl: BANNER_POSTER_2,
   },
   {
     id: 'banner-3',
@@ -270,6 +487,7 @@ export const BANNER_SLIDES: BannerSlide[] = [
     targetId: 'notice-1',
     visualTheme: 'ai_track',
     displayPeriod: '2026.10.20 - 2026.12.31',
+    imageUrl: BANNER_POSTER_3,
   },
   {
     id: 'banner-4',
@@ -281,6 +499,7 @@ export const BANNER_SLIDES: BannerSlide[] = [
     targetId: 'cert-section',
     visualTheme: 'finals',
     displayPeriod: '常年开放服务',
+    imageUrl: BANNER_POSTER_4,
   },
 ];
 
