@@ -50,6 +50,8 @@ import {
   isUserAccountExpired,
   getEffectiveUserStatus,
   isTeamOwnedByUser,
+  CtfRoleBadges,
+  type CtfRoleType,
   type CaptainTeamRecord,
   type ParticipatedTeamRecord,
   type TeamApprovedSnapshot,
@@ -122,12 +124,15 @@ export interface PlatformMessageItem {
 }
 
 export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
-  // 1. 队员/指导教师视角 —— 入队邀请（未读、待处理，对应 part-team-1）
+  // =========================================================================
+  // 一、队员 / 指导教师视角
+  // =========================================================================
+  // 1. 队员视角 —— 入队邀请（未读、待处理，对应 part-team-1）
   {
     id: 'msg-invite-1',
     title: '周子航 邀请您加入队伍',
     shortTitle: '周子航邀请您加入队伍',
-    desc: '邀请您加入【2026“XX杯”车联网与智能工业控制系统安全极客邀请赛】的【北航车联护盾联队】担任【队员】',
+    desc: '邀请您加入【2026“XX杯”车联网与智能工业控制系统安全极客邀请赛】的【北航车联护盾联队】担任【参赛队员】（初始分配角色：Web手、取证手）',
     time: '5分钟前',
     unread: true,
     category: 'invite',
@@ -142,28 +147,28 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     inviteStatus: 'pending',
     relatedParticipatedTeamId: 'part-team-1',
   },
-  // 2. 队长视角 —— 审核驳回（未读，高校审核驳回，对应 cap-team-4）
+  // 2. 队长视角 —— 第一段【高校资格审核】被驳回（未读，对应 cap-team-4）
   {
     id: 'msg-reject-1',
-    title: '审核被驳回，请修改',
-    shortTitle: '您的队伍被驳回',
-    desc: '您的队伍【北航凌云密算战队】在【高校审核】中被驳回，原因：队伍简介中未注明所依托的学院实验室安全合规备案号，且指导教师信息需补充确认',
+    title: '高校资格审核已驳回，请修改',
+    shortTitle: '您的队伍被高校审核驳回',
+    desc: '您的队伍【北航凌云密算战队】在第一段【高校资格审核】中未通过（当前报名状态：已驳回），驳回原因：队伍简介中未注明所依托的学院实验室安全合规备案号，且指导教师信息需补充确认。请修改后重新提交审核。',
     time: '15分钟前',
     unread: true,
     category: 'review',
     rolePerspective: '队长视角',
     scenarioType: 'review_rejected',
-    messageTypeLabel: '审核驳回',
+    messageTypeLabel: '高校审核驳回',
     iconStyle: 'error',
     actionType: 'go_modify',
     relatedCaptainTeamId: 'cap-team-4',
   },
-  // 3. 队员/指导教师视角 —— 入队邀请（未读、待处理，对应新队伍 part-team-new-star，点击同意后立刻新增出现在“我的报名-我参与的队伍”中！）
+  // 3. 队员视角 —— 入队邀请（未读、待处理，对应新队伍 part-team-new-star，点击同意后立刻新增出现在“我的报名-我参与的”中）
   {
     id: 'msg-invite-2',
     title: '陆景川 邀请您加入队伍',
     shortTitle: '陆景川邀请您加入队伍',
-    desc: '邀请您加入【2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛】的【北航星辰二进制战队】担任【队员】',
+    desc: '邀请您加入【2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛】的【北航星辰二进制战队】担任【参赛队员】（初始分配角色：Pwn手、逆向手）',
     time: '28分钟前',
     unread: true,
     category: 'invite',
@@ -181,7 +186,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
       id: 'part-team-new-star',
       competitionId: 'comp-2026-main',
       competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
-      subTrackName: '二进制漏洞挖掘与Pwn赛道',
+      subTrackName: '',
       teamName: '北航星辰二进制战队',
       teamLogo: 'default-logo',
       teamIntro: '专注Linux内核态漏洞挖掘、堆利用原语构造与自动化CTF二进制攻防对抗。',
@@ -189,17 +194,23 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
       captainPhone: '138****5520',
       university: '北京航空航天大学',
       myRoleInTeam: '参赛队员',
+      myCtfRoles: ['Pwn手', '逆向手'],
       status: 'joined',
       invitedAt: '2026-10-28 11:05',
       teammatesSummary: ['陆景川（队长 · 北京航空航天大学）', '林远航（队员 · 已同意）', '赵振宇 教授（指导教师 · 已同意）'],
+      teamMembersDetail: [
+        { name: '陆景川', role: '队长', university: '北京航空航天大学', ctfRoles: ['Pwn手', '密码学手'], statusLabel: '发起人' },
+        { name: '林远航', role: '队员', university: '北京航空航天大学', ctfRoles: ['Pwn手', '逆向手'], statusLabel: '已同意' },
+        { name: '赵振宇 教授', role: '指导教师', university: '北京航空航天大学', statusLabel: '已同意' },
+      ],
     },
   },
-  // 4. 队长视角 —— 成员反馈（未读，队员拒绝加入）
+  // 4. 队长视角 —— 成员反馈（未读，受邀队员拒绝加入）
   {
     id: 'msg-feedback-reject',
-    title: '张子轩 已拒绝加入',
+    title: '张子轩 已拒绝加入队伍',
     shortTitle: '张子轩已拒绝加入队伍',
-    desc: '拒绝了加入【北航红蓝极客战队】（原因：下周有操作系统课程设计答辩，时间冲突）',
+    desc: '受邀队员【张子轩】拒绝了加入您的队伍【北航红蓝极客战队】（拒绝原因：下周有操作系统课程设计答辩，时间冲突），您可继续邀请其他同学替换或满1名已同意队员后提交审核。',
     time: '45分钟前',
     unread: true,
     category: 'review',
@@ -213,12 +224,12 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-1',
   },
-  // 5. 队员/指导教师视角 —— 入队邀请（未读、待处理，对应 part-team-3 宋知行）
+  // 5. 队员视角 —— 入队邀请（未读、待处理，对应 part-team-3 宋知行）
   {
     id: 'msg-invite-3',
     title: '宋知行 邀请您加入队伍',
     shortTitle: '宋知行邀请您加入队伍',
-    desc: '邀请您加入【2026“XX杯”云原生与零信任架构安全攻防挑战赛】的【北航云原生星云战队】担任【队员】',
+    desc: '邀请您加入【2026“XX杯”云原生与零信任架构安全攻防挑战赛】的【北航云原生星云战队】担任【参赛队员】（初始分配角色：Web手、杂项手）',
     time: '1小时前',
     unread: true,
     category: 'invite',
@@ -233,12 +244,51 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     inviteStatus: 'pending',
     relatedParticipatedTeamId: 'part-team-3',
   },
-  // 6. 队长视角 —— 成员反馈（队员/老师同意加入）
+  // 6. 指导教师视角 —— 指导教师入队邀请（已同意示例，对应 part-team-2）
+  {
+    id: 'msg-invite-advisor',
+    title: '沈星河 邀请您担任指导教师',
+    shortTitle: '沈星河邀请您担任指导教师',
+    desc: '邀请您加入【2026“XX杯”人工智能生成内容（AIGC）安全与大模型攻防挑战赛】的【北航AIGC安全卫士队】担任【指导教师】',
+    time: '1小时30分钟前',
+    unread: false,
+    category: 'invite',
+    rolePerspective: '队员/指导教师视角',
+    scenarioType: 'team_invite',
+    messageTypeLabel: '指导教师邀请',
+    iconStyle: 'avatar',
+    senderName: '沈星河',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80',
+    actionType: 'invite_actions',
+    inviteStatus: 'accepted',
+    relatedParticipatedTeamId: 'part-team-2',
+  },
+  // 7. 队长视角 —— 成员反馈（队员同意加入）
+  {
+    id: 'msg-feedback-member-accept',
+    title: '苏沐宸 已同意加入队伍',
+    shortTitle: '苏沐宸已同意加入队伍',
+    desc: '受邀队员【苏沐宸】已确认加入您的队伍【北航红蓝极客战队】，分配队内角色【逆向手、Pwn手】已正式生效。',
+    time: '1小时45分钟前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'member_feedback',
+    messageTypeLabel: '成员反馈',
+    iconStyle: 'avatar',
+    senderName: '苏沐宸',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=160&q=80',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-1',
+  },
+  // 8. 队长视角 —— 成员反馈（指导教师同意加入）
   {
     id: 'msg-feedback-accept',
     title: '赵振宇 教授 已同意加入',
     shortTitle: '赵振宇教授已同意加入',
-    desc: '已确认加入您的队伍【北航红蓝极客战队】担任指导教师',
+    desc: '【赵振宇 教授】已确认加入您的队伍【北航红蓝极客战队】担任指导教师。',
     time: '2小时前',
     unread: false,
     category: 'review',
@@ -252,28 +302,76 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-1',
   },
-  // 7. 队长视角 —— 审核进度（高校通过，待秘书处）
+  // 9. 队长视角 —— 第一段【高校资格审核】通过（状态变更为“待校赛”，对应 cap-team-2）
   {
     id: 'msg-review-progress',
-    title: '高校审核已通过',
-    shortTitle: '队伍已通过高校审核',
-    desc: '您的队伍【SkyHawk-0day（林远航单兵队）】已通过高校审核，进入秘书处终审环节',
+    title: '高校资格审核已通过（待校赛）',
+    shortTitle: '队伍已通过高校资格审核',
+    desc: '您的队伍【北航零日防御先锋队】已通过第一段【高校资格审核】，当前报名状态更新为【待校赛】。待本校选拔赛结束后，将由高校管理员统一勾选晋级名单并上传成绩证明提报至秘书处。',
     time: '3小时前',
     unread: false,
     category: 'review',
     rolePerspective: '队长视角',
     scenarioType: 'review_progress',
-    messageTypeLabel: '审核进度',
+    messageTypeLabel: '高校审核通过',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-2',
+  },
+  // 10. 队长视角 —— 第二段【高校晋级提报】已列入名单（状态变更为“待终审”，对应 cap-team-7）
+  {
+    id: 'msg-review-promoted',
+    title: '高校已提报晋级名单（待终审）',
+    shortTitle: '队伍已获高校晋级提报',
+    desc: '恭喜！本校高校管理员已将您的队伍【SkyHawk-0day（林远航单兵队）】列入校赛晋级推荐名单（校内排名：第 2 名）并随附校赛成绩证明提交至大赛秘书处，当前报名状态为【待终审】。',
+    time: '3小时30分钟前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '晋级提报通知',
     iconStyle: 'info',
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-7',
   },
-  // 8. 队长视角 —— 报名成功（秘书处终审通过）
+  // 11. 队长视角 —— 第二段【高校晋级提报】未晋级（状态变更为“未晋级”，对应 cap-team-8）
+  {
+    id: 'msg-review-not-advanced',
+    title: '校赛晋级结果通知（未晋级）',
+    shortTitle: '队伍止步校内选拔赛',
+    desc: '贵校管理员已完成【2026第五届“XX杯”全国网数智安全大赛】本校晋级名单提报，您的队伍【北航玄武密码学研习队】未在本次晋级推荐名单内，当前报名状态更新为【未晋级】。感谢您的参与！',
+    time: '4小时前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '校赛结果通知',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-8',
+  },
+  // 12. 队长视角 —— 第三段【秘书处终审】驳回高校晋级名单（对应 cap-team-9）
+  {
+    id: 'msg-review-sec-reject',
+    title: '秘书处终审退回高校重报提醒',
+    shortTitle: '本校晋级名单待高校重报',
+    desc: '您所在的【北航量子防线战队】（校内排名：第 3 名）所属高校晋级提报单被大赛秘书处退回补充材料（原因：校赛成绩单缺少教务处或网安学院公章）。队伍当前保持【待终审】状态，等待本校高校管理员重新上传提报，队长无需修改队伍信息。',
+    time: '4小时20分钟前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '终审进度提醒',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-9',
+  },
+  // 13. 队长视角 —— 第三段【秘书处终审】通过（报名成功，对应 cap-team-3）
   {
     id: 'msg-reg-success',
-    title: '恭喜！报名成功',
+    title: '恭喜！秘书处终审通过，报名成功',
     shortTitle: '恭喜！队伍报名成功',
-    desc: '您的队伍【北航智盾先锋队】已通过所有审核，请留意后续赛事通知',
+    desc: '您的队伍【北航智盾先锋队】（校内排名：第 1 名）已通过高校资格审核、高校晋级提报及大赛秘书处终审，报名状态正式变更为【报名成功】，已同步载入【我的竞赛】与最终参赛队伍清单！',
     time: '5小时前',
     unread: false,
     category: 'review',
@@ -284,12 +382,28 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-3',
   },
-  // 9. 队员/指导教师视角 —— 被移出队伍（纯通知，无按钮）
+  // 14. 队员/指导教师视角 —— 队内角色分配变更提醒
+  {
+    id: 'msg-role-updated',
+    title: '队长更新了您的队内角色标签',
+    shortTitle: '队内角色标签已更新',
+    desc: '【北航AIGC安全卫士队】队长【沈星河】更新了您在队内的角色分配标签，当前角色为：【Web手、密码学手、杂项手】。',
+    time: '昨天 19:40',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员/指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '角色变更提醒',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-2',
+  },
+  // 15. 队员/指导教师视角 —— 被移出队伍（纯通知，无按钮）
   {
     id: 'msg-removed-team',
     title: '移出队伍通知',
     shortTitle: '您已被移出队伍',
-    desc: '您已被【陈思远】移出【北航固件狩猎二队】',
+    desc: '您已被队长【陈思远】移出队伍【北航固件狩猎二队】。',
     time: '昨天 18:20',
     unread: false,
     category: 'system',
@@ -299,12 +413,12 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'warning',
     actionType: 'none',
   },
-  // 10. 队员/指导教师视角 —— 队伍状态提醒（队伍被驳回/通过）
+  // 16. 队员/指导教师视角 —— 所在队伍状态变更（通过秘书处终审 -> 报名成功）
   {
     id: 'msg-team-status-change',
-    title: '队伍审核状态变更',
-    shortTitle: '所在队伍审核状态变更',
-    desc: '您所在的【北航多模态鉴伪实验室战队】报名已通过秘书处终审',
+    title: '所在队伍报名成功通知',
+    shortTitle: '所在队伍已报名成功',
+    desc: '您参与的队伍【北航多模态鉴伪实验室战队】（校内排名：第 2 名）已通过大赛秘书处终审，状态正式变更为【报名成功】，您可前往【我的竞赛】查看完整参赛档案。',
     time: '昨天 14:10',
     unread: false,
     category: 'review',
@@ -315,28 +429,108 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedParticipatedTeamId: 'part-team-7',
   },
-  // 11. 高校管理员视角 —— 待办提醒（本校有队伍提交审核）
+  // 17. 队员/指导教师视角 —— 所在队伍状态变更（通过高校资格审核 -> 待校赛）
+  {
+    id: 'msg-team-status-school-pass',
+    title: '所在队伍已通过高校资格审核',
+    shortTitle: '所在队伍进入待校赛阶段',
+    desc: '您作为参赛队员加入的【北航智能网联防火墙战队】已通过本校高校资格审核，当前处于【待校赛】阶段。',
+    time: '昨天 12:30',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员/指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '队伍状态提醒',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-5',
+  },
+
+  // =========================================================================
+  // 三、高校管理员视角
+  // =========================================================================
+  // 18. 高校管理员视角 —— 待办提醒（本校有新队伍提交资格审核）
   {
     id: 'msg-univ-todo',
-    title: '新报名队伍待审核',
+    title: '本校新报名队伍待资格审核',
     shortTitle: '本校有新队伍待审核',
-    desc: '本校有 2 支新队伍提交了报名，请及时处理',
+    desc: '【北京航空航天大学】有 2 支新组建队伍（北航云端猎手战队、SkyHawk-0day）已提交报名，请前往后台【报名管理 -> 查看报名 -> 高校资格审核】核验队伍及成员合规性。',
     time: '昨天 11:00',
     unread: true,
     category: 'review',
     rolePerspective: '高校管理员视角',
     scenarioType: 'univ_todo',
-    messageTypeLabel: '待办提醒',
+    messageTypeLabel: '资格审核待办',
     iconStyle: 'info',
     actionType: 'go_admin',
   },
-  // 12. 高校管理员视角 —— 通道开启（秘书处开启高校审核）
+  // 19. 高校管理员视角 —— 待办提醒（学生认证/教师认证待审核）
+  {
+    id: 'msg-univ-cert-todo',
+    title: '本校新增学生/教师认证待审核',
+    shortTitle: '新增学生/教师认证待审核',
+    desc: '【北京航空航天大学】有 3 条新的学生认证申请与 1 条教师认证申请提交至后台，请前往【认证管理】核对所属院校、学历、专业及入学/毕业时间信息。',
+    time: '昨天 09:45',
+    unread: false,
+    category: 'review',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_todo',
+    messageTypeLabel: '身份认证待办',
+    iconStyle: 'info',
+    actionType: 'go_admin',
+  },
+  // 20. 高校管理员视角 —— 待办提醒（校赛结束，提报本校晋级名单）
+  {
+    id: 'msg-univ-promote-todo',
+    title: '请提报本校校赛晋级队伍名单',
+    shortTitle: '请提报本校晋级队伍名单',
+    desc: '本校已有 5 支队伍通过第一段【高校资格审核】。请在校内选拔赛结束后，前往后台【高校资格审核】点击【提报晋级名单】，勾选晋级队伍、设置校内排名并上传盖章版校赛成绩证明。',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_todo',
+    messageTypeLabel: '晋级提报待办',
+    iconStyle: 'warning',
+    actionType: 'go_admin',
+  },
+  // 21. 高校管理员视角 —— 秘书处驳回本校提报的晋级名单（需修改重报）
+  {
+    id: 'msg-univ-sec-reject',
+    title: '本校晋级提报单被秘书处驳回',
+    shortTitle: '晋级名单被驳回需重报',
+    desc: '大赛秘书处在第三段终审中驳回了贵校提报的晋级名单，驳回原因：上传的校赛成绩证明PDF未加盖学院或教务部门公章，且第3名队伍排序备注不全。请前往后台重新上传材料并提报。',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_todo',
+    messageTypeLabel: '终审驳回重报',
+    iconStyle: 'error',
+    actionType: 'go_admin',
+  },
+  // 22. 高校管理员视角 —— 秘书处已通过本校晋级名单
+  {
+    id: 'msg-univ-sec-pass',
+    title: '本校晋级队伍名单已通过秘书处终审',
+    shortTitle: '本校晋级名单终审通过',
+    desc: '贵校提报的【2026第五届“XX杯”全国网数智安全大赛】晋级队伍名单（共 3 支队伍）已通过大赛秘书处终审，全部晋级队伍已正式进入【最终参赛队伍清单】。',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_todo',
+    messageTypeLabel: '终审通过通知',
+    iconStyle: 'success',
+    actionType: 'go_admin',
+  },
+  // 23. 高校管理员视角 —— 通道开启（秘书处开启高校审核与晋级提报通道）
   {
     id: 'msg-univ-channel-open',
-    title: '高校审核通道已开启',
+    title: '高校资格审核与晋级提报通道已开启',
     shortTitle: '高校审核通道已开启',
-    desc: '2026第五届“XX杯”全国网数智安全大赛的报名审核已开启，请前往后台审核本校队伍',
-    time: '2天前',
+    desc: '【2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛】的高校资格审核与校赛晋级提报通道已开启，请及时前往后台处理本校报名队伍。',
+    time: '3天前',
     unread: false,
     category: 'system',
     rolePerspective: '高校管理员视角',
@@ -345,50 +539,148 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'info',
     actionType: 'go_admin',
   },
-  // 13. 秘书处视角 —— 待办提醒（高校审核通过队伍）
+
+  // =========================================================================
+  // 四、秘书处视角
+  // =========================================================================
+  // 24. 秘书处视角 —— 待办提醒（高校已提报晋级名单，待秘书处终审）
   {
     id: 'msg-sec-todo',
-    title: '待终审队伍提醒',
-    shortTitle: '有队伍等待秘书处终审',
-    desc: '有 4 支队伍已通过高校审核，等待秘书处终审',
+    title: '高校晋级名单待秘书处终审',
+    shortTitle: '有高校提报晋级名单待终审',
+    desc: '【北京航空航天大学】、【清华大学】等 3 所高校已提交校赛晋级推荐名单及成绩证明材料（合计 9 支晋级队伍），请前往后台【查看报名 -> 秘书处终审】按高校维度核验材料并完成终审。',
+    time: '2天前',
+    unread: true,
+    category: 'review',
+    rolePerspective: '秘书处视角',
+    scenarioType: 'sec_todo',
+    messageTypeLabel: '终审待办提醒',
+    iconStyle: 'info',
+    actionType: 'go_admin',
+  },
+  // 25. 秘书处视角 —— 待办提醒（被驳回高校已修改并重新提报晋级名单）
+  {
+    id: 'msg-sec-resubmit-todo',
+    title: '高校已重新提报晋级名单待复核',
+    shortTitle: '高校已重新提报晋级名单',
+    desc: '此前被打回补充材料的【哈尔滨工业大学】已完成校赛成绩证明材料重传与排名修正，并重新提交至【秘书处终审】，请及时复核。',
     time: '2天前',
     unread: false,
     category: 'review',
     rolePerspective: '秘书处视角',
     scenarioType: 'sec_todo',
-    messageTypeLabel: '待办提醒',
-    iconStyle: 'info',
+    messageTypeLabel: '重报复核待办',
+    iconStyle: 'warning',
     actionType: 'go_admin',
   },
-  // 14. 全角色通用（系统类） —— 认证结果（实名认证审核通过）
+  // 26. 秘书处视角 —— 最终参赛队伍清单汇总提醒
+  {
+    id: 'msg-sec-summary',
+    title: '各赛区最终参赛队伍清单阶段汇总',
+    shortTitle: '最终参赛队伍清单阶段汇总',
+    desc: '当前已有 18 所高校通过秘书处终审，共计 52 支队伍正式沉淀至【最终参赛队伍清单】，您可随时前往后台导出包含队员身份证号、学历、队内角色、所属赛区等全量字段的 Excel 明细表。',
+    time: '3天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '秘书处视角',
+    scenarioType: 'sec_todo',
+    messageTypeLabel: '赛事汇总通知',
+    iconStyle: 'success',
+    actionType: 'go_admin',
+  },
+
+  // =========================================================================
+  // 五、全角色通用（系统与认证类）
+  // =========================================================================
+  // 27. 全角色通用 —— 实名认证审核通过
   {
     id: 'msg-cert-pass',
-    title: '实名认证审核通过',
-    shortTitle: '实名认证审核通过',
-    desc: '您的实名认证已通过，现已解锁全部赛事报名与战队组建权限',
+    title: '实名认证已完成',
+    shortTitle: '实名认证已完成',
+    desc: '您的实名认证信息（姓名、身份证号）及手机号、邮箱已核验通过，现已解锁【学生/教师认证】申请权限。',
     time: '3天前',
     unread: false,
     category: 'system',
     rolePerspective: '全角色通用',
     scenarioType: 'cert_result',
-    messageTypeLabel: '认证结果',
+    messageTypeLabel: '实名认证结果',
     iconStyle: 'success',
     actionType: 'go_cert',
   },
-  // 15. 全角色通用（系统类） —— 认证结果（学籍认证被驳回示例）
+  // 28. 全角色通用 —— 学生认证审核通过
+  {
+    id: 'msg-cert-student-pass',
+    title: '学生认证审核通过',
+    shortTitle: '学生认证审核通过',
+    desc: '您提交的【参赛学生】身份认证（北京航空航天大学 · 网络空间安全专业 · 本科 · 2023-09 至 2027-06）已通过本校高校管理员审核，现已解锁全部赛事组队与参赛权限！',
+    time: '3天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '全角色通用',
+    scenarioType: 'cert_result',
+    messageTypeLabel: '学生认证结果',
+    iconStyle: 'success',
+    actionType: 'go_cert',
+  },
+  // 29. 全角色通用 —— 学生认证被驳回
   {
     id: 'msg-cert-reject',
-    title: '学籍认证被驳回',
-    shortTitle: '学籍认证被驳回',
-    desc: '驳回原因：证件照片模糊，请前往用户认证模块重新上传清晰的学生证注册页或学信网报告',
+    title: '学生认证审核被驳回',
+    shortTitle: '学生认证被驳回',
+    desc: '您提交的【参赛学生】认证未通过本校管理员核验，驳回原因：所填专业名称或预计毕业年月与学校教务学籍库登记不一致，请前往【个人中心 -> 用户认证】核对修改或补充上传学生证内页后重新提交。',
     time: '4天前',
     unread: false,
     category: 'system',
     rolePerspective: '全角色通用',
     scenarioType: 'cert_result',
-    messageTypeLabel: '认证结果',
+    messageTypeLabel: '学生认证结果',
     iconStyle: 'error',
     actionType: 'go_cert',
+  },
+  // 30. 全角色通用 —— 教师认证审核通过
+  {
+    id: 'msg-cert-teacher-pass',
+    title: '教师认证审核通过',
+    shortTitle: '教师认证审核通过',
+    desc: '您提交的【指导教师】身份认证（北京航空航天大学 · 网络空间安全学院 · 信息安全专业 · 博士及以上）已通过审核，现可受邀担任本校参赛队伍指导教师。',
+    time: '4天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '全角色通用',
+    scenarioType: 'cert_result',
+    messageTypeLabel: '教师认证结果',
+    iconStyle: 'success',
+    actionType: 'go_cert',
+  },
+  // 31. 全角色通用 —— 教师认证被驳回
+  {
+    id: 'msg-cert-teacher-reject',
+    title: '教师认证审核被驳回',
+    shortTitle: '教师认证被驳回',
+    desc: '您提交的【指导教师】认证未通过审核，驳回原因：所属院系部门与教工人事库信息不匹配，请前往【个人中心 -> 用户认证】补充上传工作证或校园卡照片后重新提交。',
+    time: '5天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '全角色通用',
+    scenarioType: 'cert_result',
+    messageTypeLabel: '教师认证结果',
+    iconStyle: 'error',
+    actionType: 'go_cert',
+  },
+  // 32. 全角色通用 —— 赛事报名截止提醒
+  {
+    id: 'msg-sys-deadline',
+    title: '赛事报名截止时间临近提醒',
+    shortTitle: '赛事报名即将截止',
+    desc: '【2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛】将于 2026-11-15 23:59:59 截止报名，请尚处于“组建中”或“邀请中”的战队尽快完成队员确认并提交高校审核。',
+    time: '5天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '全角色通用',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '系统公告',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
   },
 ];
 
@@ -407,25 +699,38 @@ export interface AuditLogEntry {
 export interface UserProfileData {
   username: string;
   name: string;
+  idCard?: string;
   role: 'student' | 'teacher' | 'admin';
   roleLabel: string;
   university: string;
+  educationLevel?: string; // 专科 | 本科 | 硕士 | 博士及以上
   majorOrDept: string;
+  teacherMajor?: string; // 教师认证时的专业
+  enrollmentDate?: string; // YYYY-MM
+  graduationDate?: string; // YYYY-MM
+  studentProofFiles?: VerificationAttachmentItem[];
   studentId: string;
   email: string; // '' 表示未绑定
   phone: string; // '' 表示未绑定，绑定后存完整手机号或脱敏号
-  isVerified: boolean; // 实名认证 + 学籍/教师认证均成功时为 true
+  isVerified: boolean; // 实名认证 + 学生/教师认证均成功时为 true
   // 模块一：实名认证状态
   realNameStatus: 'unverified' | 'failed' | 'verified';
   realNameVerifiedAt?: string;
   realNameFailCount?: number;
   realNameLockedUntil?: string | null;
-  // 模块二：学籍/教师认证状态
+  // 模块二：学生/教师认证状态
   identityType: 'student' | 'teacher';
   academicStatus: 'unverified' | 'pending' | 'verified' | 'rejected';
   academicVerifiedAt?: string;
   academicSubmittedAt?: string;
   academicRejectReason?: string;
+  // 模块三：高校管理员认证状态（必须通过指导教师认证后方可申请）
+  univAdminStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
+  univAdminSubmittedAt?: string;
+  univAdminVerifiedAt?: string;
+  univAdminRejectReason?: string;
+  univAdminReviewer?: string;
+  univAdminReviewedAt?: string;
   // 登录审计元数据
   lastLoginIp: string;
   lastLoginLocation: string;
@@ -808,7 +1113,6 @@ const DebouncedUniversitySelect: React.FC<{
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-[#0284C7] shrink-0" />
           <span className="font-bold text-slate-900">{selectedSchool}</span>
-          <span className="text-[11px] text-[#0284C7] font-medium">（标准院校已锁定）</span>
         </div>
         <button
           type="button"
@@ -3358,7 +3662,7 @@ export const StandaloneUserCenterPage: React.FC<{
     snapshot: TeamApprovedSnapshot;
   } | null>(null);
 
-  // 只拉取当前用户参与，且整体报名状态为【报名成功】的赛事记录
+  // 准入规则极度收紧：只拉取当前用户参与、通过秘书处终审、整体报名状态为【报名成功（已晋级决赛）】的最终队伍档案
   const myApprovedCompetitions = React.useMemo(() => {
     const currentName = (user.name || '').trim();
     const list: {
@@ -3372,10 +3676,11 @@ export const StandaloneUserCenterPage: React.FC<{
       statusLabel: '未开始' | '进行中' | '已结束';
       teamName: string;
       myRole: '队长' | '队员' | '指导教师';
+      schoolRank: number;
       snapshot: TeamApprovedSnapshot;
     }[] = [];
 
-    // 1. 从 captainTeams 中拉取当前用户参与（作为队长、已同意队员或已同意指导教师）且整体状态为【报名成功】的队伍
+    // 1. 从 captainTeams 中拉取当前用户参与（作为队长、已同意队员或已同意指导教师）且通过秘书处终审【报名成功（已晋级决赛）】的队伍
     captainTeams.forEach((team) => {
       const stages = resolveTeamAuditStages(team);
       if (stages.regStatusKey !== 'approved') return;
@@ -3408,9 +3713,12 @@ export const StandaloneUserCenterPage: React.FC<{
       const statusLabel = getCompetitionStatusLabel(statusKey);
       const baseGenerated = buildApprovedSnapshotFromCaptainTeam(team);
       const rawSnap = team.approvedSnapshot || baseGenerated;
+      const resolvedSchoolRank =
+        rawSnap.schoolRank || team.schoolRank || stages.schoolRank || 1;
       const snapshot: TeamApprovedSnapshot = {
         ...baseGenerated,
         ...rawSnap,
+        schoolRank: resolvedSchoolRank,
         competitionTitle:
           rawSnap.competitionTitle || comp?.title || team.competitionTitle,
         teamLogo: rawSnap.teamLogo || team.teamLogo || 'default-logo',
@@ -3447,6 +3755,7 @@ export const StandaloneUserCenterPage: React.FC<{
         statusLabel,
         teamName: snapshot.teamName,
         myRole,
+        schoolRank: resolvedSchoolRank,
         snapshot,
       });
     });
@@ -3474,20 +3783,30 @@ export const StandaloneUserCenterPage: React.FC<{
 
         const rawMembers: TeamApprovedSnapshot['members'] =
           pt.approvedSnapshot?.members ||
-          pt.teammatesSummary.map((raw) => {
-            const role: '队长' | '队员' | '指导教师' = raw.includes('队长')
-              ? '队长'
-              : raw.includes('指导教师')
-              ? '指导教师'
-              : '队员';
-            const name = raw.replace(/（.*?）/g, '').trim();
-            return {
-              name,
-              role,
-              university: pt.university,
-            };
-          });
+          (pt.teamMembersDetail
+            ? pt.teamMembersDetail.map((d) => ({
+                name: d.name,
+                role: d.role,
+                university: d.university,
+                ctfRoles: d.ctfRoles,
+              }))
+            : pt.teammatesSummary.map((raw) => {
+                const role: '队长' | '队员' | '指导教师' = raw.includes('队长')
+                  ? '队长'
+                  : raw.includes('指导教师')
+                  ? '指导教师'
+                  : '队员';
+                const name = raw.replace(/（.*?）/g, '').trim();
+                return {
+                  name,
+                  role,
+                  university: pt.university,
+                  ctfRoles: name === '林远航' ? pt.myCtfRoles : undefined,
+                };
+              }));
 
+        const resolvedPtRank =
+          pt.approvedSnapshot?.schoolRank || pt.schoolRank || 1;
         const fallbackSnapshot: TeamApprovedSnapshot = {
           competitionTitle:
             pt.approvedSnapshot?.competitionTitle ||
@@ -3506,6 +3825,7 @@ export const StandaloneUserCenterPage: React.FC<{
           captainEmail: capContact.email,
           createdAt: pt.approvedSnapshot?.createdAt || pt.invitedAt,
           approvedAt: pt.approvedSnapshot?.approvedAt || pt.invitedAt,
+          schoolRank: resolvedPtRank,
           members: rawMembers.map((m) => {
             const contact = resolvePersonContactByName(
               m.name,
@@ -3532,6 +3852,7 @@ export const StandaloneUserCenterPage: React.FC<{
           statusLabel,
           teamName: fallbackSnapshot.teamName,
           myRole,
+          schoolRank: resolvedPtRank,
           snapshot: fallbackSnapshot,
         });
       });
@@ -3750,6 +4071,7 @@ export const StandaloneUserCenterPage: React.FC<{
       const updatedUser: UserProfileData = {
         ...user,
         name: rnNameInput.trim(),
+        idCard: rnIdCardInput.trim(),
         realNameStatus: 'verified',
         realNameVerifiedAt: nowTime,
         realNameFailCount: 0,
@@ -3764,39 +4086,50 @@ export const StandaloneUserCenterPage: React.FC<{
         device: 'Windows 11 / Chrome 130.0',
         action: '公安接口实名认证通过',
         result: '成功',
-        detail: `真实姓名：${updatedUser.name}，实名核验通过，已解锁【学籍/教师认证】模块`,
+        detail: `真实姓名：${updatedUser.name}，实名核验通过，已解锁【学生/教师认证】模块`,
       });
       setRealNameModalStep(null);
     }, 1400);
   };
 
   // --------------------------------------------------------------------------
-  // 3、【用户认证】模块二：学籍/教师认证 状态与弹窗流
+  // 3、【用户认证】模块二：学生/教师认证 状态与弹窗流
   // --------------------------------------------------------------------------
   const [selectedIdentityRadio, setSelectedIdentityRadio] = useState<'student' | 'teacher'>(
     user.identityType || 'student'
   );
   const [academicModalOpen, setAcademicModalOpen] = useState<'student' | 'teacher' | null>(null);
 
-  // 学生认证表单状态
+  // 学生认证表单状态（所属院校、学历层次、专业、入学时间、毕业时间（预计）、身份辅助证明[选填]）
   const [stuSchool, setStuSchool] = useState(user.university || '');
+  const [stuEducation, setStuEducation] = useState<string>(user.educationLevel || '本科');
   const [stuMajor, setStuMajor] = useState(user.majorOrDept || '');
-  const [stuSubmitting, setStuSubmitting] = useState(false);
-  const [stuAutoFailed, setStuAutoFailed] = useState(false);
-  const [stuSimulateAutoFail, setStuSimulateAutoFail] = useState(false);
-  const [stuManualExpanded, setStuManualExpanded] = useState(false);
-  const [stuManualFiles, setStuManualFiles] = useState<VerificationAttachmentItem[]>([]);
+  const [stuEnrollDate, setStuEnrollDate] = useState(user.enrollmentDate || '2024-09');
+  const [stuGradDate, setStuGradDate] = useState(user.graduationDate || '2028-06');
+  const [stuManualFiles, setStuManualFiles] = useState<VerificationAttachmentItem[]>(
+    user.studentProofFiles || []
+  );
   const [stuFormError, setStuFormError] = useState<string | null>(null);
 
-  // 教师认证表单状态
+  // 教师认证表单状态（院校、院系部门、专业、学历层次）
   const [teaSchool, setTeaSchool] = useState(user.university || '');
   const [teaDept, setTeaDept] = useState(user.majorOrDept || '');
+  const [teaMajor, setTeaMajor] = useState(user.teacherMajor || '网络空间安全');
+  const [teaEducation, setTeaEducation] = useState<string>(user.educationLevel || '博士及以上');
   const [teaStaffId, setTeaStaffId] = useState(user.studentId || '');
   const [teaFiles, setTeaFiles] = useState<VerificationAttachmentItem[]>([]);
   const [teaFormError, setTeaFormError] = useState<string | null>(null);
   const [adminNotificationBanner, setAdminNotificationBanner] = useState<string | null>(null);
 
+  // 前置校验：学生认证、教师认证前需要进行实名认证并完善手机号、邮箱
+  const isRealNameDone = user.realNameStatus === 'verified';
+  const isPhoneBound = Boolean(user.phone && user.phone.trim() && user.phone.trim() !== '未绑定手机');
+  const isEmailBound = Boolean(user.email && user.email.trim() && user.email.trim() !== '未绑定邮箱');
+  const isAcademicPrereqMet = isRealNameDone && isPhoneBound && isEmailBound;
+
   const ALLOWED_CERT_EXTS = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'ppt', 'pptx', 'zip', 'rar'];
+  const ALLOWED_STUDENT_PROOF_EXTS = ['jpg', 'jpeg', 'png', 'pdf'];
+  const MAX_STUDENT_PROOF_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
   const handleAddCertFiles = (
     fileList: FileList | null,
@@ -3841,85 +4174,120 @@ export const StandaloneUserCenterPage: React.FC<{
     setFiles((prev) => [...prev, ...nextItems]);
   };
 
-  // 点击模块二【去验证】或【重新验证】
-  const handleOpenAcademicModal = () => {
-    if (user.realNameStatus !== 'verified') return;
+  // 学生认证：身份辅助证明（选填，限制 jpg/png/pdf，限制 5MB 以内）
+  const handleAddStudentProofFiles = (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    setStuFormError(null);
+    const incoming = Array.from(fileList);
+
+    const nextItems: VerificationAttachmentItem[] = [];
+    for (const file of incoming) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      if (!ALLOWED_STUDENT_PROOF_EXTS.includes(ext)) {
+        setStuFormError(
+          `文件「${file.name}」格式不支持，身份辅助证明仅支持上传 jpg / png / pdf 格式`
+        );
+        return;
+      }
+      if (file.size > MAX_STUDENT_PROOF_SIZE_BYTES) {
+        setStuFormError(
+          `文件「${file.name}」超过 5MB 大小限制，请上传 5MB 以内的学生证内页或证明材料`
+        );
+        return;
+      }
+      const sizeKb = Math.max(1, Math.round(file.size / 1024));
+      const sizeStr =
+        sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(2)} MB` : `${sizeKb} KB`;
+      const isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+      const url = isImage
+        ? URL.createObjectURL(file)
+        : 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80';
+      nextItems.push({
+        id: `stu-proof-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name,
+        size: sizeStr,
+        url,
+        fileType: ext,
+      });
+    }
+
+    setStuManualFiles((prev) => [...prev, ...nextItems]);
+  };
+
+  // 点击模块二【去验证】或驳回后的【重新验证】（带着原数据回显到表单）
+  const handleOpenAcademicModal = (forceIdentity?: 'student' | 'teacher') => {
+    if (!isAcademicPrereqMet) {
+      const missingItems: string[] = [];
+      if (!isRealNameDone) missingItems.push('实名认证');
+      if (!isPhoneBound) missingItems.push('手机号绑定');
+      if (!isEmailBound) missingItems.push('邮箱绑定');
+      setAdminNotificationBanner(
+        `请先完成【${missingItems.join('、')}】后，再进行学生/教师认证！`
+      );
+      return;
+    }
     setStuFormError(null);
     setTeaFormError(null);
-    setStuAutoFailed(false);
-    setStuManualExpanded(false);
-    if (selectedIdentityRadio === 'student') {
+    const targetIdentity = forceIdentity || selectedIdentityRadio;
+    if (targetIdentity === 'student') {
+      // 回显原数据到表单，支持驳回后根据原因修改再提交
+      setStuSchool(user.university || '');
+      setStuEducation(
+        user.educationLevel &&
+          ['专科', '本科', '硕士', '博士及以上'].includes(user.educationLevel)
+          ? user.educationLevel
+          : '本科'
+      );
+      setStuMajor(user.majorOrDept || '');
+      setStuEnrollDate(user.enrollmentDate || '2024-09');
+      setStuGradDate(user.graduationDate || '2028-06');
+      setStuManualFiles(user.studentProofFiles || []);
       setAcademicModalOpen('student');
     } else {
+      setTeaSchool(user.university || '');
+      setTeaDept(user.majorOrDept || '');
+      setTeaMajor(user.teacherMajor || '网络空间安全');
+      setTeaEducation(
+        user.educationLevel &&
+          ['专科', '本科', '硕士', '博士及以上'].includes(user.educationLevel)
+          ? user.educationLevel
+          : '博士及以上'
+      );
+      setTeaStaffId(user.studentId || '');
       setAcademicModalOpen('teacher');
     }
   };
 
-  // 学生认证提交（自动核验接口）
-  const handleStudentAutoSubmit = (e: React.FormEvent) => {
+  // 学生认证【提交审核】 -> 状态变为“审核中”（橙色），直接将数据推送到该院校绑定的【高校管理员】后台
+  const handleStudentSubmitAudit = (e: React.FormEvent) => {
     e.preventDefault();
     setStuFormError(null);
+
     if (!stuSchool) {
-      setStuFormError('请先在学校搜索框中输入关键字，并从下拉列表中点选标准学校名称');
+      setStuFormError('请在“所属院校”搜索下拉框中输入关键字并点选院校（不可自由输入）');
+      return;
+    }
+    if (!['专科', '本科', '硕士', '博士及以上'].includes(stuEducation)) {
+      setStuFormError('请选择您的学历层次（专科 / 本科 / 硕士 / 博士及以上）');
       return;
     }
     if (!stuMajor.trim()) {
-      setStuFormError('请填写您所在的专业名称');
+      setStuFormError('请填写您就读的专业名称');
+      return;
+    }
+    if (!/^\d{4}-\d{2}$/.test(stuEnrollDate)) {
+      setStuFormError('请选择有效的入学时间（格式 YYYY-MM）');
+      return;
+    }
+    if (!/^\d{4}-\d{2}$/.test(stuGradDate)) {
+      setStuFormError('请选择有效的毕业时间（预计）（格式 YYYY-MM）');
+      return;
+    }
+    if (stuGradDate <= stuEnrollDate) {
+      setStuFormError('毕业时间（预计）必须晚于入学时间，请核对后重新选择');
       return;
     }
 
-    setStuSubmitting(true);
-    setTimeout(() => {
-      setStuSubmitting(false);
-      if (stuSimulateAutoFail) {
-        setStuAutoFailed(true);
-        setStuFormError(
-          '自动核验未通过：教育部学籍接口暂未匹配到您的在籍记录（常见于军校、科研院所或新生数据未同步）。请核对学校信息，或展开下方人工认证通道上传证明。'
-        );
-        return;
-      }
-
-      // 自动核验通过 -> 直接显示“认证成功”
-      const updated: UserProfileData = {
-        ...user,
-        role: 'student',
-        roleLabel: '参赛学生',
-        identityType: 'student',
-        university: stuSchool,
-        majorOrDept: stuMajor.trim(),
-        academicStatus: 'verified',
-        academicVerifiedAt: '2026-10-28',
-        academicRejectReason: undefined,
-        isVerified: true,
-      };
-      onUpdateUser(updated);
-      onAddAuditLog({
-        operator: user.username,
-        ip: user.currentLoginIp,
-        location: user.currentLoginLocation,
-        device: 'Windows 11 / Chrome 130.0',
-        action: '学生学籍自动核验通过',
-        result: '成功',
-        detail: `学校：${stuSchool}，专业：${stuMajor.trim()}`,
-      });
-      setAcademicModalOpen(null);
-    }, 1200);
-  };
-
-  // 学生人工兜底通道提交（走高校管理员审核 -> 状态变为“审核中”）
-  const handleStudentManualSubmit = () => {
-    if (!stuSchool || !stuMajor.trim()) {
-      setStuFormError('请先选择标准学校名称并填写专业');
-      return;
-    }
-    if (stuManualFiles.length === 0) {
-      setStuFormError('请至少上传 1 份学信网在线验证报告或学生证等证明材料（最多不超过 10 个）');
-      return;
-    }
-    if (stuManualFiles.length > 10) {
-      setStuFormError('上传的附件最多不超过 10 个');
-      return;
-    }
     const nowStr = '2026-10-28 10:25:00';
     const firstFile = stuManualFiles[0];
     const updated: UserProfileData = {
@@ -3928,43 +4296,51 @@ export const StandaloneUserCenterPage: React.FC<{
       roleLabel: '参赛学生',
       identityType: 'student',
       university: stuSchool,
+      educationLevel: stuEducation,
       majorOrDept: stuMajor.trim(),
+      enrollmentDate: stuEnrollDate,
+      graduationDate: stuGradDate,
+      studentProofFiles: stuManualFiles,
       academicStatus: 'pending',
       academicSubmittedAt: nowStr,
       academicRejectReason: undefined,
       isVerified: false,
     };
     onUpdateUser(updated);
+
     onSubmitVerificationApplication?.({
       applicantType: 'student',
       username: user.username,
       realName: user.name || user.username,
-      idCard: '110108200305162819',
+      idCard: user.idCard || '110108200305162819',
       phone: user.phone || '13810246921',
       email: user.email || `${user.username}@edu.cn`,
       university: stuSchool,
       institutionCode: '4111010006',
       majorOrDept: stuMajor.trim(),
       studentOrStaffId: user.studentId || 'STU2026001',
-      levelOrTitle: '全日制本科',
-      submitChannel: '人工兜底 · 学信网报告/学生证附件',
-      materialFileName: firstFile.name,
-      materialPreviewUrl: firstFile.url,
+      levelOrTitle: stuEducation,
+      enrollmentDate: stuEnrollDate,
+      graduationDate: stuGradDate,
+      submitChannel: '学生身份认证 · 高校管理员审核',
+      materialFileName: firstFile?.name,
+      materialPreviewUrl: firstFile?.url,
       attachments: stuManualFiles,
-      applicantNote: '前台个人中心提交学生学籍人工兜底审核申请。',
+      applicantNote: `学历：${stuEducation}，专业：${stuMajor.trim()}，就读周期：${stuEnrollDate} 至 ${stuGradDate}`,
       submittedAt: nowStr,
     });
+
     setAdminNotificationBanner(
-      `【系统通知】已根据您选择的学校（${stuSchool}），自动向后台【认证管理 -> 学生认证】推送人工审核申请（共 ${stuManualFiles.length} 份附件）。`
+      `【系统通知】您的学生认证信息已直接推送至【${stuSchool}】高校管理员后台（认证管理 -> 学生认证）待审。`
     );
     onAddAuditLog({
       operator: user.username,
       ip: user.currentLoginIp,
       location: user.currentLoginLocation,
       device: 'Windows 11 / Chrome 130.0',
-      action: '提交学生学籍人工兜底认证',
+      action: '提交学生认证审核',
       result: '成功',
-      detail: `已上传 ${stuManualFiles.length} 份证明材料(${stuManualFiles.map((f) => f.name).join('、')})并推送至后台【认证管理-学生认证】审核`,
+      detail: `院校：${stuSchool}，学历：${stuEducation}，专业：${stuMajor.trim()}，入学-毕业：${stuEnrollDate} 至 ${stuGradDate}`,
     });
     setAcademicModalOpen(null);
   };
@@ -3979,6 +4355,14 @@ export const StandaloneUserCenterPage: React.FC<{
     }
     if (!teaDept.trim()) {
       setTeaFormError('请填写所属院系/部门（如：计算机科学与技术学院）');
+      return;
+    }
+    if (!teaMajor.trim()) {
+      setTeaFormError('请填写您的专业名称（如：网络空间安全）');
+      return;
+    }
+    if (!['专科', '本科', '硕士', '博士及以上'].includes(teaEducation)) {
+      setTeaFormError('请选择您的学历层次（专科 / 本科 / 硕士 / 博士及以上）');
       return;
     }
     if (!teaStaffId.trim()) {
@@ -4003,6 +4387,8 @@ export const StandaloneUserCenterPage: React.FC<{
       identityType: 'teacher',
       university: teaSchool,
       majorOrDept: teaDept.trim(),
+      teacherMajor: teaMajor.trim(),
+      educationLevel: teaEducation,
       studentId: teaStaffId.trim(),
       academicStatus: 'pending',
       academicSubmittedAt: nowStr,
@@ -4014,19 +4400,21 @@ export const StandaloneUserCenterPage: React.FC<{
       applicantType: 'teacher',
       username: user.username,
       realName: user.name || user.username,
-      idCard: '110108198505162819',
+      idCard: user.idCard || '110108198505162819',
       phone: user.phone || '13810246921',
       email: user.email || `${user.username}@edu.cn`,
       university: teaSchool,
       institutionCode: '4111010006',
       majorOrDept: teaDept.trim(),
+      teacherMajor: teaMajor.trim(),
+      educationLevel: teaEducation,
       studentOrStaffId: teaStaffId.trim(),
-      levelOrTitle: '高校专任教师',
+      levelOrTitle: teaEducation,
       submitChannel: '指导教师资格人工审核（工作证 + 教师资格证）',
       materialFileName: firstFile.name,
       materialPreviewUrl: firstFile.url,
       attachments: teaFiles,
-      applicantNote: '前台个人中心提交指导教师资格认证申请。',
+      applicantNote: `院系：${teaDept.trim()}，专业：${teaMajor.trim()}，学历层次：${teaEducation}`,
       submittedAt: nowStr,
     });
     setAdminNotificationBanner(
@@ -4039,9 +4427,69 @@ export const StandaloneUserCenterPage: React.FC<{
       device: 'Windows 11 / Chrome 130.0',
       action: '提交指导教师资格认证申请',
       result: '成功',
-      detail: `学校：${teaSchool}，院系：${teaDept.trim()}，教工号：${teaStaffId.trim()}，附件数：${teaFiles.length}，状态已更新为【审核中】`,
+      detail: `学校：${teaSchool}，院系：${teaDept.trim()}，专业：${teaMajor.trim()}，学历：${teaEducation}，教工号：${teaStaffId.trim()}，附件数：${teaFiles.length}，状态已更新为【审核中】`,
     });
     setAcademicModalOpen(null);
+  };
+
+  // 高校管理员认证申请状态与逻辑
+  const [univAdminModalOpen, setUnivAdminModalOpen] = useState(false);
+  const [univAdminApplyNote, setUnivAdminApplyNote] = useState('');
+  const [univAdminFormError, setUnivAdminFormError] = useState<string | null>(null);
+
+  const handleOpenUnivAdminModal = () => {
+    setUnivAdminApplyNote(
+      user.univAdminRejectReason
+        ? `针对上次驳回原因已重新核验授权资质：承诺如实履行【${user.university || '本校'}】网数智安全大赛高校管理员审核与提报职责。`
+        : `本人系【${user.university || '北京大学'}】已认证指导教师，现申请本校网数智安全大赛高校管理员工作台权限，负责本校学生参赛身份认证、指导教师资质以及参赛队伍进行资格审核与校赛晋级名单提报。`
+    );
+    setUnivAdminFormError(null);
+    setUnivAdminModalOpen(true);
+  };
+
+  const handleSubmitUnivAdminApplication = (e: React.FormEvent) => {
+    e.preventDefault();
+    const nowStr = '2026-10-28 16:10:00';
+    const updated: UserProfileData = {
+      ...user,
+      univAdminStatus: 'pending',
+      univAdminSubmittedAt: nowStr,
+      univAdminRejectReason: undefined,
+    };
+    onUpdateUser(updated);
+
+    onSubmitVerificationApplication?.({
+      applicantType: 'univ_admin',
+      username: user.username,
+      realName: user.name || user.username,
+      idCard: user.idCard || '110108198505162819',
+      phone: user.phone || '13810246921',
+      email: user.email || `${user.username}@edu.cn`,
+      university: user.university || '北京大学',
+      institutionCode: '4111010006',
+      majorOrDept: user.majorOrDept || '计算机科学与技术学院',
+      teacherMajor: user.teacherMajor || '网络空间安全',
+      educationLevel: user.educationLevel || '博士及以上',
+      studentOrStaffId: user.studentId || 'T-20240901',
+      levelOrTitle: user.educationLevel || '博士及以上',
+      submitChannel: '高校管理员人工审核 · 组委会核验',
+      applicantNote: univAdminApplyNote.trim() || '申请本校网数智安全大赛高校管理员工作台权限。',
+      submittedAt: nowStr,
+    });
+
+    setAdminNotificationBanner(
+      `【系统通知】已向大赛组委会提交【${user.university || '本校'}】高校管理员认证申请，审核通过后即可获得高校管理工作台权限！`
+    );
+    onAddAuditLog({
+      operator: user.username,
+      ip: user.currentLoginIp,
+      location: user.currentLoginLocation,
+      device: 'Windows 11 / Chrome 130.0',
+      action: '提交高校管理员认证申请',
+      result: '成功',
+      detail: `申请人：${user.name || user.username}，学校：${user.university || '本校'}，状态已更新为【审核中】`,
+    });
+    setUnivAdminModalOpen(false);
   };
 
   // 判断学校与专业在【个人信息】中是否显示“未验证”
@@ -4079,14 +4527,14 @@ export const StandaloneUserCenterPage: React.FC<{
         </div>
       </div>
 
-      {/* 未完成实名与学籍/教师认证时：顶部黄色引导横幅 */}
+      {/* 未完成实名与学生/教师认证时：顶部黄色引导横幅 */}
       {(!isRealNameVerified || !isAcademicVerified) && (
         <div className="bg-amber-50 border-b border-amber-300">
           <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-amber-900">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
               <span>
-                欢迎您！为了顺利报名参赛，请尽快完成实名认证与学籍/教师认证。
+                欢迎您！为了顺利报名参赛，请尽快完成实名认证与学生/教师认证。
               </span>
             </div>
             {activeTab !== 'certification' && (
@@ -4130,7 +4578,7 @@ export const StandaloneUserCenterPage: React.FC<{
                   {isRealNameVerified && user.name ? user.name : user.username}
                 </div>
                 <div className="text-xs text-slate-500 truncate">
-                  {isAcademicVerified && user.university ? user.university : '学籍/教师未验证'}
+                  {isAcademicVerified && user.university ? user.university : '学生/教师未验证'}
                 </div>
               </div>
             </div>
@@ -4370,7 +4818,7 @@ export const StandaloneUserCenterPage: React.FC<{
           )}
 
           {/* =================================================================
-              Tab 2：用户认证（从上至下分为两个独立卡片区块：【实名认证】、【学籍/教师认证】）
+              Tab 2：用户认证（从上至下分为两个独立卡片区块：【实名认证】、【学生/教师认证】）
              ================================================================= */}
           {activeTab === 'certification' && (
             <div className="space-y-6">
@@ -4404,22 +4852,8 @@ export const StandaloneUserCenterPage: React.FC<{
                     onClick={() =>
                       onUpdateUser({
                         ...user,
-                        phone: '',
-                        realNameStatus: 'unverified',
-                        academicStatus: 'unverified',
-                        isVerified: false,
-                      })
-                    }
-                    className="px-2.5 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 border border-amber-300/30 text-amber-100 cursor-pointer"
-                  >
-                    模拟：未绑手机点实名【去验证】
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateUser({
-                        ...user,
-                        name: '张三',
+                        name: '林远航',
+                        idCard: '110108200305162819',
                         realNameStatus: 'verified',
                         realNameVerifiedAt: '2026-10-28 10:00:00',
                         academicStatus: 'unverified',
@@ -4428,67 +4862,83 @@ export const StandaloneUserCenterPage: React.FC<{
                     }
                     className="px-2.5 py-1 rounded bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-300/30 text-emerald-100 cursor-pointer"
                   >
-                    模拟：实名成功(解锁模块二)
+                    模拟：学生【未认证】（可点去验证）
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      setSelectedIdentityRadio('student');
                       onUpdateUser({
                         ...user,
-                        name: '张三',
-                        realNameStatus: 'verified',
-                        realNameVerifiedAt: '2026-10-28 10:00:00',
-                        identityType: 'teacher',
-                        university: '北京大学',
-                        majorOrDept: '计算机科学与技术学院',
-                        academicStatus: 'pending',
-                        academicSubmittedAt: '2026-10-28 10:30:00',
-                        isVerified: false,
-                      })
-                    }
-                    className="px-2.5 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 border border-amber-300/30 text-amber-100 cursor-pointer"
-                  >
-                    模拟：教师认证【审核中】
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateUser({
-                        ...user,
-                        name: '张三',
+                        name: '林远航',
+                        idCard: '110108200305162819',
                         realNameStatus: 'verified',
                         realNameVerifiedAt: '2026-10-28 10:00:00',
                         identityType: 'student',
-                        university: '北京大学',
-                        majorOrDept: '计算机科学与技术学院',
-                        academicStatus: 'verified',
-                        academicVerifiedAt: '2026-10-28',
-                        isVerified: true,
-                      })
-                    }
-                    className="px-2.5 py-1 rounded bg-sky-500/30 hover:bg-sky-500/50 border border-sky-300/30 text-white cursor-pointer"
+                        university: '北京航空航天大学',
+                        educationLevel: '本科',
+                        majorOrDept: '网络空间安全',
+                        enrollmentDate: '2024-09',
+                        graduationDate: '2028-06',
+                        academicStatus: 'pending',
+                        academicSubmittedAt: '2026-10-28 10:30:00',
+                        isVerified: false,
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 border border-amber-300/30 text-amber-100 cursor-pointer"
                   >
-                    模拟：学籍【认证成功】
+                    模拟：学生认证【审核中】
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      setSelectedIdentityRadio('student');
                       onUpdateUser({
                         ...user,
-                        name: '张三',
+                        name: '林远航',
+                        idCard: '110108200305162819',
                         realNameStatus: 'verified',
                         realNameVerifiedAt: '2026-10-28 10:00:00',
-                        identityType: 'teacher',
-                        university: '北京大学',
-                        majorOrDept: '计算机科学与技术学院',
+                        identityType: 'student',
+                        university: '北京航空航天大学',
+                        educationLevel: '本科',
+                        majorOrDept: '网络空间安全',
+                        enrollmentDate: '2024-09',
+                        graduationDate: '2028-06',
+                        academicStatus: 'verified',
+                        academicVerifiedAt: '2026-10-28',
+                        isVerified: true,
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded bg-sky-500/30 hover:bg-sky-500/50 border border-sky-300/30 text-white cursor-pointer"
+                  >
+                    模拟：学生【验证成功】
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIdentityRadio('student');
+                      onUpdateUser({
+                        ...user,
+                        name: '林远航',
+                        idCard: '110108200305162819',
+                        realNameStatus: 'verified',
+                        realNameVerifiedAt: '2026-10-28 10:00:00',
+                        identityType: 'student',
+                        university: '北京航空航天大学',
+                        educationLevel: '本科',
+                        majorOrDept: '网络空间安全实验班',
+                        enrollmentDate: '2024-09',
+                        graduationDate: '2027-06',
                         academicStatus: 'rejected',
-                        academicRejectReason: '工作证照片模糊，请重新上传',
+                        academicRejectReason:
+                          '专业名称与本校不符（应为“网络空间安全”），且四年制本科预计毕业时间应为 2028-06',
                         isVerified: false,
-                      })
-                    }
+                      });
+                    }}
                     className="px-2.5 py-1 rounded bg-red-500/25 hover:bg-red-500/40 border border-red-300/30 text-red-100 cursor-pointer"
                   >
-                    模拟：管理员驳回【认证失败】
+                    模拟：学生驳回【验证失败】（可点重新验证回显）
                   </button>
                 </div>
               </div>
@@ -4524,15 +4974,15 @@ export const StandaloneUserCenterPage: React.FC<{
                     {user.realNameStatus === 'verified' ? (
                       <span className="font-bold text-emerald-600 flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>[ 验证成功 ]</span>
+                        <span>验证成功</span>
                       </span>
                     ) : user.realNameStatus === 'failed' ? (
                       <span className="font-bold text-red-600 flex items-center gap-1.5">
                         <XCircle className="w-4 h-4" />
-                        <span>[ 验证失败 ]</span>
+                        <span>验证失败</span>
                       </span>
                     ) : (
-                      <span className="font-bold text-red-600">[ 未认证 ]</span>
+                      <span className="font-bold text-red-600">未认证</span>
                     )}
                   </div>
 
@@ -4564,7 +5014,16 @@ export const StandaloneUserCenterPage: React.FC<{
                     <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5 text-sm">
                       <div className="flex items-center gap-3">
                         <span className="text-slate-500 w-24 shrink-0">真实姓名：</span>
-                        <span className="font-bold text-slate-900">{user.name || '张三'}</span>
+                        <span className="font-bold text-slate-900">{user.name || '林远航'}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-500 w-24 shrink-0">身份证号：</span>
+                        <span className="font-mono-num text-slate-700">
+                          {(user.idCard || '110108200305162819').replace(
+                            /^(\d{6})\d{8}(\w{4})$/,
+                            '$1********$2'
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-slate-500 w-24 shrink-0">验证时间：</span>
@@ -4578,60 +5037,130 @@ export const StandaloneUserCenterPage: React.FC<{
               </div>
 
               {/* =============================================================
-                  区块二：【学籍/教师认证】独立卡片
-                  前置依赖：未完成实名认证时，卡片呈置灰状态，并提示“请先完成实名认证”；完成实名后解锁
+                  区块二：【学生/教师认证】独立卡片
+                  前置依赖：必须完成实名认证，且已完善手机号、邮箱后解锁
                  ============================================================= */}
               <div
                 className={`rounded-xl border transition-all p-6 relative ${
-                  user.realNameStatus !== 'verified'
-                    ? 'bg-slate-100 border-slate-200 opacity-65 select-none'
+                  !isAcademicPrereqMet
+                    ? 'bg-slate-100 border-slate-200 opacity-85'
                     : 'bg-white border-slate-200 shadow-2xs'
                 }`}
               >
-                <div className="flex items-center justify-between pb-4 border-b border-slate-200/80">
-                  <div className="flex items-center gap-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200/80">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        user.realNameStatus !== 'verified'
+                        !isAcademicPrereqMet
                           ? 'bg-slate-200 text-slate-500'
                           : 'bg-sky-100 text-[#0284C7]'
                       }`}
                     >
                       <BadgeCheck className="w-4 h-4" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900">学籍/教师认证</h3>
-                    {user.realNameStatus !== 'verified' && (
-                      <span className="ml-2 text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-md flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>请先完成实名认证</span>
-                      </span>
-                    )}
+                    <h3 className="text-lg font-bold text-slate-900">学生/教师认证</h3>
                   </div>
 
-                  {/* 操作按钮：未认证显示【去验证】；认证失败显示【重新验证】；审核中/认证成功按钮消失 */}
-                  {user.realNameStatus === 'verified' &&
+                  {/* 操作按钮：
+                      - 未认证：右侧显示【去验证】
+                      - 审核中：【去验证】按钮消失
+                      - 验证失败（驳回）：右侧按钮变为【重新验证】，点击后带着原数据回显到表单
+                      - 验证成功：提供【修改认证信息】入口（修改后需重新走审核） */}
+                  {isAcademicPrereqMet &&
                     (user.academicStatus === 'unverified' || user.academicStatus === 'rejected') && (
                       <button
                         type="button"
-                        onClick={handleOpenAcademicModal}
+                        onClick={() => handleOpenAcademicModal()}
                         className="px-5 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer transition-colors"
                       >
                         {user.academicStatus === 'rejected' ? '重新验证' : '去验证'}
                       </button>
                     )}
+
+                  {isAcademicPrereqMet && user.academicStatus === 'verified' && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAcademicModal(user.identityType || 'student')}
+                      className="px-3.5 py-1.5 bg-slate-100 hover:bg-sky-50 hover:text-[#0284C7] border border-slate-200 text-slate-600 text-xs font-bold rounded-lg cursor-pointer transition-colors"
+                    >
+                      修改认证信息（需重新审核）
+                    </button>
+                  )}
                 </div>
+
+                {/* 前置条件检查提示条（实名认证 + 手机号 + 邮箱） */}
+                {!isAcademicPrereqMet && (
+                  <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-2.5 text-xs">
+                    <div className="font-bold text-amber-900 flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>申请学生认证或教师认证前，请先完成以下 3 项基础信息认证与绑定：</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-bold border ${
+                          isRealNameDone
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-white text-amber-800 border-amber-300'
+                        }`}
+                      >
+                        {isRealNameDone ? '✓ 1. 实名认证已完成' : '○ 1. 实名认证（未完成）'}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-bold border ${
+                          isPhoneBound
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-white text-amber-800 border-amber-300'
+                        }`}
+                      >
+                        {isPhoneBound ? `✓ 2. 手机号已绑定（${maskPhone(user.phone)}）` : '○ 2. 手机号（未绑定）'}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-bold border ${
+                          isEmailBound
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-white text-amber-800 border-amber-300'
+                        }`}
+                      >
+                        {isEmailBound ? `✓ 3. 邮箱已绑定（${user.email}）` : '○ 3. 邮箱（未绑定）'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {!isRealNameDone && (
+                        <button
+                          type="button"
+                          onClick={handleStartRealNameVerify}
+                          className="px-3 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white font-bold cursor-pointer"
+                        >
+                          立即去实名认证
+                        </button>
+                      )}
+                      {(!isPhoneBound || !isEmailBound) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab('profile');
+                            handleOpenEditModal(!isPhoneBound ? 'phone' : 'email', 'bind');
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold cursor-pointer"
+                        >
+                          前往【个人信息】完善手机号/邮箱 &rarr;
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* 卡片内容区 */}
                 <div
                   className={`pt-5 space-y-4 text-sm ${
-                    user.realNameStatus !== 'verified' ? 'pointer-events-none' : ''
+                    !isAcademicPrereqMet ? 'pointer-events-none opacity-60' : ''
                   }`}
                 >
                   {/* 状态1：未认证 */}
                   {user.academicStatus === 'unverified' && (
                     <>
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-500 w-24 shrink-0">我的身份：</span>
+                        <span className="text-slate-500 w-28 shrink-0">身份选择：</span>
                         <div className="flex items-center gap-6">
                           <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
                             <input
@@ -4657,88 +5186,185 @@ export const StandaloneUserCenterPage: React.FC<{
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-500 w-24 shrink-0">认证状态：</span>
-                        <span className="font-bold text-slate-500">[ 未认证 ]</span>
+                        <span className="text-slate-500 w-28 shrink-0">认证状态：</span>
+                        <span className="font-bold text-slate-500">未认证</span>
                       </div>
                     </>
                   )}
 
-                  {/* 状态2A：审核中（仅教师 / 人工兜底学生） */}
+                  {/* 状态2：审核中（橙色，【去验证】按钮消失，下方显示“已提交至 XX 院校管理员审核，请耐心等待”） */}
                   {user.academicStatus === 'pending' && (
                     <>
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-500 w-24 shrink-0">我的身份：</span>
-                        <span className="font-bold text-slate-900">
-                          {user.identityType === 'teacher' ? '指导教师' : '参赛学生'}（学校：
-                          {user.university || '北京大学'}）
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-slate-500 w-24 shrink-0">认证状态：</span>
-                        <span className="font-bold text-amber-600 flex items-center gap-1.5">
-                          <Clock className="w-4 h-4" />
-                          <span>[ 审核中 ]</span>
-                        </span>
-                      </div>
-
-                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-2 text-xs text-slate-600 bg-amber-50/70 p-4 rounded-lg border border-amber-200/80">
-                        <div className="font-mono-num text-slate-500">
-                          提交时间：{user.academicSubmittedAt || '2026-10-28 10:30:00'}
-                        </div>
-                        <p className="text-amber-900 font-semibold text-sm">
-                          您的认证信息已提交至{user.university || '北京大学'}管理员，请耐心等待审核。
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* 状态2B：认证成功 */}
-                  {user.academicStatus === 'verified' && (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <span className="text-slate-500 w-24 shrink-0">我的身份：</span>
+                        <span className="text-slate-500 w-28 shrink-0">我的身份：</span>
                         <span className="font-bold text-slate-900">
                           {user.identityType === 'teacher' ? '指导教师' : '参赛学生'}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-500 w-24 shrink-0">认证状态：</span>
-                        <span className="font-bold text-emerald-600 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>[ 认证成功 ]</span>
+                        <span className="text-slate-500 w-28 shrink-0">认证状态：</span>
+                        <span className="font-bold text-amber-600 flex items-center gap-1.5">
+                          <Clock className="w-4 h-4" />
+                          <span>审核中</span>
                         </span>
                       </div>
 
-                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
-                        <div className="flex items-center gap-3">
-                          <span className="text-slate-500 w-24 shrink-0">学校：</span>
-                          <span className="font-bold text-slate-900">
-                            {user.university || '北京大学'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-slate-500 w-24 shrink-0">专业/院系：</span>
-                          <span className="font-bold text-slate-900">
-                            {user.majorOrDept || '计算机科学与技术学院'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-slate-500 w-24 shrink-0">认证时间：</span>
-                          <span className="font-mono-num text-slate-700">
-                            {user.academicVerifiedAt || '2026-10-28'}
-                          </span>
-                        </div>
+                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-2 text-xs text-slate-600 bg-amber-50/80 p-4 rounded-xl border border-amber-200">
+                        <p className="text-amber-800 font-bold text-sm">
+                          已提交至 {user.university || '北京航空航天大学'} 院校管理员审核，请耐心等待
+                        </p>
+                        {user.identityType === 'teacher' ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 text-xs text-slate-700">
+                            <div>
+                              <span className="text-slate-500">所属院校：</span>
+                              <span className="font-bold text-slate-900">
+                                {user.university || '北京航空航天大学'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">院系/部门：</span>
+                              <span className="font-bold text-slate-900">
+                                {user.majorOrDept || '网络空间安全学院'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">专业：</span>
+                              <span className="font-bold text-slate-900">
+                                {user.teacherMajor || '网络空间安全'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">学历层次：</span>
+                              <span className="font-bold text-slate-900">
+                                {user.educationLevel || '博士及以上'}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 text-xs text-slate-700">
+                            <div>
+                              <span className="text-slate-500">所属院校：</span>
+                              <span className="font-bold text-slate-900">
+                                {user.university || '北京航空航天大学'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">学历层次：</span>
+                              <span className="font-bold text-slate-900">
+                                {user.educationLevel || '本科'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">专业：</span>
+                              <span className="font-bold text-slate-900">
+                                {user.majorOrDept || '网络空间安全'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">入学 - 毕业时间：</span>
+                              <span className="font-mono font-bold text-slate-900">
+                                {user.enrollmentDate || '2024-09'} 至{' '}
+                                {user.graduationDate || '2028-06'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </>
                   )}
 
-                  {/* 状态2C：认证失败（管理员驳回） */}
+                  {/* 状态3：认证成功（显示“验证成功”，下方展示填写的所有明细：院校、学历、专业、入学/毕业时间） */}
+                  {user.academicStatus === 'verified' && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-500 w-28 shrink-0">我的身份：</span>
+                        <span className="font-bold text-slate-900">
+                          {user.identityType === 'teacher' ? '指导教师' : '参赛学生'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-500 w-28 shrink-0">认证状态：</span>
+                        <span className="font-bold text-emerald-600 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>验证成功</span>
+                        </span>
+                      </div>
+
+                      {user.identityType === 'teacher' ? (
+                        <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">所属院校：</span>
+                            <span className="font-bold text-slate-900">
+                              {user.university || '北京大学'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">院系/部门：</span>
+                            <span className="font-bold text-slate-900">
+                              {user.majorOrDept || '计算机科学与技术学院'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">专业：</span>
+                            <span className="font-bold text-slate-900">
+                              {user.teacherMajor || '网络空间安全'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">学历层次：</span>
+                            <span className="px-2.5 py-0.5 rounded bg-sky-50 text-[#0284C7] border border-sky-200 text-xs font-bold">
+                              {user.educationLevel || '博士及以上'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">认证时间：</span>
+                            <span className="font-mono-num text-slate-700">
+                              {user.academicVerifiedAt || '2026-10-28'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">所属院校：</span>
+                            <span className="font-bold text-slate-900">
+                              {user.university || '北京航空航天大学'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">学历层次：</span>
+                            <span className="px-2.5 py-0.5 rounded bg-sky-50 text-[#0284C7] border border-sky-200 text-xs font-bold">
+                              {user.educationLevel || '本科'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">专业：</span>
+                            <span className="font-bold text-slate-900">
+                              {user.majorOrDept || '网络空间安全'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">入学/毕业时间：</span>
+                            <span className="font-mono-num font-bold text-slate-900">
+                              {user.enrollmentDate || '2024-09'} 至{' '}
+                              {user.graduationDate || '2028-06'}（预计）
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-500 pt-1">
+                            说明：报名表中的“所属院校”、“学历”等字段将直接读取以上认证库数据且不可在报名表修改；如需变更，请点击右上角【修改认证信息（需重新审核）】。
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* 状态4：认证失败（驳回）—— 显示“验证失败（红色）”，下方展示驳回原因，按钮变为【重新验证】，点击后带着原数据回显到表单 */}
                   {user.academicStatus === 'rejected' && (
                     <>
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-500 w-24 shrink-0">我的身份：</span>
+                        <span className="text-slate-500 w-28 shrink-0">身份选择：</span>
                         <div className="flex items-center gap-6">
                           <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
                             <input
@@ -4764,21 +5390,278 @@ export const StandaloneUserCenterPage: React.FC<{
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-500 w-24 shrink-0">认证状态：</span>
+                        <span className="text-slate-500 w-28 shrink-0">认证状态：</span>
                         <span className="font-bold text-red-600 flex items-center gap-1.5">
                           <XCircle className="w-4 h-4" />
-                          <span>[ 认证失败 ]</span>
+                          <span>验证失败</span>
                         </span>
                       </div>
 
-                      <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-800">
-                        <span className="font-bold">驳回原因：</span>
-                        <span>{user.academicRejectReason || '工作证照片模糊，请重新上传'}</span>
+                      <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 space-y-2">
+                        <div>
+                          <span className="font-bold">驳回原因：</span>
+                          <span>
+                            {user.academicRejectReason ||
+                              '专业名称与本校不符或预计毕业时间有误，请核对修改后重新提交'}
+                          </span>
+                        </div>
+                        {user.identityType !== 'teacher' && (
+                          <div className="pt-2 border-t border-red-200/70 text-[11px] text-red-700/90 flex flex-wrap gap-x-4 gap-y-1">
+                            <span>上次填报院校：{user.university || '—'}</span>
+                            <span>学历层次：{user.educationLevel || '本科'}</span>
+                            <span>专业：{user.majorOrDept || '—'}</span>
+                            <span>
+                              入学-毕业：{user.enrollmentDate || '2024-09'} 至{' '}
+                              {user.graduationDate || '2028-06'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </>
                   )}
                 </div>
               </div>
+
+              {/* =============================================================
+                  区块三：【高校管理员认证】独立卡片
+                  前置条件：只有已通过【指导教师认证】的教师账号方可申请
+                 ============================================================= */}
+              {(() => {
+                const isTeacherVerified =
+                  user.academicStatus === 'verified' && user.identityType === 'teacher';
+                const adminStatus = user.univAdminStatus || 'unverified';
+
+                return (
+                  <div
+                    className={`rounded-xl border transition-all p-6 relative ${
+                      !isTeacherVerified
+                        ? 'bg-slate-50/80 border-slate-200'
+                        : 'bg-white border-slate-200 shadow-2xs'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200/80">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            !isTeacherVerified
+                              ? 'bg-slate-200 text-slate-500'
+                              : 'bg-sky-100 text-[#0284C7]'
+                          }`}
+                        >
+                          <Building2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <span>高校管理员认证</span>
+                            {!isTeacherVerified && (
+                              <span className="text-[11px] font-normal text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                仅限已认证指导教师申请
+                              </span>
+                            )}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* 申请/重新申请认证按钮 */}
+                      {isTeacherVerified && (
+                        <div>
+                          {adminStatus === 'unverified' && (
+                            <button
+                              type="button"
+                              onClick={handleOpenUnivAdminModal}
+                              className="px-5 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer transition-colors"
+                            >
+                              申请认证
+                            </button>
+                          )}
+                          {adminStatus === 'rejected' && (
+                            <button
+                              type="button"
+                              onClick={handleOpenUnivAdminModal}
+                              className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer transition-colors"
+                            >
+                              重新申请认证
+                            </button>
+                          )}
+                          {adminStatus === 'verified' && (
+                            <span className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>已是高校管理员</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 提示文案：高校管理员职责说明 */}
+                    <div className="mt-4 p-3.5 rounded-xl bg-sky-50/70 border border-sky-200 text-xs text-[#0369A1] flex items-start gap-2.5 leading-relaxed">
+                      <Building2 className="w-4 h-4 text-[#0284C7] shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-[#0284C7]">高校管理员职责说明：</span>
+                        高校管理员负责对本校学生的参赛身份认证、指导教师资质以及参赛队伍进行资格审核与校赛晋级名单提报。
+                      </div>
+                    </div>
+
+                    {/* 未满足指导教师认证前置条件时的提示栏与快捷测试切换 */}
+                    {!isTeacherVerified ? (
+                      <div className="mt-4 p-4 rounded-xl bg-amber-50/90 border border-amber-200 space-y-3 text-xs">
+                        <div className="font-bold text-amber-900 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>申请资格说明：目前仅支持通过【指导教师认证】的教师申请成为本校“高校管理员”</span>
+                        </div>
+                        <p className="text-amber-800 leading-relaxed">
+                          您当前账号身份为【{user.roleLabel || (user.identityType === 'teacher' ? '指导教师' : '参赛学生')}】，
+                          {user.academicStatus !== 'verified'
+                            ? '尚未通过教师资格认证。请先在上方完成指导教师资质认证后，即可开通高校管理员申请通道。'
+                            : '当前身份为学生，无法申请高校管理权限。'}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenAcademicModal('teacher')}
+                            className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white font-bold cursor-pointer transition-colors"
+                          >
+                            前往认证指导教师 &rarr;
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onUpdateUser({
+                                ...user,
+                                role: 'teacher',
+                                roleLabel: '指导教师',
+                                identityType: 'teacher',
+                                academicStatus: 'verified',
+                                academicVerifiedAt: '2026-10-28',
+                                university: user.university || '北京大学',
+                                majorOrDept: user.majorOrDept || '计算机科学与技术学院',
+                                teacherMajor: user.teacherMajor || '网络空间安全',
+                                educationLevel: user.educationLevel || '博士及以上',
+                                studentId: user.studentId || 'TEA-2024098',
+                                univAdminStatus: 'unverified',
+                              });
+                              setAdminNotificationBanner('【演示辅助】已一键切换为已认证指导教师账号，现可直接测试高校管理员申请！');
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-100 font-bold cursor-pointer transition-colors"
+                          >
+                            ⚡ 一键切换为已认证教师账号（便于测试申请）
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* 教师已通过认证：显示高校管理员审核状态及明细 */
+                      <div className="pt-5 space-y-4 text-sm">
+                        <div className="flex items-center gap-3">
+                          <span className="text-slate-500 w-28 shrink-0">认证状态：</span>
+                          {adminStatus === 'unverified' && (
+                            <span className="font-bold text-slate-500">未认证</span>
+                          )}
+                          {adminStatus === 'pending' && (
+                            <span className="font-bold text-amber-600 flex items-center gap-1.5">
+                              <Clock className="w-4 h-4" />
+                              <span>审核中</span>
+                            </span>
+                          )}
+                          {adminStatus === 'verified' && (
+                            <span className="font-bold text-emerald-600 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>验证成功</span>
+                            </span>
+                          )}
+                          {adminStatus === 'rejected' && (
+                            <span className="font-bold text-red-600 flex items-center gap-1.5">
+                              <XCircle className="w-4 h-4" />
+                              <span>验证失败</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 状态 1：未认证 */}
+                        {adminStatus === 'unverified' && (
+                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
+                            <div className="font-bold text-slate-800">
+                              申请高校：{user.university || '北京大学'} · 申请人：{user.name || user.username}
+                            </div>
+                            <p className="text-slate-500 leading-relaxed">
+                              您已具备指导教师资质，点击右上角【申请认证】提交后，组委会/秘书处将进行资格复核，审核通过后您将拥有本校队伍初审与校赛晋级名单提报权限。
+                            </p>
+                          </div>
+                        )}
+
+                        {/* 状态 2：审核中 */}
+                        {adminStatus === 'pending' && (
+                          <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-slate-700 space-y-2.5">
+                            <div className="text-amber-800 font-bold text-sm flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span>已提交至大赛组委会/秘书处审核，请耐心等待</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 pt-1 border-t border-amber-200/70">
+                              <div>
+                                <span className="text-slate-500">申请高校：</span>
+                                <span className="font-bold text-slate-900">{user.university}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">申请教师：</span>
+                                <span className="font-bold text-slate-900">{user.name || user.username}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">联系手机：</span>
+                                <span className="font-mono font-bold text-slate-900">{user.phone}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">提交时间：</span>
+                                <span className="font-mono text-slate-700">{user.univAdminSubmittedAt || '2026-10-28 16:10:00'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 状态 3：已通过 */}
+                        {adminStatus === 'verified' && (
+                          <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-slate-700 space-y-2.5">
+                            <div className="text-emerald-800 font-bold text-sm flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>您已成功获得【{user.university}】高校管理员权限</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 pt-1 border-t border-emerald-200/70">
+                              <div>
+                                <span className="text-slate-500">所属高校：</span>
+                                <span className="font-bold text-slate-900">{user.university}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">审核人：</span>
+                                <span className="font-bold text-slate-900">{user.univAdminReviewer || '组委会超级管理员'}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">通过时间：</span>
+                                <span className="font-mono text-slate-700">{user.univAdminVerifiedAt || '2026-10-28 16:30:00'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 状态 4：已驳回（显示驳回原因，提供重新申请认证入口） */}
+                        {adminStatus === 'rejected' && (
+                          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 space-y-2">
+                            <div className="flex items-center gap-1.5 font-bold text-red-700">
+                              <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+                              <span>高校管理员认证申请未通过（已驳回）</span>
+                            </div>
+                            <div className="p-3 rounded-lg bg-white/80 border border-red-200 text-red-900 font-medium">
+                              <span className="font-bold text-red-600">驳回原因：</span>
+                              {user.univAdminRejectReason ||
+                                '未提供加盖高校官方教务处或院系公章的管理授权委托证明，请重新核实后提交。'}
+                            </div>
+                            <p className="text-slate-600 leading-relaxed pt-1">
+                              您可以核对驳回原因后，点击右上角【重新申请认证】更新申请说明或补充材料后再次提交。
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -4798,35 +5681,32 @@ export const StandaloneUserCenterPage: React.FC<{
             />
           )}
 
-          {/* Tab 4：我的竞赛（仅展示当前用户参与，且整体报名状态为【报名成功】的赛事记录） */}
+          {/* Tab 4：我的竞赛（准入规则收紧：仅展示通过秘书处终审、状态为【报名成功】的最终参赛队伍档案） */}
           {activeTab === 'competitions' && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-6 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">我的竞赛</h2>
                   <p className="text-xs text-slate-500 mt-1">
-                    仅展示您已参与且整体报名状态为【报名成功】的赛事记录；点击【查看队伍详情】可查看报名成功时的固化快照信息。
+                    仅展示通过秘书处终审、报名状态为“报名成功”的参赛队伍档案（处于组建中、邀请中、已提交、已驳回、待校赛、未晋级或待终审状态的队伍请在“我的报名”中查看）。
                   </p>
                 </div>
-                <span className="px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-200 text-xs font-bold text-[#0284C7] self-start sm:self-auto">
-                  共 {myApprovedCompetitions.length} 项已报名成功竞赛
-                </span>
               </div>
 
               {myApprovedCompetitions.length === 0 ? (
                 <div className="py-12 text-center text-xs text-slate-400">
-                  暂无整体报名状态为【报名成功】的赛事记录。请先在【我的报名】中完成队伍组建并等待高校审核与秘书处审核通过。
+                  暂无通过秘书处终审、报名状态为“报名成功”的赛事档案。请先在【我的报名】中查看报名与审核进度。
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-slate-200">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
-                        <th className="py-3.5 px-4 min-w-[220px]">赛事名称</th>
+                        <th className="py-3.5 px-4 min-w-[200px]">赛事名称</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">起止时间</th>
-                        <th className="py-3.5 px-4 min-w-[180px]">所选赛道</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">赛事状态</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">参赛队伍名称</th>
+                        <th className="py-3.5 px-4 whitespace-nowrap">校内排名</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">我的身份</th>
                         <th className="py-3.5 px-4 text-right whitespace-nowrap">操作</th>
                       </tr>
@@ -4845,13 +5725,6 @@ export const StandaloneUserCenterPage: React.FC<{
                           <td className="py-4 px-4 align-middle whitespace-nowrap font-mono-num text-xs text-slate-600">
                             <div>{item.startDate}</div>
                             <div className="text-slate-400">至 {item.endDate}</div>
-                          </td>
-
-                          {/* 3. 所选赛道 */}
-                          <td className="py-4 px-4 align-middle">
-                            <span className="text-xs font-semibold text-slate-700">
-                              {item.subTrackName}
-                            </span>
                           </td>
 
                           {/* 4. 赛事状态（未开始/进行中/已结束） */}
@@ -4881,7 +5754,15 @@ export const StandaloneUserCenterPage: React.FC<{
                             {item.teamName}
                           </td>
 
-                          {/* 6. 我的身份（队长/队员/指导教师） */}
+                          {/* 6. 最终校内排名 */}
+                          <td className="py-4 px-4 align-middle whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-xs font-extrabold">
+                              <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                              <span>校内排名：第{item.schoolRank || 1}名</span>
+                            </span>
+                          </td>
+
+                          {/* 7. 我的身份（队长/队员/指导教师） */}
                           <td className="py-4 px-4 align-middle whitespace-nowrap">
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold border ${
@@ -4896,7 +5777,7 @@ export const StandaloneUserCenterPage: React.FC<{
                             </span>
                           </td>
 
-                          {/* 7. 交互操作：【查看赛事详情】、【查看队伍详情】 */}
+                          {/* 8. 交互操作：【查看赛事详情】、【查看队伍详情】 */}
                           <td className="py-4 px-4 align-middle text-right whitespace-nowrap">
                             <div className="inline-flex items-center gap-2">
                               <button
@@ -4942,9 +5823,6 @@ export const StandaloneUserCenterPage: React.FC<{
               <div className="px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-bold text-slate-900">我的消息</h2>
-                  <span className="px-2.5 py-0.5 rounded-md bg-sky-50 border border-sky-200 text-[11px] font-semibold text-[#0284C7]">
-                    与顶部铃铛通知实时同步
-                  </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
@@ -5212,6 +6090,38 @@ export const StandaloneUserCenterPage: React.FC<{
                             {msg.desc}
                           </p>
 
+                          {/* 若为入队邀请消息，展示队伍名、队长名及队长分配的初始角色标签 */}
+                          {msg.scenarioType === 'team_invite' && (() => {
+                            const inviteTeam =
+                              msg.inviteTeamPayload ||
+                              participatedTeams.find((pt) => pt.id === msg.relatedParticipatedTeamId);
+                            if (!inviteTeam) return null;
+                            const isAdvisorInvite = inviteTeam.myRoleInTeam === '指导教师';
+                            return (
+                              <div className="pt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                                <span className="text-slate-500">
+                                  队伍：<strong className="text-slate-800">{inviteTeam.teamName}</strong>
+                                </span>
+                                <span className="text-slate-300">|</span>
+                                <span className="text-slate-500">
+                                  队长：<strong className="text-slate-800">{inviteTeam.captainName}</strong>
+                                </span>
+                                {!isAdvisorInvite && (
+                                  <>
+                                    <span className="text-slate-300">|</span>
+                                    <div className="inline-flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-slate-500">队长分配初始角色：</span>
+                                      <CtfRoleBadges
+                                        roles={inviteTeam.myCtfRoles}
+                                        emptyText="待分配"
+                                      />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })()}
+
                           {/* 第三行：时间 */}
                           <div className="text-xs text-slate-400 font-mono-num">
                             {msg.time}
@@ -5223,9 +6133,21 @@ export const StandaloneUserCenterPage: React.FC<{
                           className="shrink-0 flex items-center gap-2"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* 1. 邀请类：未处理显示高亮主色【同意】和普通【拒绝】按钮；已处理显示灰色文字 已同意 或 已拒绝 */}
+                          {/* 1. 邀请类：支持点开邀请详情查看角色，未处理显示高亮主色【同意加入】和普通【拒绝】按钮；已处理显示灰色文字 已同意 或 已拒绝 */}
                           {resolvedAction === 'invite_actions' && (
-                            <>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (msg.unread && onMarkMessageRead) {
+                                    onMarkMessageRead(msg.id);
+                                  }
+                                  setDetailModalMessage(msg);
+                                }}
+                                className="text-xs font-bold text-[#0284C7] hover:text-[#0369A1] hover:underline px-2 py-1 cursor-pointer transition-colors"
+                              >
+                                邀请详情
+                              </button>
                               {(!msg.inviteStatus || msg.inviteStatus === 'pending') ? (
                                 <div className="flex items-center gap-2">
                                   <button
@@ -5235,7 +6157,7 @@ export const StandaloneUserCenterPage: React.FC<{
                                     }
                                     className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold shadow-2xs cursor-pointer transition-colors"
                                   >
-                                    同意
+                                    同意加入
                                   </button>
                                   <button
                                     type="button"
@@ -5256,7 +6178,7 @@ export const StandaloneUserCenterPage: React.FC<{
                                   已拒绝
                                 </span>
                               )}
-                            </>
+                            </div>
                           )}
 
                           {/* 2. 需处理类（如被驳回）：展示【去修改】按钮 */}
@@ -5379,6 +6301,54 @@ export const StandaloneUserCenterPage: React.FC<{
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-700 leading-relaxed">
                 {detailModalMessage.desc}
               </div>
+
+              {/* 队员视角：在【消息中心】点开邀请详情时，展示队伍名、队长名以及队长分配的初始角色标签 */}
+              {detailModalMessage.scenarioType === 'team_invite' && (() => {
+                const inviteTeam =
+                  detailModalMessage.inviteTeamPayload ||
+                  participatedTeams.find(
+                    (pt) => pt.id === detailModalMessage.relatedParticipatedTeamId
+                  );
+                if (!inviteTeam) return null;
+                const isAdvisorInvite = inviteTeam.myRoleInTeam === '指导教师';
+                return (
+                  <div className="p-4 rounded-xl bg-sky-50/70 border border-sky-200 space-y-2.5 text-xs">
+                    <div className="font-bold text-slate-900 flex items-center justify-between">
+                      <span>入队邀请详情单</span>
+                      <span className="text-[11px] font-semibold text-[#0284C7]">
+                        受激身份：{inviteTeam.myRoleInTeam}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700">
+                      <div>
+                        <span className="text-slate-500">队伍名称：</span>
+                        <strong className="text-slate-900">{inviteTeam.teamName}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">发起队长：</span>
+                        <strong className="text-slate-900">{inviteTeam.captainName}</strong>
+                      </div>
+                    </div>
+                    {!isAdvisorInvite && (
+                      <div className="pt-2 border-t border-sky-200/70 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-slate-600 font-semibold">
+                            队长给您分配的初始角色标签：
+                          </span>
+                          <CtfRoleBadges
+                            roles={inviteTeam.myCtfRoles}
+                            emptyText="待分配"
+                          />
+                        </div>
+                        <span className="text-[11px] text-slate-500">
+                          点击【同意加入】后角色标签正式生效（如需调整请联系队长修改）
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -5387,6 +6357,36 @@ export const StandaloneUserCenterPage: React.FC<{
                 >
                   关闭
                 </button>
+                {detailModalMessage.scenarioType === 'team_invite' &&
+                  (!detailModalMessage.inviteStatus ||
+                    detailModalMessage.inviteStatus === 'pending') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onRejectInviteMessage) {
+                            onRejectInviteMessage(detailModalMessage);
+                          }
+                          setDetailModalMessage(null);
+                        }}
+                        className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer"
+                      >
+                        拒绝邀请
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onAcceptInviteMessage) {
+                            onAcceptInviteMessage(detailModalMessage);
+                          }
+                          setDetailModalMessage(null);
+                        }}
+                        className="px-4 py-2 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer shadow-xs"
+                      >
+                        同意加入
+                      </button>
+                    </>
+                  )}
                 {(detailModalMessage.relatedCaptainTeamId ||
                   detailModalMessage.relatedParticipatedTeamId ||
                   detailModalMessage.category === 'review') && (
@@ -5396,7 +6396,7 @@ export const StandaloneUserCenterPage: React.FC<{
                       setDetailModalMessage(null);
                       setActiveTab('registrations');
                     }}
-                    className="px-4 py-2 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer"
                   >
                     前往【我的报名】查看队伍 &rarr;
                   </button>
@@ -5436,15 +6436,23 @@ export const StandaloneUserCenterPage: React.FC<{
             <div className="p-6 space-y-6 overflow-y-auto flex-1">
               {/* 一、赛事与队伍基本信息（对应报名表第一部分所有字段） */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
                     <Trophy className="w-4 h-4 text-[#0284C7]" />
                     <span>一、赛事与队伍基本信息</span>
                   </h4>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>报名成功（双级终审已通过）</span>
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-extrabold">
+                      <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                      <span>
+                        校内排名：第{snapshotDrawerItem.snapshot.schoolRank || 1}名
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>报名成功</span>
+                    </span>
+                  </div>
                 </div>
 
                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-4 text-xs">
@@ -5468,6 +6476,13 @@ export const StandaloneUserCenterPage: React.FC<{
                             所属院校：
                             <strong className="text-[#0369A1]">
                               {snapshotDrawerItem.snapshot.university}
+                            </strong>
+                          </span>
+                          <span className="text-slate-300">|</span>
+                          <span>
+                            校内排名：
+                            <strong className="text-amber-700">
+                              第{snapshotDrawerItem.snapshot.schoolRank || 1}名
                             </strong>
                           </span>
                           <span className="text-slate-300">|</span>
@@ -5497,7 +6512,7 @@ export const StandaloneUserCenterPage: React.FC<{
                     </div>
                   </div>
 
-                  {/* 赛事名称、参赛赛道、所属院校、报名时间等完整字段 */}
+                  {/* 赛事名称、所属院校、报名时间等完整字段 */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <span className="text-slate-400 block mb-1">赛事名称</span>
@@ -5507,15 +6522,15 @@ export const StandaloneUserCenterPage: React.FC<{
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block mb-1">参赛赛道</span>
-                      <span className="font-bold text-slate-800 text-xs sm:text-sm">
-                        {snapshotDrawerItem.snapshot.subTrackName}
-                      </span>
-                    </div>
-                    <div>
                       <span className="text-slate-400 block mb-1">所属院校</span>
                       <span className="font-bold text-slate-800">
                         {snapshotDrawerItem.snapshot.university}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-1">校内排名</span>
+                      <span className="font-extrabold text-amber-700">
+                        校内排名：第{snapshotDrawerItem.snapshot.schoolRank || 1}名（高校晋级提报确认）
                       </span>
                     </div>
                     <div>
@@ -5531,14 +6546,7 @@ export const StandaloneUserCenterPage: React.FC<{
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block mb-1">报名创建时间</span>
-                      <span className="font-mono-num text-slate-700">
-                        {snapshotDrawerItem.snapshot.createdAt ||
-                          snapshotDrawerItem.snapshot.approvedAt}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block mb-1">终审通过时间</span>
+                      <span className="text-slate-400 block mb-1">秘书处终审通过时间</span>
                       <span className="font-mono-num text-slate-700">
                         {snapshotDrawerItem.snapshot.approvedAt}
                       </span>
@@ -5573,8 +6581,9 @@ export const StandaloneUserCenterPage: React.FC<{
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
-                        <th className="py-3 px-3.5 whitespace-nowrap">姓名</th>
+                        <th className="py-3 px-3.5 whitespace-nowrap">姓名 / 队内角色</th>
                         <th className="py-3 px-3.5 whitespace-nowrap">队伍身份</th>
+                        <th className="py-3 px-3.5 whitespace-nowrap">队内角色</th>
                         <th className="py-3 px-3.5 whitespace-nowrap">所属院校</th>
                         <th className="py-3 px-3.5 whitespace-nowrap">手机号</th>
                         <th className="py-3 px-3.5 whitespace-nowrap">电子邮箱</th>
@@ -5583,8 +6592,13 @@ export const StandaloneUserCenterPage: React.FC<{
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {snapshotDrawerItem.snapshot.members.map((m, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-3 px-3.5 font-bold text-slate-900 whitespace-nowrap">
-                            {m.name}
+                          <td className="py-3 px-3.5 whitespace-nowrap">
+                            <div className="font-bold text-slate-900">{m.name}</div>
+                            {m.role !== '指导教师' && (
+                              <div className="mt-1">
+                                <CtfRoleBadges roles={m.ctfRoles} emptyText="待分配" />
+                              </div>
+                            )}
                           </td>
                           <td className="py-3 px-3.5 whitespace-nowrap">
                             <span
@@ -5598,6 +6612,13 @@ export const StandaloneUserCenterPage: React.FC<{
                             >
                               {m.role}
                             </span>
+                          </td>
+                          <td className="py-3 px-3.5 whitespace-nowrap">
+                            <CtfRoleBadges
+                              roles={m.ctfRoles}
+                              isAdvisor={m.role === '指导教师'}
+                              emptyText="-"
+                            />
                           </td>
                           <td className="py-3 px-3.5 text-slate-700 whitespace-nowrap">
                             {m.university}
@@ -5962,16 +6983,22 @@ export const StandaloneUserCenterPage: React.FC<{
       )}
 
       {/* =====================================================================
-          弹窗 C1：学生认证表单弹窗（防抖必选下拉院校库 + 专业 + 自动核验 + 异常人工兜底折叠项）
+          弹窗 C1：学生认证表单弹窗（个人中心 -> 用户认证 -> 学生/教师认证 -> 身份选择“参赛学生” -> 点击【去验证】/【重新验证】）
+          字段：
+          1. 所属院校（搜索下拉框，必填，必须选中下拉项，不可自由输入，选中后锁定）
+          2. 学历层次（下拉单选，必填：专科、本科、硕士、博士及以上）
+          3. 专业（输入框，必填）
+          4. 入学时间（年月选择器 YYYY-MM，必填）
+          5. 毕业时间（预计）（年月选择器 YYYY-MM，必填，必须晚于入学时间）
+          6. 身份辅助证明（选填：支持上传学生证内页或其他证明材料，限制格式 jpg/png/pdf，限制大小 5MB 以内）
          ===================================================================== */}
       {academicModalOpen === 'student' && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl my-8">
             <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between">
-              <span className="font-bold text-base">参赛学生 — 学籍认证</span>
+              <span className="font-bold text-base">参赛学生 — 学生认证</span>
               <button
                 type="button"
-                disabled={stuSubmitting}
                 onClick={() => setAcademicModalOpen(null)}
                 className="text-white/80 hover:text-white cursor-pointer"
               >
@@ -5979,204 +7006,202 @@ export const StandaloneUserCenterPage: React.FC<{
               </button>
             </div>
 
-            {stuSubmitting ? (
-              <div className="p-10 text-center space-y-3">
-                <Loader2 className="w-9 h-9 text-[#0284C7] animate-spin mx-auto" />
-                <div className="text-base font-bold text-slate-900">正在调用学籍自动核验接口...</div>
-                <p className="text-xs text-slate-500">
-                  正在交叉比对您的实名姓名（{user.name || '张三'}）、身份证号与所选高校学籍库...
-                </p>
-              </div>
-            ) : (
-              <div className="p-6 space-y-4">
-                {stuFormError && (
-                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                    <span>{stuFormError}</span>
+            <div className="p-6 space-y-4">
+              {user.academicStatus === 'rejected' && user.academicRejectReason && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                    <span>上次审核驳回原因（已为您回显原填报数据，请修改后重新提交）：</span>
                   </div>
-                )}
+                  <p className="pl-5 text-red-800">{user.academicRejectReason}</p>
+                </div>
+              )}
 
-                <form onSubmit={handleStudentAutoSubmit} className="space-y-4">
-                  {/* 学校（防抖模糊搜索院校库，必选下拉项，不可自由输入） */}
+              {stuFormError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span>{stuFormError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleStudentSubmitAudit} className="space-y-4">
+                {/* 实名信息只读带出提示 */}
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-slate-500">申请人姓名：</span>
+                    <span className="font-bold text-slate-900">{user.name || '林远航'}</span>
+                  </div>
+                  <div className="font-mono text-slate-500">
+                    {(user.idCard || '110108200305162819').replace(
+                      /^(\d{6})\d{8}(\w{4})$/,
+                      '$1********$2'
+                    )}
+                  </div>
+                </div>
+
+                {/* 1. 所属院校 */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    所属院校 <span className="text-red-500">*</span>
+                  </label>
+                  <DebouncedUniversitySelect
+                    selectedSchool={stuSchool}
+                    onSelectSchool={(s) => setStuSchool(s)}
+                    enabledSchools={enabledSchools}
+                  />
+                </div>
+
+                {/* 2. 学历层次（下拉单选，必填：专科、本科、硕士、博士及以上） */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    学历层次 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={stuEducation}
+                    onChange={(e) => setStuEducation(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm bg-white text-slate-900 focus:outline-none"
+                  >
+                    <option value="专科">专科</option>
+                    <option value="本科">本科</option>
+                    <option value="硕士">硕士</option>
+                    <option value="博士及以上">博士及以上</option>
+                  </select>
+                </div>
+
+                {/* 3. 专业（输入框，必填） */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    专业 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={stuMajor}
+                    onChange={(e) => setStuMajor(e.target.value)}
+                    placeholder="请输入您就读的专业名称，例如：网络空间安全"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm focus:outline-none"
+                  />
+                </div>
+
+                {/* 4. 入学时间 & 5. 毕业时间（预计）（年月选择器 YYYY-MM，毕业时间必须晚于入学时间） */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      学校 *（输入关键字自动防抖搜索院校库，必须选中下拉标准名称）
-                    </label>
-                    <DebouncedUniversitySelect
-                      selectedSchool={stuSchool}
-                      onSelectSchool={(s) => setStuSchool(s)}
-                      enabledSchools={enabledSchools}
-                    />
-                  </div>
-
-                  {/* 专业（自由填写） */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      专业 *（自由填写）
+                      入学时间 <span className="text-red-500">*</span>
+                      <span className="text-slate-400 font-normal ml-1">(YYYY-MM)</span>
                     </label>
                     <input
-                      type="text"
+                      type="month"
                       required
-                      value={stuMajor}
-                      onChange={(e) => setStuMajor(e.target.value)}
-                      placeholder="例如：网络空间安全 / 计算机科学与技术"
-                      className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm focus:outline-none"
+                      value={stuEnrollDate}
+                      onChange={(e) => setStuEnrollDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm font-mono focus:outline-none"
                     />
                   </div>
 
-                  {/* 演示开关：模拟自动核验失败以展示人工兜底通道 */}
-                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs text-slate-600">
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={stuSimulateAutoFail}
-                        onChange={(e) => setStuSimulateAutoFail(e.target.checked)}
-                        className="rounded border-slate-300 text-amber-600"
-                      />
-                      <span>演示测试：模拟“自动核验未通过”（如军校/新生），触发人工兜底通道</span>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      毕业时间（预计） <span className="text-red-500">*</span>
+                      <span className="text-slate-400 font-normal ml-1">(晚于入学时间)</span>
                     </label>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setAcademicModalOpen(null)}
-                      className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-                    >
-                      取消
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer"
-                    >
-                      提交
-                    </button>
-                  </div>
-                </form>
-
-                {/* 异常兜底机制：隐藏折叠项“自动验证未通过？点击此处上传学生证/学信网报告进行人工认证” */}
-                <div className="pt-3 border-t border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setStuManualExpanded((v) => !v)}
-                    className={`w-full text-left text-xs font-semibold flex items-center justify-between py-1.5 cursor-pointer ${
-                      stuAutoFailed ? 'text-amber-700' : 'text-slate-500 hover:text-[#0284C7]'
-                    }`}
-                  >
-                    <span>自动验证未通过？点击此处上传学生证/学信网报告进行人工认证</span>
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform ${
-                        stuManualExpanded || stuAutoFailed ? 'rotate-180' : ''
-                      }`}
+                    <input
+                      type="month"
+                      required
+                      min={stuEnrollDate || undefined}
+                      value={stuGradDate}
+                      onChange={(e) => setStuGradDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm font-mono focus:outline-none"
                     />
-                  </button>
+                  </div>
+                </div>
 
-                  {(stuManualExpanded || stuAutoFailed) && (
-                    <div className="mt-2.5 p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        人工兜底通道：如果您是军校学生、科研院所联培生或刚入学新生导致自动接口未查到数据，请上传<strong>学生证注册页</strong>或<strong>学信网在线验证报告</strong>，由您所选高校的【高校管理员】进行人工审核。
-                      </p>
-                      <div className="text-[11px] text-amber-800 bg-amber-100/70 px-3 py-1.5 rounded-lg border border-amber-200">
-                        附件要求：最多不超过 <strong>10 个</strong>附件，支持常规图片及常见文件格式（<strong>jpg、jpeg、png、pdf、doc、docx、ppt、pptx、zip、rar</strong> 等）。
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <label
-                            className={`px-3.5 py-2 rounded-lg bg-white border border-amber-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer ${
-                              stuManualFiles.length >= 10 ? 'opacity-50 pointer-events-none' : ''
-                            }`}
-                          >
-                            <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
-                            <span>选择证明附件（可多选）</span>
-                            <input
-                              type="file"
-                              multiple
-                              accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.ppt,.pptx,.zip,.rar"
-                              className="hidden"
-                              onChange={(e) => {
-                                handleAddCertFiles(
-                                  e.target.files,
-                                  stuManualFiles,
-                                  setStuManualFiles,
-                                  setStuFormError
-                                );
-                                e.target.value = '';
-                              }}
-                            />
-                          </label>
+                {/* 6. 身份辅助证明（选填：支持上传学生证内页或其他证明材料，非必填，限制格式 jpg/png/pdf，限制大小 5MB 以内） */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700">
+                      身份辅助证明（选填）
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      非必填 · 格式 jpg/png/pdf · 5MB 以内
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    支持上传学生证内页或其他证明材料
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <label className="px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors">
+                      <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
+                      <span>上传辅助证明材料（选填）</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          handleAddStudentProofFiles(e.target.files);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {stuManualFiles.length > 0 && (
+                      <span className="text-[11px] font-mono text-slate-500">
+                        已选 {stuManualFiles.length} 份文件
+                      </span>
+                    )}
+                  </div>
+
+                  {stuManualFiles.length > 0 && (
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto pt-1">
+                      {stuManualFiles.map((f, idx) => (
+                        <div
+                          key={f.id}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="text-[11px] font-mono text-[#0284C7] font-bold">
+                              #{idx + 1}
+                            </span>
+                            <FileText className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                            <span className="text-slate-800 font-medium truncate">{f.name}</span>
+                            <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                              ({f.size})
+                            </span>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => {
-                              setStuFormError(null);
-                              setStuManualFiles([
-                                {
-                                  id: `demo-stu-1-${Date.now()}`,
-                                  name: '教育部学籍在线验证报告_2026.pdf',
-                                  size: '1.28 MB',
-                                  url: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80',
-                                  fileType: 'pdf',
-                                },
-                                {
-                                  id: `demo-stu-2-${Date.now()}`,
-                                  name: '学生证注册页及钢印扫描件.jpg',
-                                  size: '840 KB',
-                                  url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=900&q=80',
-                                  fileType: 'jpg',
-                                },
-                              ]);
-                            }}
-                            className="text-xs text-[#0284C7] underline cursor-pointer"
+                            onClick={() =>
+                              setStuManualFiles((prev) => prev.filter((item) => item.id !== f.id))
+                            }
+                            className="text-slate-400 hover:text-red-600 cursor-pointer p-0.5"
+                            title="移除该附件"
                           >
-                            一键填入演示证明文件
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <span className="text-[11px] font-mono text-slate-600">
-                          已上传 <strong>{stuManualFiles.length}</strong> / 10 个附件
-                        </span>
-                      </div>
-                      {stuManualFiles.length > 0 && (
-                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                          {stuManualFiles.map((f, idx) => (
-                            <div
-                              key={f.id}
-                              className="px-3 py-1.5 rounded-lg bg-white border border-amber-200 flex items-center justify-between gap-2 text-xs"
-                            >
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <span className="text-[11px] font-mono text-amber-700 font-bold">
-                                  #{idx + 1}
-                                </span>
-                                <FileText className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
-                                <span className="text-slate-800 font-medium truncate">{f.name}</span>
-                                <span className="text-[11px] text-slate-400 font-mono shrink-0">
-                                  ({f.size})
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setStuManualFiles((prev) => prev.filter((item) => item.id !== f.id))
-                                }
-                                className="text-slate-400 hover:text-red-600 cursor-pointer p-0.5"
-                                title="移除该附件"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleStudentManualSubmit}
-                        className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg cursor-pointer"
-                      >
-                        提交人工审核（转交高校管理员）
-                      </button>
+                      ))}
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setAcademicModalOpen(null)}
+                    className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer shadow-xs"
+                  >
+                    提交审核
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -6206,10 +7231,10 @@ export const StandaloneUserCenterPage: React.FC<{
                 </div>
               )}
 
-              {/* 学校（模糊搜索院校库，必选下拉项） */}
+              {/* 学校 */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  学校 *（模糊搜索院校库，必选下拉项）
+                  学校 <span className="text-red-500">*</span>
                 </label>
                 <DebouncedUniversitySelect
                   selectedSchool={teaSchool}
@@ -6231,6 +7256,38 @@ export const StandaloneUserCenterPage: React.FC<{
                   placeholder="如：计算机科学与技术学院"
                   className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm focus:outline-none"
                 />
+              </div>
+
+              {/* 学历层次 + 专业（与学生认证一致） */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    学历层次 *
+                  </label>
+                  <select
+                    value={teaEducation}
+                    onChange={(e) => setTeaEducation(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm bg-white focus:outline-none"
+                  >
+                    <option value="专科">专科</option>
+                    <option value="本科">本科</option>
+                    <option value="硕士">硕士</option>
+                    <option value="博士及以上">博士及以上</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    专业 *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={teaMajor}
+                    onChange={(e) => setTeaMajor(e.target.value)}
+                    placeholder="如：网络空间安全"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* 教工号 */}
@@ -6288,6 +7345,8 @@ export const StandaloneUserCenterPage: React.FC<{
                           setTeaFormError(null);
                           if (!teaSchool) setTeaSchool('北京大学');
                           if (!teaDept) setTeaDept('计算机科学与技术学院');
+                          if (!teaMajor) setTeaMajor('网络空间安全');
+                          if (!teaEducation) setTeaEducation('博士及以上');
                           if (!teaStaffId) setTeaStaffId('PKU-T2019086');
                           setTeaFiles([
                             {
@@ -6362,6 +7421,121 @@ export const StandaloneUserCenterPage: React.FC<{
                   className="px-6 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer"
                 >
                   提交
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 弹窗：高校管理员认证申请与重新申请弹窗 */}
+      {univAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 my-8">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] flex items-center justify-center">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    {user.univAdminStatus === 'rejected'
+                      ? '重新申请高校管理员认证'
+                      : '申请高校管理员认证'}
+                  </h3>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    面向已通过【指导教师认证】的高校老师开通
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUnivAdminModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitUnivAdminApplication} className="space-y-4">
+              {/* 职责说明提示条 */}
+              <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-xs text-[#0369A1] leading-relaxed">
+                <span className="font-bold text-[#0284C7]">高校管理员职责承诺：</span>
+                高校管理员负责对本校学生的参赛身份认证、指导教师资质以及参赛队伍进行资格审核与校赛晋级名单提报。
+              </div>
+
+              {/* 自动读取当前已认证教师资质 */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                <div className="font-bold text-slate-700 pb-1.5 border-b border-slate-200/80">
+                  当前教师资质信息（已核验）：
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-slate-600">
+                  <div>
+                    <span className="text-slate-400">申请高校：</span>
+                    <span className="font-bold text-slate-900">{user.university || '北京大学'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">教师姓名：</span>
+                    <span className="font-bold text-slate-900">{user.name || user.username}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">联系手机：</span>
+                    <span className="font-mono font-bold text-slate-900">{user.phone}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">学历：</span>
+                    <span className="font-bold text-slate-900">{user.educationLevel || '博士及以上'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">所属院系：</span>
+                    <span className="font-bold text-slate-900">{user.majorOrDept || '计算机科学与技术学院'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">教工号：</span>
+                    <span className="font-mono font-bold text-slate-900">{user.studentId || 'TEA-2024098'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 上次驳回原因提示（如果是重新申请） */}
+              {user.univAdminStatus === 'rejected' && user.univAdminRejectReason && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800">
+                  <span className="font-bold">上次驳回原因：</span>
+                  {user.univAdminRejectReason}
+                </div>
+              )}
+
+              {/* 申请说明 */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  申请说明 / 审核职责承诺
+                </label>
+                <textarea
+                  rows={3}
+                  value={univAdminApplyNote}
+                  onChange={(e) => setUnivAdminApplyNote(e.target.value)}
+                  placeholder="请简要说明您的申请原由及工作职责承诺..."
+                  className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
+                />
+              </div>
+
+              {univAdminFormError && (
+                <div className="text-xs text-red-600 font-bold">{univAdminFormError}</div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setUnivAdminModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer shadow-xs transition-colors"
+                >
+                  确认提交申请
                 </button>
               </div>
             </form>

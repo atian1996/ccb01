@@ -49,6 +49,12 @@ import {
   computeCompetitionStatus,
   getCompetitionStatusLabel,
   type CompetitionCalculatedStatus,
+  type HomeBannerConfig,
+  type DivisionRecord,
+  INITIAL_HOME_BANNERS,
+  INITIAL_RECOMMENDED_COMP_IDS,
+  INITIAL_DIVISIONS,
+  HELP_CENTER_MARKDOWN_DOC,
 } from '../data/competitionData';
 import { TrackCoverIllustration } from './VisualArtwork';
 import {
@@ -67,6 +73,9 @@ import {
   AdminMomentsManagement,
   AdminNoticesManagement,
   AdminVerificationManagement,
+  AdminHomeConfigManagement,
+  AdminDivisionManagement,
+  AdminHelpCenterManagement,
   type InstitutionRecord,
   type ManagedNewsItem,
   type ManagedMomentItem,
@@ -81,6 +90,9 @@ import {
   ShieldCheck,
   GraduationCap,
   UserCheck,
+  Sparkles,
+  MapPin,
+  HelpCircle,
 } from 'lucide-react';
 
 // ============================================================================
@@ -915,33 +927,6 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
             </div>
           )}
 
-          {/* 附：本赛事下设赛道一览 */}
-          {competition.tracks.length > 0 && (
-            <div className="pt-6 border-t border-slate-200/80">
-              <h3 className="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#0284C7]" />
-                <span>本赛事下设赛道（{competition.tracks.length} 个）</span>
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {competition.tracks.map((trk, idx) => (
-                  <div
-                    key={trk.id}
-                    className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between gap-2"
-                  >
-                    <div>
-                      <div className="text-xs font-mono-num text-[#0284C7] font-semibold mb-0.5">
-                        赛道 0{idx + 1}
-                      </div>
-                      <div className="text-sm font-bold text-slate-900">{trk.name}</div>
-                      {trk.description && (
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">{trk.description}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* 右栏（占 4 列，较窄）：比赛赛程（纵向时间轴） */}
@@ -1026,6 +1011,14 @@ interface AdminDashboardPageProps {
   auditLogs?: AuditLogEntry[];
   platformUsers?: PlatformDirectoryUser[];
   onUpdatePlatformUsers?: React.Dispatch<React.SetStateAction<PlatformDirectoryUser[]>>;
+  homeBanners?: HomeBannerConfig[];
+  onChangeHomeBanners?: React.Dispatch<React.SetStateAction<HomeBannerConfig[]>>;
+  recommendedCompIds?: string[];
+  onChangeRecommendedCompIds?: React.Dispatch<React.SetStateAction<string[]>>;
+  divisions?: DivisionRecord[];
+  onChangeDivisions?: React.Dispatch<React.SetStateAction<DivisionRecord[]>>;
+  helpCenterContent?: string;
+  onChangeHelpCenterContent?: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
@@ -1056,6 +1049,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   auditLogs = [],
   platformUsers = [],
   onUpdatePlatformUsers,
+  homeBanners = INITIAL_HOME_BANNERS,
+  onChangeHomeBanners,
+  recommendedCompIds = INITIAL_RECOMMENDED_COMP_IDS,
+  onChangeRecommendedCompIds,
+  divisions = INITIAL_DIVISIONS,
+  onChangeDivisions,
+  helpCenterContent = HELP_CENTER_MARKDOWN_DOC,
+  onChangeHelpCenterContent,
 }) => {
   // 后台当前角色视角：根据当前登录账号角色自动匹配初始视角（组委会超级管理员 / 高校管理员 / 秘书处管理员）
   const initialAdminAccount = platformUsers.find(
@@ -1075,11 +1076,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     | 'registrations'
     | 'verify-student'
     | 'verify-teacher'
+    | 'verify-univ-admin'
     | 'institutions'
     | 'users'
+    | 'divisions'
+    | 'content-home'
     | 'content-announcements'
     | 'content-news'
     | 'content-moments'
+    | 'content-help'
   >(initialDetectedRole === 'school_admin' ? 'registrations' : 'competitions');
   const [verifyMenuExpanded, setVerifyMenuExpanded] = useState<boolean>(true);
   const [contentMenuExpanded, setContentMenuExpanded] = useState<boolean>(true);
@@ -1545,7 +1550,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 setActiveMenu('registrations');
               }}
               className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                activeMenu === 'registrations' || adminRole === 'school_admin'
+                activeMenu === 'registrations'
                   ? 'bg-[#0284C7] text-white shadow-xs'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
@@ -1556,7 +1561,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </span>
               <span
                 className={`text-xs font-mono-num px-2 py-0.5 rounded-md ${
-                  activeMenu === 'registrations' || adminRole === 'school_admin'
+                  activeMenu === 'registrations'
                     ? 'bg-white/20 text-white'
                     : 'bg-slate-100 text-slate-600 border border-slate-200/80'
                 }`}
@@ -1565,100 +1570,142 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </span>
             </button>
 
-            {adminRole !== 'school_admin' && (
-              <>
-                {/* 认证管理（报名管理后新增一级菜单，含二级子菜单：学生认证、教师认证） */}
-                <div className="pt-2">
+            {/* 认证管理（报名管理后新增一级菜单，含二级子菜单：学生认证、教师认证；高校管理员视角下仅统计与审核本校师生） */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setVerifyMenuExpanded((v) => !v)}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                  activeMenu === 'verify-student' || activeMenu === 'verify-teacher'
+                    ? 'bg-sky-50 text-[#0284C7] border border-sky-200/80'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-[#0284C7]" />
+                  <span>认证管理</span>
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-slate-400 transition-transform ${
+                    verifyMenuExpanded ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {verifyMenuExpanded && (
+                <div className="mt-1.5 ml-4 pl-3 border-l-2 border-slate-200 space-y-1">
                   <button
                     type="button"
-                    onClick={() => setVerifyMenuExpanded((v) => !v)}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                      activeMenu === 'verify-student' || activeMenu === 'verify-teacher'
-                        ? 'bg-sky-50 text-[#0284C7] border border-sky-200/80'
-                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    onClick={() => setActiveMenu('verify-student')}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      activeMenu === 'verify-student'
+                        ? 'bg-[#0284C7] text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <ShieldCheck className="w-4 h-4 text-[#0284C7]" />
-                      <span>认证管理</span>
+                    <span className="flex items-center gap-2">
+                      <GraduationCap className="w-3.5 h-3.5" />
+                      <span>学生认证</span>
                     </span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-slate-400 transition-transform ${
-                        verifyMenuExpanded ? 'rotate-180' : ''
+                    <span
+                      className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                        activeMenu === 'verify-student'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200/80'
                       }`}
-                    />
+                    >
+                      {
+                        verificationRecords.filter(
+                          (r) =>
+                            r.applicantType === 'student' &&
+                            (adminRole !== 'school_admin' ||
+                              r.university ===
+                                (currentSchoolInstitution?.name || '北京航空航天大学'))
+                        ).length
+                      }
+                    </span>
                   </button>
 
-                  {verifyMenuExpanded && (
-                    <div className="mt-1.5 ml-4 pl-3 border-l-2 border-slate-200 space-y-1">
-                      <button
-                        type="button"
-                        onClick={() => setActiveMenu('verify-student')}
-                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                          activeMenu === 'verify-student'
-                            ? 'bg-[#0284C7] text-white shadow-xs'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <GraduationCap className="w-3.5 h-3.5" />
-                          <span>学生认证</span>
-                        </span>
-                        <span
-                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
-                            activeMenu === 'verify-student'
-                              ? 'bg-white/20 text-white'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
-                          }`}
-                        >
-                          {
-                            verificationRecords.filter(
-                              (r) => r.applicantType === 'student'
-                            ).length
-                          }
-                        </span>
-                      </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveMenu('verify-teacher')}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      activeMenu === 'verify-teacher'
+                        ? 'bg-[#0284C7] text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>教师认证</span>
+                    </span>
+                    <span
+                      className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                        activeMenu === 'verify-teacher'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                      }`}
+                    >
+                      {
+                        verificationRecords.filter(
+                          (r) =>
+                            r.applicantType === 'teacher' &&
+                            (adminRole !== 'school_admin' ||
+                              r.university ===
+                                (currentSchoolInstitution?.name || '北京航空航天大学'))
+                        ).length
+                      }
+                    </span>
+                  </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setActiveMenu('verify-teacher')}
-                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                          activeMenu === 'verify-teacher'
-                            ? 'bg-[#0284C7] text-white shadow-xs'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <UserCheck className="w-3.5 h-3.5" />
-                          <span>教师认证</span>
-                        </span>
-                        <span
-                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
-                            activeMenu === 'verify-teacher'
-                              ? 'bg-white/20 text-white'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
-                          }`}
-                        >
-                          {
-                            verificationRecords.filter(
-                              (r) => r.applicantType === 'teacher'
-                            ).length
-                          }
-                        </span>
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveMenu('verify-univ-admin')}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      activeMenu === 'verify-univ-admin'
+                        ? 'bg-[#0284C7] text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>高校管理员认证</span>
+                    </span>
+                    <span
+                      className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                        activeMenu === 'verify-univ-admin'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                      }`}
+                    >
+                      {
+                        verificationRecords.filter(
+                          (r) =>
+                            r.applicantType === 'univ_admin' &&
+                            (adminRole !== 'school_admin' ||
+                              r.university ===
+                                (currentSchoolInstitution?.name || '北京航空航天大学'))
+                        ).length
+                      }
+                    </span>
+                  </button>
                 </div>
+              )}
+            </div>
 
-                {/* 内容管理（含二级子菜单：通知公告、赛事新闻、赛事动态） */}
+            {adminRole !== 'school_admin' && (
+              <>
+                {/* 内容管理（含二级子菜单：首页配置、通知公告、赛事新闻、赛事动态、帮助中心） */}
                 <div className="pt-1">
                   <button
                     type="button"
                     onClick={() => setContentMenuExpanded((v) => !v)}
                     className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      activeMenu === 'content-home' ||
                       activeMenu === 'content-announcements' ||
                       activeMenu === 'content-news' ||
-                      activeMenu === 'content-moments'
+                      activeMenu === 'content-moments' ||
+                      activeMenu === 'content-help'
                         ? 'bg-sky-50 text-[#0284C7] border border-sky-200/80'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
@@ -1676,6 +1723,30 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
                   {contentMenuExpanded && (
                     <div className="mt-1.5 ml-4 pl-3 border-l-2 border-slate-200 space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenu('content-home')}
+                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                          activeMenu === 'content-home'
+                            ? 'bg-[#0284C7] text-white shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>首页配置</span>
+                        </span>
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'content-home'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
+                          {homeBanners.length}
+                        </span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setActiveMenu('content-announcements')}
@@ -1747,17 +1818,43 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           {managedMoments.length}
                         </span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenu('content-help')}
+                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                          activeMenu === 'content-help'
+                            ? 'bg-[#0284C7] text-white shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <HelpCircle className="w-3.5 h-3.5" />
+                          <span>帮助中心</span>
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            activeMenu === 'content-help'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
+                          MD
+                        </span>
+                      </button>
                     </div>
                   )}
                 </div>
 
-                {/* 系统管理（内容管理下方同级菜单，含二级子菜单：院校管理、用户管理） */}
+                {/* 系统管理（内容管理下方同级菜单，含二级子菜单：院校管理、用户管理、赛区管理） */}
                 <div className="pt-1">
                   <button
                     type="button"
                     onClick={() => setSystemMenuExpanded((v) => !v)}
                     className={`w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                      activeMenu === 'institutions' || activeMenu === 'users'
+                      activeMenu === 'institutions' ||
+                      activeMenu === 'users' ||
+                      activeMenu === 'divisions'
                         ? 'bg-sky-50 text-[#0284C7] border border-sky-200/80'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
@@ -1822,6 +1919,30 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           {platformUsers.filter((u) => !u.isDeleted).length}
                         </span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenu('divisions')}
+                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                          activeMenu === 'divisions'
+                            ? 'bg-[#0284C7] text-white shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>赛区管理</span>
+                        </span>
+                        <span
+                          className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                            activeMenu === 'divisions'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
+                          {divisions.length}
+                        </span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1856,7 +1977,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <div className="flex items-center gap-2 text-sm">
             <span className="text-slate-400">后台管理</span>
             <ChevronRight className="w-4 h-4 text-slate-400" />
-            {adminRole === 'school_admin' || activeMenu === 'registrations' ? (
+            {activeMenu === 'registrations' ? (
               <span className="font-bold text-slate-900">报名管理</span>
             ) : activeMenu === 'competitions' ? (
               <>
@@ -1882,14 +2003,22 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               <span className="font-bold text-slate-900">认证管理 &rsaquo; 学生认证</span>
             ) : activeMenu === 'verify-teacher' ? (
               <span className="font-bold text-slate-900">认证管理 &rsaquo; 教师认证</span>
+            ) : activeMenu === 'verify-univ-admin' ? (
+              <span className="font-bold text-slate-900">认证管理 &rsaquo; 高校管理员认证</span>
             ) : activeMenu === 'institutions' ? (
               <span className="font-bold text-slate-900">系统管理 &rsaquo; 院校管理</span>
             ) : activeMenu === 'users' ? (
               <span className="font-bold text-slate-900">系统管理 &rsaquo; 用户管理</span>
+            ) : activeMenu === 'divisions' ? (
+              <span className="font-bold text-slate-900">系统管理 &rsaquo; 赛区管理</span>
+            ) : activeMenu === 'content-home' ? (
+              <span className="font-bold text-slate-900">内容管理 &rsaquo; 首页配置</span>
             ) : activeMenu === 'content-announcements' ? (
               <span className="font-bold text-slate-900">内容管理 &rsaquo; 通知公告</span>
             ) : activeMenu === 'content-news' ? (
               <span className="font-bold text-slate-900">内容管理 &rsaquo; 赛事新闻</span>
+            ) : activeMenu === 'content-help' ? (
+              <span className="font-bold text-slate-900">内容管理 &rsaquo; 帮助中心</span>
             ) : (
               <span className="font-bold text-slate-900">内容管理 &rsaquo; 赛事动态</span>
             )}
@@ -1916,7 +2045,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 type="button"
                 onClick={() => {
                   setAdminRole('school_admin');
-                  setActiveMenu('registrations');
+                  if (
+                    activeMenu !== 'registrations' &&
+                    activeMenu !== 'verify-student' &&
+                    activeMenu !== 'verify-teacher'
+                  ) {
+                    setActiveMenu('verify-student');
+                  }
                 }}
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                   adminRole === 'school_admin'
@@ -1992,9 +2127,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           </div>
         )}
 
-        {/* 主内容切换：报名管理 / 院校管理 / 内容管理(赛事新闻/赛事动态) / 赛事管理 */}
+        {/* 主内容切换：报名管理 / 认证管理 / 院校管理 / 内容管理(赛事新闻/赛事动态) / 赛事管理 */}
         <main className="p-6 xl:p-8 2xl:p-10 flex-1 overflow-y-auto">
-          {adminRole === 'school_admin' || activeMenu === 'registrations' ? (
+          {activeMenu === 'registrations' ? (
             <AdminRegistrationManagement
               competitions={competitions}
               registrationConfigs={registrationConfigs}
@@ -2002,6 +2137,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               captainTeams={captainTeams}
               onUpdateCaptainTeams={onUpdateCaptainTeams}
               platformUsers={platformUsers}
+              institutions={institutions}
+              divisions={divisions}
               adminName={effectiveAdminDisplayName}
               adminRole={adminRole}
               adminInstitutionId={currentSchoolInstitution?.id || 'inst-3'}
@@ -2019,6 +2156,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               onChangeRecords={onUpdateVerificationRecords}
               institutions={institutions}
               reviewerName={effectiveAdminDisplayName}
+              lockedUniversity={
+                adminRole === 'school_admin'
+                  ? currentSchoolInstitution?.name || '北京航空航天大学'
+                  : undefined
+              }
               onApproveSyncUser={onApproveVerificationSync}
               onRejectSyncUser={onRejectVerificationSync}
             />
@@ -2029,6 +2171,26 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               onChangeRecords={onUpdateVerificationRecords}
               institutions={institutions}
               reviewerName={effectiveAdminDisplayName}
+              lockedUniversity={
+                adminRole === 'school_admin'
+                  ? currentSchoolInstitution?.name || '北京航空航天大学'
+                  : undefined
+              }
+              onApproveSyncUser={onApproveVerificationSync}
+              onRejectSyncUser={onRejectVerificationSync}
+            />
+          ) : activeMenu === 'verify-univ-admin' ? (
+            <AdminVerificationManagement
+              applicantType="univ_admin"
+              records={verificationRecords}
+              onChangeRecords={onUpdateVerificationRecords}
+              institutions={institutions}
+              reviewerName={effectiveAdminDisplayName}
+              lockedUniversity={
+                adminRole === 'school_admin'
+                  ? currentSchoolInstitution?.name || '北京航空航天大学'
+                  : undefined
+              }
               onApproveSyncUser={onApproveVerificationSync}
               onRejectSyncUser={onRejectVerificationSync}
             />
@@ -2053,6 +2215,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               auditLogs={auditLogs}
               onAddAuditLog={onAddAuditLog}
             />
+          ) : activeMenu === 'divisions' ? (
+            <AdminDivisionManagement
+              divisions={divisions}
+              onChangeDivisions={onChangeDivisions || (() => {})}
+            />
+          ) : activeMenu === 'content-home' ? (
+            <AdminHomeConfigManagement
+              homeBanners={homeBanners}
+              onChangeHomeBanners={onChangeHomeBanners || (() => {})}
+              recommendedCompIds={recommendedCompIds}
+              onChangeRecommendedCompIds={onChangeRecommendedCompIds || (() => {})}
+              competitions={competitions}
+            />
           ) : activeMenu === 'content-announcements' ? (
             <AdminNoticesManagement
               noticesList={managedNotices}
@@ -2067,6 +2242,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             <AdminMomentsManagement
               momentsList={managedMoments}
               onChangeMomentsList={onUpdateManagedMoments}
+            />
+          ) : activeMenu === 'content-help' ? (
+            <AdminHelpCenterManagement
+              helpCenterContent={helpCenterContent}
+              onChangeHelpCenterContent={onChangeHelpCenterContent || (() => {})}
+              onAddAuditLog={onAddAuditLog}
+              operatorName={effectiveAdminDisplayName}
             />
           ) : subView === 'list' ? (
             <div className="space-y-5">
@@ -2184,7 +2366,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         <th className="py-3.5 px-4 min-w-[260px]">赛事名称</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">起止时间</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">状态</th>
-                        <th className="py-3.5 px-4 whitespace-nowrap">赛道数量</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">公开 / 隐藏</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">创建时间</th>
                         <th className="py-3.5 pr-5 pl-4 text-right whitespace-nowrap">操作</th>
@@ -2193,7 +2374,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     <tbody className="divide-y divide-slate-100 text-xs">
                       {filteredList.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="py-12 text-center text-slate-400">
+                          <td colSpan={7} className="py-12 text-center text-slate-400">
                             未找到匹配的赛事记录
                           </td>
                         </tr>
@@ -2270,16 +2451,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                     {statusLabel}
                                   </span>
                                 </div>
-                              </td>
-
-                              {/* 赛道数量 */}
-                              <td className="py-4 px-4 align-middle whitespace-nowrap">
-                                <span
-                                  className="font-mono-num font-bold text-slate-800"
-                                  title={comp.tracks.map((t) => t.name).join(' / ')}
-                                >
-                                  {comp.tracks.length} 个赛道
-                                </span>
                               </td>
 
                               {/* 公开 / 隐藏 */}
@@ -2420,7 +2591,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
                   <div className="md:col-span-3">
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      主办 / 承办单位
+                      主办单位
                     </label>
                     <input
                       type="text"
@@ -2642,84 +2813,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 </div>
               </div>
 
-              {/* 6. 赛道（自定义添加） */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-8 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-[#0284C7]" />
-                      <span>赛道配置（自定义添加，当前共 {formTracks.length} 个赛道）</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      添加的赛道将自动计入列表“赛道数量”，并供选手在详情页报名时选择
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormTracks((prev) => [
-                        ...prev,
-                        { id: `trk-${Date.now()}-${prev.length}`, name: '', description: '' },
-                      ])
-                    }
-                    className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-[#0284C7] border border-sky-200 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>添加赛道</span>
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {formTracks.map((trk, idx) => (
-                    <div
-                      key={trk.id}
-                      className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center gap-3"
-                    >
-                      <span className="text-xs font-mono-num font-bold text-[#0284C7] shrink-0">
-                        赛道 0{idx + 1}
-                      </span>
-                      <input
-                        type="text"
-                        value={trk.name}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormTracks((prev) =>
-                            prev.map((item, i) => (i === idx ? { ...item, name: val } : item))
-                          );
-                        }}
-                        placeholder="赛道名称（如：Web应用与云原生攻防赛道）"
-                        className="w-full sm:w-64 px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none font-semibold"
-                      />
-                      <input
-                        type="text"
-                        value={trk.description || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormTracks((prev) =>
-                            prev.map((item, i) =>
-                              i === idx ? { ...item, description: val } : item
-                            )
-                          );
-                        }}
-                        placeholder="赛道考核内容简述（选填）"
-                        className="flex-1 w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormTracks((prev) => prev.filter((_, i) => i !== idx))
-                        }
-                        className="text-red-500 hover:text-red-700 p-1.5 cursor-pointer shrink-0"
-                        title="删除该赛道"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 7. 赛程配置（对应详情页右栏纵向时间轴：只留赛程名称与精确到年月日时分的起止时间） */}
+              {/* 6. 赛程配置（对应详情页右栏纵向时间轴：只留赛程名称与精确到年月日时分的起止时间） */}
               <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-8 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -3069,18 +3163,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => {
-                      const target = viewingCompetitionDetail;
-                      setViewingCompetitionDetail(null);
-                      onPreviewCompetitionInFrontend(target);
-                    }}
-                    className="px-3 py-1.5 rounded-lg border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#0284C7] text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>前台预览</span>
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setViewingCompetitionDetail(null)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
                   >
@@ -3210,73 +3292,37 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
                 </div>
 
-                {/* 区块 3：赛道配置 & 比赛赛程 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* 下设赛道 */}
-                  <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
-                    <div className="font-bold text-slate-800 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-[#0284C7]" />
-                        <span>赛道配置明细</span>
-                      </span>
-                      <span className="text-[11px] font-mono-num text-slate-400">
-                        共 {viewingCompetitionDetail.tracks.length} 个赛道
-                      </span>
-                    </div>
-                    {viewingCompetitionDetail.tracks.length === 0 ? (
-                      <div className="text-slate-400 py-4 text-center">暂未配置赛道</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {viewingCompetitionDetail.tracks.map((t, i) => (
-                          <div
-                            key={t.id}
-                            className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1"
-                          >
-                            <div className="font-bold text-slate-900">
-                              <span className="font-mono-num text-[#0284C7] mr-1.5">0{i + 1}.</span>
-                              {t.name}
-                            </div>
-                            {t.description && (
-                              <div className="text-slate-500 leading-relaxed">{t.description}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                {/* 区块 3：比赛赛程 */}
+                <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+                  <div className="font-bold text-slate-800 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#0284C7]" />
+                      <span>比赛赛程时间轴</span>
+                    </span>
+                    <span className="text-[11px] font-mono-num text-slate-400">
+                      共 {viewingCompetitionDetail.schedule.length} 个阶段
+                    </span>
                   </div>
-
-                  {/* 比赛赛程 */}
-                  <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
-                    <div className="font-bold text-slate-800 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-[#0284C7]" />
-                        <span>比赛赛程时间轴</span>
-                      </span>
-                      <span className="text-[11px] font-mono-num text-slate-400">
-                        共 {viewingCompetitionDetail.schedule.length} 个阶段
-                      </span>
-                    </div>
-                    {viewingCompetitionDetail.schedule.length === 0 ? (
-                      <div className="text-slate-400 py-4 text-center">暂未配置比赛赛程</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {viewingCompetitionDetail.schedule.map((st, i) => (
-                          <div
-                            key={st.id || i}
-                            className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-1"
-                          >
-                            <div className="font-bold text-slate-900">
-                              <span className="font-mono-num text-[#0284C7] mr-1.5">0{i + 1}.</span>
-                              {st.stage}
-                            </div>
-                            <div className="font-mono-num text-[#0284C7] font-semibold">
-                              起止时间：{st.dateRange}
-                            </div>
+                  {viewingCompetitionDetail.schedule.length === 0 ? (
+                    <div className="text-slate-400 py-4 text-center">暂未配置比赛赛程</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {viewingCompetitionDetail.schedule.map((st, i) => (
+                        <div
+                          key={st.id || i}
+                          className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-1"
+                        >
+                          <div className="font-bold text-slate-900">
+                            <span className="font-mono-num text-[#0284C7] mr-1.5">0{i + 1}.</span>
+                            {st.stage}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                          <div className="font-mono-num text-[#0284C7] font-semibold">
+                            起止时间：{st.dateRange}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* 区块 4：赛事介绍（Markdown 完整正文渲染） */}

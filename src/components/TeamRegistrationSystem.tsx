@@ -24,6 +24,8 @@ import {
   X,
   ChevronRight,
   GraduationCap,
+  Edit3,
+  ChevronDown,
 } from 'lucide-react';
 import type { CompetitionCatalogItem } from '../data/competitionData';
 import type { UserProfileData } from './AuthAndUserCenter';
@@ -51,6 +53,201 @@ export type MemberConfirmStatus =
   | 'accepted' // 已同意（绿色）
   | 'rejected'; // 已拒绝（红色）
 
+export type CtfRoleType = 'Web手' | '逆向手' | 'Pwn手' | '密码学手' | '杂项手' | '取证手';
+
+export const CTF_ROLE_OPTIONS: CtfRoleType[] = [
+  'Web手',
+  '逆向手',
+  'Pwn手',
+  '密码学手',
+  '杂项手',
+  '取证手',
+];
+
+export function formatCtfRolesText(roles?: CtfRoleType[], isAdvisor?: boolean): string {
+  if (isAdvisor) return '-';
+  if (!roles || roles.length === 0) return '-';
+  return roles.join(',');
+}
+
+export function checkSingleCtfRoleWarning(
+  captainRoles?: CtfRoleType[],
+  memberRolesList?: (CtfRoleType[] | undefined)[]
+): { isSingleRole: boolean; roleName: CtfRoleType | null } {
+  const allRoles: CtfRoleType[] = [];
+  if (captainRoles && captainRoles.length > 0) {
+    allRoles.push(...captainRoles);
+  }
+  if (memberRolesList && memberRolesList.length > 0) {
+    memberRolesList.forEach((rList) => {
+      if (rList && rList.length > 0) {
+        allRoles.push(...rList);
+      }
+    });
+  }
+  const unique = Array.from(new Set(allRoles));
+  if (unique.length === 1) {
+    return { isSingleRole: true, roleName: unique[0] };
+  }
+  return { isSingleRole: false, roleName: null };
+}
+
+export const CtfRoleBadges: React.FC<{
+  roles?: CtfRoleType[];
+  isAdvisor?: boolean;
+  emptyText?: string;
+}> = ({ roles, isAdvisor = false, emptyText = '待分配' }) => {
+  if (isAdvisor) {
+    return <span className="text-xs text-slate-400 font-mono-num">-</span>;
+  }
+  if (!roles || roles.length === 0) {
+    if (emptyText === '-') {
+      return <span className="text-xs text-slate-400 font-mono-num">-</span>;
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 text-[11px] font-medium">
+        {emptyText}
+      </span>
+    );
+  }
+  return (
+    <div className="inline-flex flex-wrap items-center gap-1.5">
+      {roles.map((role) => (
+        <span
+          key={role}
+          className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-50 text-[#0284C7] border border-sky-200 text-[11px] font-bold"
+        >
+          {role}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+export const CtfRoleSelectorDropdown: React.FC<{
+  selectedRoles?: CtfRoleType[];
+  onChange: (nextRoles: CtfRoleType[]) => void;
+  isOpen: boolean;
+  onToggleOpen: () => void;
+  onClose: () => void;
+  triggerLabel?: string;
+  compactTrigger?: boolean;
+  align?: 'left' | 'right';
+}> = ({
+  selectedRoles = [],
+  onChange,
+  isOpen,
+  onToggleOpen,
+  onClose,
+  triggerLabel = '设置角色',
+  compactTrigger = false,
+  align = 'right',
+}) => {
+  const handleToggleRole = (role: CtfRoleType) => {
+    const exists = selectedRoles.includes(role);
+    const next = exists
+      ? selectedRoles.filter((r) => r !== role)
+      : CTF_ROLE_OPTIONS.filter((r) => r === role || selectedRoles.includes(r));
+    onChange(next);
+  };
+
+  return (
+    <div className="relative inline-block text-left">
+      <button
+        type="button"
+        onClick={onToggleOpen}
+        className={
+          compactTrigger
+            ? 'px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0284C7] border border-sky-200 text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition-colors'
+            : 'px-3 py-1.5 rounded-lg bg-white hover:bg-sky-50 text-[#0284C7] border border-sky-200 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors'
+        }
+        title="点击设置或修改队员CTF角色标签（可多选）"
+      >
+        <Edit3 className="w-3.5 h-3.5" />
+        <span>{triggerLabel}</span>
+        {selectedRoles.length > 0 && (
+          <span className="px-1.5 py-0.2 rounded-full bg-[#0284C7] text-white text-[10px] font-mono-num">
+            {selectedRoles.length}
+          </span>
+        )}
+        <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+      </button>
+
+      {isOpen && (
+        <div
+          className={`absolute z-30 mt-2 w-64 rounded-xl bg-white border border-slate-200 shadow-xl p-3.5 space-y-2.5 ${
+            align === 'right' ? 'right-0' : 'left-0'
+          }`}
+        >
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <span className="text-xs font-bold text-slate-800">
+              分配队内角色（可多选 0-6 项）
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5">
+            {CTF_ROLE_OPTIONS.map((role) => {
+              const checked = selectedRoles.includes(role);
+              return (
+                <label
+                  key={role}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                    checked
+                      ? 'bg-sky-50 border-[#0284C7] text-[#0369A1]'
+                      : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => handleToggleRole(role)}
+                    className="w-3.5 h-3.5 rounded text-[#0284C7] focus:ring-[#0284C7] cursor-pointer"
+                  />
+                  <span>{role}</span>
+                </label>
+              );
+            })}
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onChange([...CTF_ROLE_OPTIONS])}
+                className="text-[11px] font-semibold text-[#0284C7] hover:underline cursor-pointer"
+              >
+                全选
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 cursor-pointer"
+              >
+                清空
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer"
+            >
+              完成
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export interface InvitedTeamPerson {
   id: string;
   name: string;
@@ -58,10 +255,43 @@ export interface InvitedTeamPerson {
   email: string;
   university: string;
   role: 'member' | 'advisor'; // 团队成员 | 指导教师
+  ctfRoles?: CtfRoleType[]; // 队长分配的CTF队内角色标签（多选，仅团队成员有效，指导教师不参与）
   isVerified: boolean;
   confirmStatus: MemberConfirmStatus;
   rejectReason?: string;
   lastRemindedAt?: string;
+}
+
+export type AdvancementStageStatus =
+  | 'none' // 尚未进入校赛晋级阶段（组建中/邀请中/高校待审核/高校已驳回）
+  | 'wait_school_match' // 高校已通过（待校赛）——高校资格审核通过，尚未提报晋级名单
+  | 'not_advanced' // 未晋级（止步校赛）——高校已提交晋级名单，但本队伍不在名单内
+  | 'pending_secretariat' // 待秘书处终审——高校已提交晋级名单（本队伍在名单内），等待秘书处终审
+  | 'secretariat_rejected' // 待秘书处终审（名单被驳回）——秘书处驳回该校晋级名单，待高校重报
+  | 'advanced'; // 🎉 报名成功（已晋级决赛）——秘书处终审通过
+
+export interface AdvancementProofFile {
+  id: string;
+  name: string;
+  size: string;
+  type: 'pdf' | 'excel' | 'image' | 'other';
+  uploadedAt: string;
+  url?: string;
+}
+
+export interface UniversityAdvancementSubmission {
+  id: string;
+  competitionId: string;
+  competitionTitle: string;
+  university: string;
+  teamIds: string[]; // 按校内排名 1, 2, 3... 排序的晋级队伍ID列表
+  proofFiles: AdvancementProofFile[]; // 校赛成绩单/证明材料列表
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  rejectReason?: string;
+  submittedBy: string;
+  submittedAt: string;
+  auditedBy?: string;
+  auditedAt?: string;
 }
 
 export interface TeamApprovedSnapshotMember {
@@ -70,6 +300,7 @@ export interface TeamApprovedSnapshotMember {
   university: string;
   phone?: string;
   email?: string;
+  ctfRoles?: CtfRoleType[];
 }
 
 export interface TeamApprovedSnapshot {
@@ -82,6 +313,7 @@ export interface TeamApprovedSnapshot {
   captainName: string;
   captainPhone?: string;
   captainEmail?: string;
+  schoolRank?: number; // 最终校内排名（如：1 代表校内第1名）
   createdAt?: string;
   approvedAt: string;
   members: TeamApprovedSnapshotMember[];
@@ -101,16 +333,20 @@ export interface CaptainTeamRecord {
   captainEmail?: string;
   captainUniversity: string;
   captainVerified: boolean;
+  captainCtfRoles?: CtfRoleType[]; // 队长给自己勾选的CTF角色标签
   status: TeamLifecycleStatus;
   members: InvitedTeamPerson[]; // 团队成员列表
   advisors: InvitedTeamPerson[]; // 指导教师列表
-  schoolAuditStatus?: TwoStageAuditStatus; // 高校审核状态：待审核 / 已通过 / 已驳回
-  schoolRejectReason?: string; // 高校审核驳回原因
-  schoolAuditedAt?: string; // 高校审核时间
-  secretariatAuditStatus?: TwoStageAuditStatus; // 秘书处审核状态：待审核 / 已通过 / 已驳回
-  secretariatRejectReason?: string; // 秘书处审核驳回原因
-  secretariatAuditedAt?: string; // 秘书处审核时间
-  approvedSnapshot?: TeamApprovedSnapshot; // 报名成功时的只读快照（防止管理员后门修改数据后引起用户困惑）
+  schoolAuditStatus?: TwoStageAuditStatus; // 第一段：高校资格审核状态（待审核 / 已通过 / 已驳回）
+  schoolRejectReason?: string; // 高校资格审核驳回原因
+  schoolAuditedAt?: string; // 高校资格审核时间
+  advancementStatus?: AdvancementStageStatus; // 第二段：高校晋级提报状态（待校赛 / 未晋级 / 待秘书处终审 / 名单被驳回 / 已晋级）
+  schoolRank?: number; // 校内排名（1, 2, 3...）
+  advancementSubmittedAt?: string; // 高校提报晋级名单时间
+  secretariatAuditStatus?: TwoStageAuditStatus; // 第三段：秘书处终审状态（待审核 / 已通过 / 已驳回）
+  secretariatRejectReason?: string; // 秘书处终审驳回原因
+  secretariatAuditedAt?: string; // 秘书处终审时间
+  approvedSnapshot?: TeamApprovedSnapshot; // 报名成功时的只读快照
   createdAt: string;
   updatedAt: string;
 }
@@ -208,6 +444,14 @@ export type ParticipatedInviteStatus =
   | 'team_pending_review' // 队伍已提交审核
   | 'team_approved'; // 队伍报名成功
 
+export interface ParticipatedTeamMemberBrief {
+  name: string;
+  role: '队长' | '队员' | '指导教师';
+  university: string;
+  ctfRoles?: CtfRoleType[];
+  statusLabel?: string;
+}
+
 export interface ParticipatedTeamRecord {
   id: string;
   competitionId: string;
@@ -220,9 +464,12 @@ export interface ParticipatedTeamRecord {
   captainPhone: string;
   university: string; // 队伍所属院校
   myRoleInTeam: '参赛队员' | '指导教师';
+  myCtfRoles?: CtfRoleType[]; // 队长给当前受邀队员分配的初始CTF角色标签（指导教师不参与）
+  schoolRank?: number; // 校内排名
   status: ParticipatedInviteStatus;
   invitedAt: string;
   teammatesSummary: string[];
+  teamMembersDetail?: ParticipatedTeamMemberBrief[]; // 队伍成员及各自角色标签明细
   declineReason?: string;
   approvedSnapshot?: TeamApprovedSnapshot; // 报名成功时的只读快照
 }
@@ -291,6 +538,7 @@ export function buildApprovedSnapshotFromCaptainTeam(
       university: team.captainUniversity || team.university,
       phone: captainContact.phone,
       email: captainContact.email,
+      ctfRoles: team.captainCtfRoles || ['Web手'],
     },
     ...team.members
       .filter((m) => m.confirmStatus === 'accepted')
@@ -302,6 +550,7 @@ export function buildApprovedSnapshotFromCaptainTeam(
           university: m.university,
           phone: contact.phone,
           email: contact.email,
+          ctfRoles: m.ctfRoles || [],
         };
       }),
     ...team.advisors
@@ -327,6 +576,7 @@ export function buildApprovedSnapshotFromCaptainTeam(
     captainName: cleanName(team.captainName),
     captainPhone: captainContact.phone,
     captainEmail: captainContact.email,
+    schoolRank: team.schoolRank || 1,
     createdAt: team.createdAt,
     approvedAt: approvedAt || team.updatedAt || '2026-10-28 10:00',
     members: snapshotMembers,
@@ -358,6 +608,10 @@ export interface PlatformDirectoryUser {
   isDeleted?: boolean; // 软删除标记（is_deleted = 1），仅后台列表不展示，保留外键关联
   createdAt?: string; // 创建时间
   university: string;
+  educationLevel?: string; // 学历层次：专科 / 本科 / 硕士 / 博士及以上
+  majorOrDept?: string; // 专业或院系
+  enrollmentDate?: string; // 入学时间 YYYY-MM
+  graduationDate?: string; // 预计毕业时间 YYYY-MM
   identityType: 'student' | 'teacher';
   isRealNameVerified: boolean;
   isAcademicOrTeacherVerified: boolean;
@@ -423,6 +677,10 @@ export const PLATFORM_DIRECTORY_USERS: PlatformDirectoryUser[] = [
     isDeleted: false,
     createdAt: '2026-09-01 10:15:30',
     university: '北京航空航天大学',
+    educationLevel: '本科',
+    majorOrDept: '网络空间安全',
+    enrollmentDate: '2024-09',
+    graduationDate: '2028-06',
     identityType: 'student',
     isRealNameVerified: true,
     isAcademicOrTeacherVerified: true,
@@ -825,6 +1083,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '林远航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手', '密码学手'],
     status: 'inviting',
     schoolAuditStatus: 'none',
     secretariatAuditStatus: 'none',
@@ -836,6 +1095,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'zhangzixuan@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['Pwn手', '逆向手'],
         isVerified: true,
         confirmStatus: 'rejected',
         rejectReason: '下周有操作系统课程设计答辩，时间冲突',
@@ -847,6 +1107,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'liuyutong@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['Web手', '杂项手'],
         isVerified: true,
         confirmStatus: 'pending',
       },
@@ -878,6 +1139,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '林远航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
+    captainCtfRoles: ['密码学手'],
     status: 'draft',
     schoolAuditStatus: 'none',
     secretariatAuditStatus: 'none',
@@ -889,6 +1151,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'chensiyuan@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['密码学手', '逆向手'],
         isVerified: true,
         confirmStatus: 'draft',
       },
@@ -899,6 +1162,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'shenqingxue@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['取证手', '杂项手'],
         isVerified: true,
         confirmStatus: 'draft',
       },
@@ -930,9 +1194,15 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '林远航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手', '杂项手'],
     status: 'approved',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-06-13 11:20:00',
+    advancementStatus: 'advanced',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-06-14 16:00:00',
     secretariatAuditStatus: 'approved',
+    secretariatAuditedAt: '2026-06-15 10:00:00',
     members: [
       {
         id: 'm-app-1',
@@ -941,6 +1211,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'chensiyuan@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['逆向手', 'Pwn手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -951,6 +1222,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'songzhixing@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['密码学手', '取证手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -979,6 +1251,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
       captainName: '林远航',
       captainPhone: '13810246921',
       captainEmail: 'linyuanhang@buaa.edu.cn',
+      schoolRank: 1,
       createdAt: '2026-06-12 14:30',
       approvedAt: '2026-06-15 10:00',
       members: [
@@ -988,6 +1261,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
           university: '北京航空航天大学',
           phone: '13810246921',
           email: 'linyuanhang@buaa.edu.cn',
+          ctfRoles: ['Web手', '杂项手'],
         },
         {
           name: '陈思远',
@@ -995,6 +1269,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
           university: '北京航空航天大学',
           phone: '13910010002',
           email: 'chensiyuan@buaa.edu.cn',
+          ctfRoles: ['逆向手', 'Pwn手'],
         },
         {
           name: '宋知行',
@@ -1002,6 +1277,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
           university: '北京航空航天大学',
           phone: '13910010004',
           email: 'songzhixing@buaa.edu.cn',
+          ctfRoles: ['密码学手', '取证手'],
         },
         {
           name: '赵振宇 教授',
@@ -1025,10 +1301,12 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '林远航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
+    captainCtfRoles: ['密码学手', '逆向手'],
     status: 'pending_review',
     schoolAuditStatus: 'rejected',
     schoolRejectReason:
       '经高校管理员核查：队伍简介中未注明所依托的学院实验室安全合规备案号，且指导教师信息需补充确认，请修改完善后重新提交高校审核。',
+    advancementStatus: 'none',
     secretariatAuditStatus: 'none',
     members: [
       {
@@ -1038,6 +1316,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'shenqingxue@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['密码学手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1048,6 +1327,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'chensiyuan@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['逆向手', '杂项手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1079,8 +1359,10 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '林远航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
+    captainCtfRoles: ['逆向手', 'Pwn手'],
     status: 'pending_review',
     schoolAuditStatus: 'pending',
+    advancementStatus: 'none',
     secretariatAuditStatus: 'none',
     members: [
       {
@@ -1090,6 +1372,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'songzhixing@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['Pwn手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1100,6 +1383,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'liuyutong@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['逆向手', '取证手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1126,13 +1410,16 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     subTrackName: '全流量威胁狩猎与APT攻击链还原赛道',
     teamName: '北航苍穹蓝军狩猎队',
     teamLogo: 'default-logo',
-    teamIntro: '全员已完成入队确认，基于Zeek流量图谱与EDR终端遥测日志开展秒级APT攻击链溯源。',
+    teamIntro: '全员已完成入队确认并通过高校资格核验，当前处于“高校已通过（待校赛）”阶段，等待高校管理员提报晋级名单。',
     university: '北京航空航天大学',
     captainName: '林远航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
-    status: 'inviting',
-    schoolAuditStatus: 'none',
+    captainCtfRoles: ['Web手'],
+    status: 'pending_review',
+    schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-28 09:20:00',
+    advancementStatus: 'wait_school_match',
     secretariatAuditStatus: 'none',
     members: [
       {
@@ -1142,6 +1429,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'chensiyuan@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['Web手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1152,6 +1440,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'songzhixing@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['Web手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1178,13 +1467,18 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     subTrackName: '操作系统内核与虚拟化逃逸个人赛道',
     teamName: 'SkyHawk-0day（林远航单兵队）',
     teamLogo: 'default-logo',
-    teamIntro: '个人单兵参赛模式（1人/队），主攻Linux Kernel eBPF/io_uring子系统提权与QEMU逃逸。',
+    teamIntro: '个人单兵参赛模式（1人/队），主攻Linux Kernel eBPF/io_uring子系统提权与QEMU逃逸。已由北航提报晋级（校内第1名），待秘书处终审。',
     university: '北京航空航天大学',
     captainName: '林远航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
+    captainCtfRoles: ['Pwn手', '逆向手'],
     status: 'pending_review',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-25 14:00:00',
+    advancementStatus: 'pending_secretariat',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-27 14:30:00',
     secretariatAuditStatus: 'pending',
     members: [],
     advisors: [
@@ -1209,16 +1503,22 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     subTrackName: '基于eBPF的零信任微隔离与流量审计赛道',
     teamName: '北航零信任微隔离战队',
     teamLogo: 'default-logo',
-    teamIntro: '专注云原生环境下基于eBPF的容器东西向流量细粒度微隔离与异常行为阻断。',
+    teamIntro: '专注云原生环境下基于eBPF的容器东西向流量细粒度微隔离与异常行为阻断。高校已提报（校内第2名），因校赛证明材料模糊被秘书处打回重报。',
     university: '北京航空航天大学',
     captainName: '林远航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手', '取证手'],
     status: 'pending_review',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-22 10:30:00',
+    advancementStatus: 'secretariat_rejected',
+    schoolRank: 2,
+    advancementSubmittedAt: '2026-10-26 16:00:00',
     secretariatAuditStatus: 'rejected',
+    secretariatAuditedAt: '2026-10-27 17:15:00',
     secretariatRejectReason:
-      '经大赛组委会秘书处复审：队伍名称与参赛赛道研究方向描述过于简略，请补充所采用的核心开源基线及技术路线说明后重新修改提交，重新进入高校审核与秘书处审核流程。',
+      '经大赛组委会秘书处终审：北京航空航天大学提报的校赛成绩单扫描件分辨率较低（学院公章区域模糊），已打回高校管理员重新上传清晰证明材料后再行提报（队长无需修改队伍信息）。',
     members: [
       {
         id: 'm-sec-rej-1',
@@ -1227,6 +1527,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'chensiyuan@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['Pwn手', '逆向手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1237,6 +1538,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'liuyutong@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['Web手', '杂项手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1256,8 +1558,249 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     createdAt: '2026-10-20 11:00',
     updatedAt: '2026-10-27 17:15',
   },
+  {
+    id: 'cap-team-9',
+    competitionId: 'comp-2025-archive-ctf',
+    competitionTitle: '2025第四届“XX杯”全国网数智安全大赛 · 年度总决赛历史归档',
+    subTrackName: '第四届网络安全攻防实战总决赛归档',
+    teamName: '北航星火二进制青训队',
+    teamLogo: 'default-logo',
+    teamIntro: '通过本校参赛资格核验并参加校内选拔赛，最终校内排名第5名，未进入本校前3名晋级提报名单（止步校赛）。',
+    university: '北京航空航天大学',
+    captainName: '林远航',
+    captainUniversity: '北京航空航天大学',
+    captainVerified: true,
+    captainCtfRoles: ['逆向手'],
+    status: 'pending_review',
+    schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2025-09-18 15:00:00',
+    advancementStatus: 'not_advanced',
+    secretariatAuditStatus: 'none',
+    members: [
+      {
+        id: 'm-notadv-1',
+        name: '张子轩（队员A）',
+        phone: '13910010001',
+        email: 'zhangzixuan@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'member',
+        ctfRoles: ['Pwn手'],
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    advisors: [
+      {
+        id: 'adv-notadv-1',
+        name: '赵振宇 教授（老师D）',
+        phone: '13800138001',
+        email: 'zhaozhenyu@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'advisor',
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    createdAt: '2025-09-12 10:00',
+    updatedAt: '2025-09-25 18:00',
+  },
 
-  // ================= 2. 全国各高校战队示例数据（供后台【报名管理 -> 查看报名（高校审核 / 秘书处审核）】全面展示各种状态） =================
+  // ================= 2. 全国各高校战队示例数据（供后台【报名管理 -> 查看报名（三大Tab）】全面展示三段式审核与晋级提报） =================
+  {
+    id: 'admin-team-buaa-1',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    subTrackName: '二进制漏洞挖掘与Pwn赛道',
+    teamName: '北航长空玄甲战队',
+    teamLogo: 'default-logo',
+    teamIntro: '北京航空航天大学网安学院主力战队，校内选拔赛总分第1名，专注内核漏洞利用与固件逆向。',
+    university: '北京航空航天大学',
+    captainName: '陈思远',
+    captainUniversity: '北京航空航天大学',
+    captainVerified: true,
+    captainCtfRoles: ['Pwn手', '逆向手'],
+    status: 'pending_review',
+    schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-25 10:30:00',
+    advancementStatus: 'wait_school_match',
+    secretariatAuditStatus: 'none',
+    members: [
+      {
+        id: 'adm-buaa-m1',
+        name: '宋知行（队员G）',
+        phone: '13910010004',
+        email: 'songzhixing@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'member',
+        ctfRoles: ['Web手', '密码学手'],
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+      {
+        id: 'adm-buaa-m2',
+        name: '沈清雪（队员H）',
+        phone: '13910010005',
+        email: 'shenqingxue@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'member',
+        ctfRoles: ['杂项手', '取证手'],
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    advisors: [
+      {
+        id: 'adm-buaa-adv1',
+        name: '赵振宇 教授（老师D）',
+        phone: '13800138001',
+        email: 'zhaozhenyu@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'advisor',
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    createdAt: '2026-10-18 09:20',
+    updatedAt: '2026-10-25 10:30',
+  },
+  {
+    id: 'admin-team-buaa-2',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    subTrackName: 'Web应用与云原生攻防赛道',
+    teamName: '北航惊蛰云攻防联队',
+    teamLogo: 'default-logo',
+    teamIntro: '北京航空航天大学云原生与Web安全实验室联队，校内选拔赛总分第2名。',
+    university: '北京航空航天大学',
+    captainName: '宋知行',
+    captainUniversity: '北京航空航天大学',
+    captainVerified: true,
+    captainCtfRoles: ['Web手', '取证手'],
+    status: 'pending_review',
+    schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-25 11:15:00',
+    advancementStatus: 'wait_school_match',
+    secretariatAuditStatus: 'none',
+    members: [
+      {
+        id: 'adm-buaa-201',
+        name: '刘语桐（队员E）',
+        phone: '13910010003',
+        email: 'liuyutong@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'member',
+        ctfRoles: ['Web手', '杂项手'],
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    advisors: [
+      {
+        id: 'adm-buaa-adv2',
+        name: '冯文博 副教授（老师E）',
+        phone: '13800138005',
+        email: 'fengwenbo@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'advisor',
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    createdAt: '2026-10-19 14:10',
+    updatedAt: '2026-10-25 11:15',
+  },
+  {
+    id: 'admin-team-buaa-3',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    subTrackName: '密码学与区块链协议安全赛道',
+    teamName: '北航星河密码攻坚队',
+    teamLogo: 'default-logo',
+    teamIntro: '北京航空航天大学密码学与零知识证明团队，校内选拔赛总分第3名。',
+    university: '北京航空航天大学',
+    captainName: '沈清雪',
+    captainUniversity: '北京航空航天大学',
+    captainVerified: true,
+    captainCtfRoles: ['密码学手'],
+    status: 'pending_review',
+    schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-25 15:40:00',
+    advancementStatus: 'wait_school_match',
+    secretariatAuditStatus: 'none',
+    members: [
+      {
+        id: 'adm-buaa-301',
+        name: '张子轩（队员A）',
+        phone: '13910010001',
+        email: 'zhangzixuan@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'member',
+        ctfRoles: ['逆向手', '密码学手'],
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    advisors: [
+      {
+        id: 'adm-buaa-adv3',
+        name: '赵振宇 教授（老师D）',
+        phone: '13800138001',
+        email: 'zhaozhenyu@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'advisor',
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    createdAt: '2026-10-20 10:00',
+    updatedAt: '2026-10-25 15:40',
+  },
+  {
+    id: 'admin-team-buaa-4',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    subTrackName: 'Web应用与云原生攻防赛道',
+    teamName: '北航凌霄网安预备队',
+    teamLogo: 'default-logo',
+    teamIntro: '北京航空航天大学大二网安实验班战队，校内选拔赛第4名（可用于测试提报弹窗超额防呆与未晋级流转）。',
+    university: '北京航空航天大学',
+    captainName: '张子轩',
+    captainUniversity: '北京航空航天大学',
+    captainVerified: true,
+    captainCtfRoles: ['Web手', '杂项手'],
+    status: 'pending_review',
+    schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-25 16:20:00',
+    advancementStatus: 'wait_school_match',
+    secretariatAuditStatus: 'none',
+    members: [
+      {
+        id: 'adm-buaa-401',
+        name: '刘语桐（队员E）',
+        phone: '13910010003',
+        email: 'liuyutong@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'member',
+        ctfRoles: ['取证手'],
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    advisors: [
+      {
+        id: 'adm-buaa-adv4',
+        name: '冯文博 副教授（老师E）',
+        phone: '13800138005',
+        email: 'fengwenbo@buaa.edu.cn',
+        university: '北京航空航天大学',
+        role: 'advisor',
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    createdAt: '2026-10-21 11:30',
+    updatedAt: '2026-10-25 16:20',
+  },
   {
     id: 'admin-team-1',
     competitionId: 'comp-2026-main',
@@ -1270,9 +1813,15 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '张明远',
     captainUniversity: '清华大学',
     captainVerified: true,
+    captainCtfRoles: ['Pwn手', '逆向手'],
     status: 'approved',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-18 14:00:00',
+    advancementStatus: 'advanced',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-19 16:30:00',
     secretariatAuditStatus: 'approved',
+    secretariatAuditedAt: '2026-10-20 15:00:00',
     members: [
       {
         id: 'adm-m-101',
@@ -1281,6 +1830,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'wangzihan@tsinghua.edu.cn',
         university: '清华大学',
         role: 'member',
+        ctfRoles: ['Web手', '密码学手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1291,6 +1841,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'zhoumuye@tsinghua.edu.cn',
         university: '清华大学',
         role: 'member',
+        ctfRoles: ['Pwn手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1301,6 +1852,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'linzhixia@tsinghua.edu.cn',
         university: '清华大学',
         role: 'member',
+        ctfRoles: ['杂项手', '取证手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1332,8 +1884,13 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '苏婉清',
     captainUniversity: '浙江大学',
     captainVerified: true,
+    captainCtfRoles: ['密码学手'],
     status: 'pending_review',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-20 11:00:00',
+    advancementStatus: 'pending_secretariat',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-22 09:30:00',
     secretariatAuditStatus: 'pending',
     members: [
       {
@@ -1343,6 +1900,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'yeshuting@zju.edu.cn',
         university: '浙江大学',
         role: 'member',
+        ctfRoles: ['密码学手', '逆向手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1353,6 +1911,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'shenruoxue@zju.edu.cn',
         university: '浙江大学',
         role: 'member',
+        ctfRoles: ['Web手', '杂项手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1373,6 +1932,54 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     updatedAt: '2026-10-22 09:30',
   },
   {
+    id: 'admin-team-2b',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    subTrackName: 'Web应用与云原生攻防赛道',
+    teamName: '浙大求是云剑战队',
+    teamLogo: 'default-logo',
+    teamIntro: '浙江大学网络空间安全学院战队，校内选拔赛第2名，专注云原生API网关与容器逃逸检测。',
+    university: '浙江大学',
+    captainName: '林星河',
+    captainUniversity: '浙江大学',
+    captainVerified: true,
+    captainCtfRoles: ['Web手', 'Pwn手'],
+    status: 'pending_review',
+    schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-20 11:20:00',
+    advancementStatus: 'pending_secretariat',
+    schoolRank: 2,
+    advancementSubmittedAt: '2026-10-22 09:30:00',
+    secretariatAuditStatus: 'pending',
+    members: [
+      {
+        id: 'adm-m-205',
+        name: '许知远',
+        phone: '13757119088',
+        email: 'xuzhiyuan@zju.edu.cn',
+        university: '浙江大学',
+        role: 'member',
+        ctfRoles: ['逆向手', '取证手'],
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    advisors: [
+      {
+        id: 'adm-adv-205',
+        name: '周建勋 博导',
+        phone: '13857100991',
+        email: 'zhoujianxun@zju.edu.cn',
+        university: '浙江大学',
+        role: 'advisor',
+        isVerified: true,
+        confirmStatus: 'accepted',
+      },
+    ],
+    createdAt: '2026-10-18 09:10',
+    updatedAt: '2026-10-22 09:30',
+  },
+  {
     id: 'admin-team-3',
     competitionId: 'comp-2026-main',
     competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
@@ -1384,8 +1991,10 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '陈哲瀚',
     captainUniversity: '上海交通大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手'],
     status: 'pending_review',
     schoolAuditStatus: 'pending',
+    advancementStatus: 'none',
     secretariatAuditStatus: 'none',
     members: [
       {
@@ -1395,6 +2004,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'guhuaijin@sjtu.edu.cn',
         university: '上海交通大学',
         role: 'member',
+        ctfRoles: ['Web手', 'Pwn手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1405,6 +2015,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'tangyifan@sjtu.edu.cn',
         university: '上海交通大学',
         role: 'member',
+        ctfRoles: ['逆向手', '取证手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1436,8 +2047,10 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '陆景琛',
     captainUniversity: '西安电子科技大学',
     captainVerified: true,
+    captainCtfRoles: ['Pwn手', '逆向手'],
     status: 'pending_review',
     schoolAuditStatus: 'pending',
+    advancementStatus: 'none',
     secretariatAuditStatus: 'none',
     members: [
       {
@@ -1447,6 +2060,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'zhaoziang@xidian.edu.cn',
         university: '西安电子科技大学',
         role: 'member',
+        ctfRoles: ['Pwn手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1457,6 +2071,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'weixinghe@xidian.edu.cn',
         university: '西安电子科技大学',
         role: 'member',
+        ctfRoles: ['逆向手', '杂项手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1488,9 +2103,11 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '何景曜',
     captainUniversity: '北京邮电大学',
     captainVerified: true,
+    captainCtfRoles: ['密码学手'],
     status: 'pending_review',
     schoolAuditStatus: 'rejected',
     schoolRejectReason: '队员谢明轩提交的学生证扫描件非本学期注册页，请重新核验学籍材料后提交高校审核。',
+    advancementStatus: 'none',
     secretariatAuditStatus: 'none',
     members: [
       {
@@ -1500,6 +2117,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'xuzhixia@bupt.edu.cn',
         university: '北京邮电大学',
         role: 'member',
+        ctfRoles: ['密码学手', 'Web手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1510,6 +2128,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'xiemingxuan@bupt.edu.cn',
         university: '北京邮电大学',
         role: 'member',
+        ctfRoles: ['逆向手'],
         isVerified: false,
         confirmStatus: 'accepted',
       },
@@ -1541,9 +2160,15 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '韩振东',
     captainUniversity: '哈尔滨工业大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手', 'Pwn手'],
     status: 'approved',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-21 10:00:00',
+    advancementStatus: 'advanced',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-22 14:00:00',
     secretariatAuditStatus: 'approved',
+    secretariatAuditedAt: '2026-10-23 16:00:00',
     members: [
       {
         id: 'adm-m-601',
@@ -1552,6 +2177,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'liangbowen@hit.edu.cn',
         university: '哈尔滨工业大学',
         role: 'member',
+        ctfRoles: ['逆向手', '取证手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1583,10 +2209,16 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '顾言蹊',
     captainUniversity: '中国科学技术大学',
     captainVerified: true,
+    captainCtfRoles: ['Pwn手', '逆向手'],
     status: 'pending_review',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-25 14:20:00',
+    advancementStatus: 'secretariat_rejected',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-26 16:00:00',
     secretariatAuditStatus: 'rejected',
-    secretariatRejectReason: '秘书处复核发现队伍研究方向说明未按大赛模板填写，请补充完善后重新修改提交，重新进入高校审核与秘书处审核流程。',
+    secretariatAuditedAt: '2026-10-27 20:15:00',
+    secretariatRejectReason: '上传的校赛成绩单扫描件缺少学院教务公章，请高校管理员补盖公章后重新提报晋级名单。',
     members: [
       {
         id: 'adm-m-701',
@@ -1595,6 +2227,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'fangmubai@ustc.edu.cn',
         university: '中国科学技术大学',
         role: 'member',
+        ctfRoles: ['Web手', '密码学手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1626,9 +2259,15 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '王子涵',
     captainUniversity: '清华大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手', 'Pwn手'],
     status: 'approved',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-21 09:00:00',
+    advancementStatus: 'advanced',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-22 15:00:00',
     secretariatAuditStatus: 'approved',
+    secretariatAuditedAt: '2026-10-24 14:00:00',
     members: [
       {
         id: 'adm-m-801',
@@ -1637,6 +2276,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'zhoumuye@tsinghua.edu.cn',
         university: '清华大学',
         role: 'member',
+        ctfRoles: ['逆向手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1647,6 +2287,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'linzhixia@tsinghua.edu.cn',
         university: '清华大学',
         role: 'member',
+        ctfRoles: ['取证手', '杂项手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1678,8 +2319,10 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '江明澈',
     captainUniversity: '武汉大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手'],
     status: 'pending_review',
     schoolAuditStatus: 'pending',
+    advancementStatus: 'none',
     secretariatAuditStatus: 'none',
     members: [
       {
@@ -1689,6 +2332,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'chutianshu@whu.edu.cn',
         university: '武汉大学',
         role: 'member',
+        ctfRoles: ['Pwn手', '取证手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1720,9 +2364,11 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '程思源',
     captainUniversity: '华中科技大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手', '密码学手'],
     status: 'pending_review',
     schoolAuditStatus: 'rejected',
     schoolRejectReason: '参赛赛道填报与提交的容器基线配置不符，且缺少指导教师备案信息，请核实后重提。',
+    advancementStatus: 'none',
     secretariatAuditStatus: 'none',
     members: [
       {
@@ -1732,6 +2378,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'luoyiming@hust.edu.cn',
         university: '华中科技大学',
         role: 'member',
+        ctfRoles: ['逆向手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1752,8 +2399,10 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '温景行',
     captainUniversity: '北京大学',
     captainVerified: true,
+    captainCtfRoles: ['Pwn手', '逆向手'],
     status: 'pending_review',
     schoolAuditStatus: 'pending',
+    advancementStatus: 'none',
     secretariatAuditStatus: 'none',
     members: [],
     advisors: [
@@ -1783,9 +2432,15 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '萧景琰',
     captainUniversity: '电子科技大学',
     captainVerified: true,
+    captainCtfRoles: ['逆向手', 'Pwn手'],
     status: 'approved',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-16 10:00:00',
+    advancementStatus: 'advanced',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-18 11:00:00',
     secretariatAuditStatus: 'approved',
+    secretariatAuditedAt: '2026-10-19 16:40:00',
     members: [
       {
         id: 'adm-m-1201',
@@ -1794,6 +2449,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'qinmingyue@uestc.edu.cn',
         university: '电子科技大学',
         role: 'member',
+        ctfRoles: ['密码学手', '取证手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1825,9 +2481,15 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '纪云深',
     captainUniversity: '复旦大学',
     captainVerified: true,
+    captainCtfRoles: ['密码学手'],
     status: 'approved',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-05 14:00:00',
+    advancementStatus: 'advanced',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-06 16:00:00',
     secretariatAuditStatus: 'approved',
+    secretariatAuditedAt: '2026-10-08 15:20:00',
     members: [
       {
         id: 'adm-m-1301',
@@ -1836,6 +2498,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'bairuoxi@fudan.edu.cn',
         university: '复旦大学',
         role: 'member',
+        ctfRoles: ['Web手', '密码学手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1867,9 +2530,15 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '慕容轩',
     captainUniversity: '东南大学',
     captainVerified: true,
+    captainCtfRoles: ['杂项手', '取证手'],
     status: 'approved',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-06-21 10:00:00',
+    advancementStatus: 'advanced',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-06-23 15:00:00',
     secretariatAuditStatus: 'approved',
+    secretariatAuditedAt: '2026-06-25 11:15:00',
     members: [
       {
         id: 'adm-m-1401',
@@ -1878,6 +2547,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'jiangzhiwei@seu.edu.cn',
         university: '东南大学',
         role: 'member',
+        ctfRoles: ['Web手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1909,9 +2579,15 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '周子航',
     captainUniversity: '北京航空航天大学',
     captainVerified: true,
+    captainCtfRoles: ['Web手', '取证手'],
     status: 'approved',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-22 10:00:00',
+    advancementStatus: 'advanced',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-22 17:00:00',
     secretariatAuditStatus: 'approved',
+    secretariatAuditedAt: '2026-10-23 16:30:00',
     members: [
       {
         id: 'adm-m-1501',
@@ -1920,6 +2596,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'songzhixing@buaa.edu.cn',
         university: '北京航空航天大学',
         role: 'member',
+        ctfRoles: ['逆向手', 'Pwn手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1951,8 +2628,13 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     captainName: '雷振庭',
     captainUniversity: '国防科技大学',
     captainVerified: true,
+    captainCtfRoles: ['逆向手', 'Pwn手'],
     status: 'pending_review',
     schoolAuditStatus: 'approved',
+    schoolAuditedAt: '2026-10-23 15:00:00',
+    advancementStatus: 'pending_secretariat',
+    schoolRank: 1,
+    advancementSubmittedAt: '2026-10-24 09:00:00',
     secretariatAuditStatus: 'pending',
     members: [
       {
@@ -1962,6 +2644,7 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
         email: 'huochengyu@nudt.edu.cn',
         university: '国防科技大学',
         role: 'member',
+        ctfRoles: ['Web手', '杂项手'],
         isVerified: true,
         confirmStatus: 'accepted',
       },
@@ -1969,6 +2652,266 @@ export const INITIAL_CAPTAIN_TEAMS: CaptainTeamRecord[] = [
     advisors: [],
     createdAt: '2026-10-22 14:15',
     updatedAt: '2026-10-24 09:00',
+  },
+];
+
+// 初始预置各高校在各赛事下的【第二段：高校晋级名单提报】聚合记录（供后台 Tab 1 & Tab 2 秘书处终审联动）
+export const INITIAL_UNIVERSITY_ADVANCEMENT_SUBMISSIONS: UniversityAdvancementSubmission[] = [
+  {
+    id: 'adv-sub-zju-main',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    university: '浙江大学',
+    teamIds: ['admin-team-2', 'admin-team-2b'],
+    proofFiles: [
+      {
+        id: 'pf-zju-1',
+        name: '2026浙江大学校内选拔赛官方成绩单(盖章扫描件).pdf',
+        size: '2.4 MB',
+        type: 'pdf',
+        uploadedAt: '2026-10-22 09:28',
+      },
+      {
+        id: 'pf-zju-2',
+        name: '浙江大学网络空间安全学院晋级推荐名单汇总表.xlsx',
+        size: '418 KB',
+        type: 'excel',
+        uploadedAt: '2026-10-22 09:29',
+      },
+    ],
+    status: 'pending',
+    submittedBy: '周建勋',
+    submittedAt: '2026-10-22 09:30:00',
+  },
+  {
+    id: 'adv-sub-thu-main',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    university: '清华大学',
+    teamIds: ['admin-team-1'],
+    proofFiles: [
+      {
+        id: 'pf-thu-1',
+        name: '清华大学2026网数智安全校内选拔赛成绩单与公章证明.pdf',
+        size: '3.1 MB',
+        type: 'pdf',
+        uploadedAt: '2026-10-19 16:25',
+      },
+      {
+        id: 'pf-thu-2',
+        name: '清华大学晋级决赛队伍排名确认函.png',
+        size: '1.6 MB',
+        type: 'image',
+        uploadedAt: '2026-10-19 16:28',
+      },
+    ],
+    status: 'approved',
+    submittedBy: '孙立群',
+    submittedAt: '2026-10-19 16:30:00',
+    auditedBy: '王静怡（大赛组委会秘书处）',
+    auditedAt: '2026-10-20 15:00:00',
+  },
+  {
+    id: 'adv-sub-hit-main',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    university: '哈尔滨工业大学',
+    teamIds: ['admin-team-6'],
+    proofFiles: [
+      {
+        id: 'pf-hit-1',
+        name: '哈尔滨工业大学校内选拔赛决赛成绩公示单.pdf',
+        size: '1.9 MB',
+        type: 'pdf',
+        uploadedAt: '2026-10-22 13:55',
+      },
+    ],
+    status: 'approved',
+    submittedBy: '曲向东',
+    submittedAt: '2026-10-22 14:00:00',
+    auditedBy: '王静怡（大赛组委会秘书处）',
+    auditedAt: '2026-10-23 16:00:00',
+  },
+  {
+    id: 'adv-sub-ustc-main',
+    competitionId: 'comp-2026-main',
+    competitionTitle: '2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛',
+    university: '中国科学技术大学',
+    teamIds: ['admin-team-7'],
+    proofFiles: [
+      {
+        id: 'pf-ustc-1',
+        name: '中科大2026网安校内赛成绩表(未盖章初稿).pdf',
+        size: '1.2 MB',
+        type: 'pdf',
+        uploadedAt: '2026-10-26 15:58',
+      },
+    ],
+    status: 'rejected',
+    rejectReason: '上传的校赛成绩单扫描件缺少学院教务公章，请高校管理员补盖公章后重新提报晋级名单。',
+    submittedBy: '沈怀瑾',
+    submittedAt: '2026-10-26 16:00:00',
+    auditedBy: '王静怡（大赛组委会秘书处）',
+    auditedAt: '2026-10-27 20:15:00',
+  },
+  {
+    id: 'adv-sub-buaa-solo',
+    competitionId: 'comp-2026-solo-vuln',
+    competitionTitle: '2026“XX杯”零日漏洞挖掘与二进制极客个人挑战赛（单兵赛制）',
+    university: '北京航空航天大学',
+    teamIds: ['cap-team-7'],
+    proofFiles: [
+      {
+        id: 'pf-buaa-solo-1',
+        name: '北京航空航天大学单兵漏洞挑战赛校内积分榜(盖章版).pdf',
+        size: '2.2 MB',
+        type: 'pdf',
+        uploadedAt: '2026-10-27 14:25',
+      },
+      {
+        id: 'pf-buaa-solo-2',
+        name: '北航网安学院晋级单兵选手推荐表.xlsx',
+        size: '350 KB',
+        type: 'excel',
+        uploadedAt: '2026-10-27 14:28',
+      },
+    ],
+    status: 'pending',
+    submittedBy: '赵振宇',
+    submittedAt: '2026-10-27 14:30:00',
+  },
+  {
+    id: 'adv-sub-buaa-cloud',
+    competitionId: 'comp-2026-cloud-def',
+    competitionTitle: '2026“XX杯”云原生与零信任架构安全攻防挑战赛',
+    university: '北京航空航天大学',
+    teamIds: ['cap-team-8'],
+    proofFiles: [
+      {
+        id: 'pf-buaa-cloud-1',
+        name: '北航云原生安全校内赛成绩单扫描件_低分辨率.jpg',
+        size: '680 KB',
+        type: 'image',
+        uploadedAt: '2026-10-26 15:55',
+      },
+    ],
+    status: 'rejected',
+    rejectReason:
+      '经大赛组委会秘书处终审：北京航空航天大学提报的校赛成绩单扫描件分辨率较低（学院公章区域模糊），已打回高校管理员重新上传清晰证明材料后再行提报。',
+    submittedBy: '赵振宇',
+    submittedAt: '2026-10-26 16:00:00',
+    auditedBy: '陈建国（大赛组委会总裁判长）',
+    auditedAt: '2026-10-27 17:15:00',
+  },
+  {
+    id: 'adv-sub-thu-cloud',
+    competitionId: 'comp-2026-cloud-def',
+    competitionTitle: '2026“XX杯”云原生与零信任架构安全攻防挑战赛',
+    university: '清华大学',
+    teamIds: ['admin-team-8'],
+    proofFiles: [
+      {
+        id: 'pf-thu-cloud-1',
+        name: '清华大学云原生安全赛道校内选拔赛成绩证明.pdf',
+        size: '2.7 MB',
+        type: 'pdf',
+        uploadedAt: '2026-10-22 14:55',
+      },
+    ],
+    status: 'approved',
+    submittedBy: '孙立群',
+    submittedAt: '2026-10-22 15:00:00',
+    auditedBy: '王静怡（大赛组委会秘书处）',
+    auditedAt: '2026-10-24 14:00:00',
+  },
+  {
+    id: 'adv-sub-buaa-aipilot',
+    competitionId: 'comp-2026-ai-pilot',
+    competitionTitle: '2026“XX杯”全国网数智安全大赛 · 大模型与人工智能安全先导赛',
+    university: '北京航空航天大学',
+    teamIds: ['cap-team-3'],
+    proofFiles: [
+      {
+        id: 'pf-buaa-ai-1',
+        name: '北航人工智能安全先导赛校内选拔成绩单(盖章).pdf',
+        size: '2.8 MB',
+        type: 'pdf',
+        uploadedAt: '2026-06-14 15:50',
+      },
+      {
+        id: 'pf-buaa-ai-2',
+        name: '北航晋级总决赛战队名单公示截图.png',
+        size: '1.4 MB',
+        type: 'image',
+        uploadedAt: '2026-06-14 15:55',
+      },
+    ],
+    status: 'approved',
+    submittedBy: '赵振宇',
+    submittedAt: '2026-06-14 16:00:00',
+    auditedBy: '王静怡（大赛组委会秘书处）',
+    auditedAt: '2026-06-15 10:00:00',
+  },
+  {
+    id: 'adv-sub-seu-aipilot',
+    competitionId: 'comp-2026-ai-pilot',
+    competitionTitle: '2026“XX杯”全国网数智安全大赛 · 大模型与人工智能安全先导赛',
+    university: '东南大学',
+    teamIds: ['admin-team-14'],
+    proofFiles: [
+      {
+        id: 'pf-seu-ai-1',
+        name: '东南大学AIGC鉴伪赛道校赛成绩单.pdf',
+        size: '2.1 MB',
+        type: 'pdf',
+        uploadedAt: '2026-06-23 14:55',
+      },
+    ],
+    status: 'approved',
+    submittedBy: '钟文瀚',
+    submittedAt: '2026-06-23 15:00:00',
+    auditedBy: '王静怡（大赛组委会秘书处）',
+    auditedAt: '2026-06-25 11:15:00',
+  },
+  {
+    id: 'adv-sub-buaa-ics',
+    competitionId: 'comp-2026-ics-special',
+    competitionTitle: '2026“XX杯”车联网与智能工业控制系统安全极客邀请赛',
+    university: '北京航空航天大学',
+    teamIds: ['admin-team-15'],
+    proofFiles: [
+      {
+        id: 'pf-buaa-ics-1',
+        name: '北航车联网安全极客赛校内选拔成绩单.pdf',
+        size: '1.8 MB',
+        type: 'pdf',
+        uploadedAt: '2026-10-22 16:55',
+      },
+    ],
+    status: 'approved',
+    submittedBy: '赵振宇',
+    submittedAt: '2026-10-22 17:00:00',
+    auditedBy: '王静怡（大赛组委会秘书处）',
+    auditedAt: '2026-10-23 16:30:00',
+  },
+  {
+    id: 'adv-sub-nudt-ics',
+    competitionId: 'comp-2026-ics-special',
+    competitionTitle: '2026“XX杯”车联网与智能工业控制系统安全极客邀请赛',
+    university: '国防科技大学',
+    teamIds: ['admin-team-16'],
+    proofFiles: [
+      {
+        id: 'pf-nudt-ics-1',
+        name: '国防科技大学工控安全赛道校内选拔成绩证明.pdf',
+        size: '2.5 MB',
+        type: 'pdf',
+        uploadedAt: '2026-10-24 08:55',
+      },
+    ],
+    status: 'pending',
+    submittedBy: '雷振庭',
+    submittedAt: '2026-10-24 09:00:00',
   },
 ];
 
@@ -1986,9 +2929,32 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     captainPhone: '137****8821',
     university: '北京航空航天大学',
     myRoleInTeam: '参赛队员',
+    myCtfRoles: ['逆向手', 'Pwn手'],
     status: 'pending_invite',
     invitedAt: '2026-10-28 09:45',
     teammatesSummary: ['周子航（队长 · 北京航空航天大学）', '赵振宇 教授（指导教师 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '周子航',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['Web手', '取证手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['逆向手', 'Pwn手'],
+        statusLabel: '待确认（本人）',
+      },
+      {
+        name: '赵振宇 教授',
+        role: '指导教师',
+        university: '北京航空航天大学',
+        statusLabel: '已同意',
+      },
+    ],
   },
   {
     id: 'part-team-3',
@@ -2002,9 +2968,33 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     captainPhone: '139****0004',
     university: '北京航空航天大学',
     myRoleInTeam: '参赛队员',
+    myCtfRoles: ['Web手', '密码学手'],
     status: 'pending_invite',
     invitedAt: '2026-10-28 10:20',
     teammatesSummary: ['宋知行（队长 · 北京航空航天大学）', '陈思远（队员 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '宋知行',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['Pwn手', '杂项手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '陈思远',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['逆向手'],
+        statusLabel: '已同意',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['Web手', '密码学手'],
+        statusLabel: '待确认（本人）',
+      },
+    ],
   },
   {
     id: 'part-team-4',
@@ -2018,9 +3008,32 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     captainPhone: '139****0005',
     university: '北京航空航天大学',
     myRoleInTeam: '参赛队员',
+    myCtfRoles: ['密码学手', '取证手'],
     status: 'joined',
     invitedAt: '2026-10-26 16:40',
     teammatesSummary: ['沈清雪（队长 · 北京航空航天大学）', '林远航（队员 · 已同意）', '赵振宇 教授（指导教师 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '沈清雪',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['密码学手', '杂项手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['密码学手', '取证手'],
+        statusLabel: '已同意（本人）',
+      },
+      {
+        name: '赵振宇 教授',
+        role: '指导教师',
+        university: '北京航空航天大学',
+        statusLabel: '已同意',
+      },
+    ],
   },
   {
     id: 'part-team-5',
@@ -2034,9 +3047,32 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     captainPhone: '139****0002',
     university: '北京航空航天大学',
     myRoleInTeam: '参赛队员',
+    myCtfRoles: ['逆向手', 'Pwn手'],
     status: 'team_pending_review',
     invitedAt: '2026-10-22 14:00',
     teammatesSummary: ['陈思远（队长 · 北京航空航天大学）', '林远航（队员 · 已同意）', '冯文博 副教授（指导教师 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '陈思远',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['逆向手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['逆向手', 'Pwn手'],
+        statusLabel: '已同意（本人）',
+      },
+      {
+        name: '冯文博 副教授',
+        role: '指导教师',
+        university: '北京航空航天大学',
+        statusLabel: '已同意',
+      },
+    ],
   },
   {
     id: 'part-team-6',
@@ -2050,9 +3086,26 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     captainPhone: '139****0003',
     university: '北京航空航天大学',
     myRoleInTeam: '参赛队员',
+    myCtfRoles: ['密码学手'],
     status: 'declined',
     invitedAt: '2026-10-15 19:30',
     teammatesSummary: ['刘语桐（队长 · 北京航空航天大学）'],
+    teamMembersDetail: [
+      {
+        name: '刘语桐',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['密码学手', 'Web手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['密码学手'],
+        statusLabel: '已拒绝（本人）',
+      },
+    ],
     declineReason: '已作为队长组建同赛事“国密算法协议分析与白盒密码逆向赛道”战队，同一赛事无法兼报两支队伍',
   },
   {
@@ -2067,6 +3120,8 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     captainPhone: '135****9012',
     university: '北京航空航天大学',
     myRoleInTeam: '参赛队员',
+    myCtfRoles: ['取证手', '杂项手'],
+    schoolRank: 2,
     status: 'team_approved',
     invitedAt: '2026-06-05 11:20',
     teammatesSummary: ['韩明轩（队长）', '林远航（队员）', '赵振宇 教授（指导教师）'],
@@ -2080,6 +3135,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
       captainName: '韩明轩',
       captainPhone: '13510099012',
       captainEmail: 'hanmingxuan@buaa.edu.cn',
+      schoolRank: 2,
       createdAt: '2026-06-05 11:20',
       approvedAt: '2026-06-16 14:20',
       members: [
@@ -2089,6 +3145,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
           university: '北京航空航天大学',
           phone: '13510099012',
           email: 'hanmingxuan@buaa.edu.cn',
+          ctfRoles: ['Web手', '取证手'],
         },
         {
           name: '林远航',
@@ -2096,6 +3153,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
           university: '北京航空航天大学',
           phone: '13810246921',
           email: 'linyuanhang@buaa.edu.cn',
+          ctfRoles: ['取证手', '杂项手'],
         },
         {
           name: '刘语桐',
@@ -2103,6 +3161,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
           university: '北京航空航天大学',
           phone: '13910010003',
           email: 'liuyutong@buaa.edu.cn',
+          ctfRoles: ['逆向手', '密码学手'],
         },
         {
           name: '赵振宇 教授',
@@ -2126,6 +3185,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     captainPhone: '138****6610',
     university: '北京航空航天大学',
     myRoleInTeam: '指导教师',
+    schoolRank: 1,
     status: 'team_approved',
     invitedAt: '2025-10-08 10:00',
     teammatesSummary: ['秦昊天（队长）', '苏子墨（队员）', '林远航（指导教师视角演示）'],
@@ -2139,6 +3199,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
       captainName: '秦昊天',
       captainPhone: '13810086610',
       captainEmail: 'qinhaotian@buaa.edu.cn',
+      schoolRank: 1,
       createdAt: '2025-10-08 10:00',
       approvedAt: '2025-10-12 18:00',
       members: [
@@ -2148,6 +3209,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
           university: '北京航空航天大学',
           phone: '13810086610',
           email: 'qinhaotian@buaa.edu.cn',
+          ctfRoles: ['Pwn手', '逆向手'],
         },
         {
           name: '苏子墨',
@@ -2155,6 +3217,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
           university: '北京航空航天大学',
           phone: '13910087721',
           email: 'suzimo@buaa.edu.cn',
+          ctfRoles: ['Web手', '密码学手'],
         },
         {
           name: '林远航',
@@ -2193,18 +3256,34 @@ export function computeTeamConfirmProgress(team: CaptainTeamRecord): {
   };
 }
 
-// 解析队伍的双级审核状态（高校审核 + 秘书处审核）与前台报名状态
+export type RefinedRegistrationStatusKey =
+  | 'draft'
+  | 'inviting'
+  | 'submitted'
+  | 'school_rejected'
+  | 'wait_school_match'
+  | 'not_advanced'
+  | 'pending_secretariat'
+  | 'secretariat_rejected'
+  | 'approved';
+
+// 解析队伍的三段式审核状态（第一段：高校资格审核 -> 第二段：高校晋级提报 -> 第三段：秘书处终审）与前台【我的报名】状态
 export function resolveTeamAuditStages(team: CaptainTeamRecord): {
-  regStatusKey: 'draft' | 'inviting' | 'submitted' | 'approved';
-  regStatusLabel: '组建中' | '邀请中' | '已提交' | '报名成功';
+  regStatusKey: RefinedRegistrationStatusKey;
+  regStatusLabel: string;
   regColorClass: string;
   regStatusClass: string;
   regDotClass: string;
   schoolStatus: TwoStageAuditStatus;
+  schoolBadgeLabel?: string;
   schoolRejectReason?: string;
   schoolReason?: string;
   schoolAuditedAt?: string;
+  advancementStatus: AdvancementStageStatus;
+  schoolRank?: number;
+  advancementSubmittedAt?: string;
   secretariatStatus: TwoStageAuditStatus;
+  secretariatBadgeLabel?: string;
   secretariatRejectReason?: string;
   secretariatReason?: string;
   secretariatAuditedAt?: string;
@@ -2212,6 +3291,8 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
   isRejectedBySecretariat: boolean;
   canModifyTeam: boolean;
   canEditTeam: boolean;
+  canDownloadReceipt: boolean;
+  actionSummaryLabel: string;
 } {
   if (team.status === 'draft') {
     return {
@@ -2221,11 +3302,14 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
       regStatusClass: 'text-slate-700 bg-slate-100 border-slate-200',
       regDotClass: 'bg-slate-400',
       schoolStatus: 'none',
+      advancementStatus: 'none',
       secretariatStatus: 'none',
       isRejectedBySchool: false,
       isRejectedBySecretariat: false,
       canModifyTeam: true,
       canEditTeam: true,
+      canDownloadReceipt: false,
+      actionSummaryLabel: '继续编辑',
     };
   }
 
@@ -2237,15 +3321,18 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
       regStatusClass: 'text-[#0284C7] bg-sky-50 border-sky-200',
       regDotClass: 'bg-[#0284C7] animate-pulse',
       schoolStatus: 'none',
+      advancementStatus: 'none',
       secretariatStatus: 'none',
       isRejectedBySchool: false,
       isRejectedBySecretariat: false,
       canModifyTeam: true,
       canEditTeam: true,
+      canDownloadReceipt: false,
+      actionSummaryLabel: '修改队伍与成员',
     };
   }
 
-  // 解析高校审核状态
+  // 第一段：高校资格审核状态
   const schoolStatus: TwoStageAuditStatus =
     team.schoolAuditStatus && team.schoolAuditStatus !== 'none'
       ? team.schoolAuditStatus
@@ -2255,14 +3342,31 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
       ? 'rejected'
       : 'pending';
 
-  // 只要高校审核通过后才会进入秘书处审核阶段
-  const secretariatStatus: TwoStageAuditStatus =
+  // 第二段：高校晋级提报状态
+  const advancementStatus: AdvancementStageStatus =
     schoolStatus !== 'approved'
       ? 'none'
-      : team.secretariatAuditStatus && team.secretariatAuditStatus !== 'none'
-      ? team.secretariatAuditStatus
-      : team.status === 'approved'
+      : team.advancementStatus && team.advancementStatus !== 'none'
+      ? team.advancementStatus
+      : team.status === 'approved' || team.secretariatAuditStatus === 'approved'
+      ? 'advanced'
+      : team.secretariatAuditStatus === 'rejected'
+      ? 'secretariat_rejected'
+      : team.secretariatAuditStatus === 'pending'
+      ? 'pending_secretariat'
+      : 'wait_school_match';
+
+  // 第三段：秘书处终审状态（仅当高校已提报晋级名单后才进入秘书处终审）
+  const secretariatStatus: TwoStageAuditStatus =
+    schoolStatus !== 'approved' ||
+    advancementStatus === 'wait_school_match' ||
+    advancementStatus === 'not_advanced'
+      ? 'none'
+      : advancementStatus === 'advanced' || team.secretariatAuditStatus === 'approved'
       ? 'approved'
+      : advancementStatus === 'secretariat_rejected' ||
+        team.secretariatAuditStatus === 'rejected'
+      ? 'rejected'
       : 'pending';
 
   const normalizedUpdatedAt =
@@ -2282,52 +3386,177 @@ export function resolveTeamAuditStages(team: CaptainTeamRecord): {
       ? team.secretariatAuditedAt || normalizedApprovedAt || normalizedUpdatedAt
       : undefined;
 
-  // 秘书处审核通过后报名状态才会变成“报名成功”
+  const schoolRank = team.schoolRank || team.approvedSnapshot?.schoolRank;
+
+  // 7. 秘书处终审通过 -> 报名成功
   if (schoolStatus === 'approved' && secretariatStatus === 'approved') {
     return {
       regStatusKey: 'approved',
       regStatusLabel: '报名成功',
-      regColorClass: 'text-emerald-700 font-bold',
+      regColorClass: 'text-emerald-700 font-extrabold',
       regStatusClass: 'text-emerald-700 bg-emerald-50 border-emerald-200',
       regDotClass: 'bg-emerald-500',
       schoolStatus: 'approved',
+      schoolBadgeLabel: '已通过',
       schoolAuditedAt,
+      advancementStatus: 'advanced',
+      schoolRank: schoolRank || 1,
+      advancementSubmittedAt: team.advancementSubmittedAt,
       secretariatStatus: 'approved',
+      secretariatBadgeLabel: '终审通过',
       secretariatAuditedAt,
       isRejectedBySchool: false,
       isRejectedBySecretariat: false,
       canModifyTeam: false,
       canEditTeam: false,
+      canDownloadReceipt: true,
+      actionSummaryLabel: '可下载回执',
     };
   }
 
-  const isRejectedBySchool = schoolStatus === 'rejected';
-  const isRejectedBySecretariat =
-    schoolStatus === 'approved' && secretariatStatus === 'rejected';
-  const canEdit = isRejectedBySchool || isRejectedBySecretariat;
+  // 2. 高校资格审核驳回 -> 已驳回（显示原因，队长可修改并重新提交）
+  if (schoolStatus === 'rejected') {
+    return {
+      regStatusKey: 'school_rejected',
+      regStatusLabel: '已驳回',
+      regColorClass: 'text-red-600 font-bold',
+      regStatusClass: 'text-red-700 bg-red-50 border-red-200',
+      regDotClass: 'bg-red-500',
+      schoolStatus: 'rejected',
+      schoolBadgeLabel: '已驳回',
+      schoolRejectReason: team.schoolRejectReason,
+      schoolReason: team.schoolRejectReason,
+      schoolAuditedAt,
+      advancementStatus: 'none',
+      secretariatStatus: 'none',
+      isRejectedBySchool: true,
+      isRejectedBySecretariat: false,
+      canModifyTeam: true,
+      canEditTeam: true,
+      canDownloadReceipt: false,
+      actionSummaryLabel: '修改并重新提交',
+    };
+  }
 
+  // 1. 队长提交报名，等待高校资格审核 -> 已提交
+  if (schoolStatus === 'pending') {
+    return {
+      regStatusKey: 'submitted',
+      regStatusLabel: '已提交',
+      regColorClass: 'text-amber-600 font-bold',
+      regStatusClass: 'text-amber-700 bg-amber-50 border-amber-200',
+      regDotClass: 'bg-amber-500 animate-pulse',
+      schoolStatus: 'pending',
+      schoolBadgeLabel: '待审核',
+      advancementStatus: 'none',
+      secretariatStatus: 'none',
+      isRejectedBySchool: false,
+      isRejectedBySecretariat: false,
+      canModifyTeam: false,
+      canEditTeam: false,
+      canDownloadReceipt: false,
+      actionSummaryLabel: '等待高校审核',
+    };
+  }
+
+  // 3. 高校资格审核通过（提报晋级前） -> 高校已通过
+  if (advancementStatus === 'wait_school_match') {
+    return {
+      regStatusKey: 'wait_school_match',
+      regStatusLabel: '高校已通过',
+      regColorClass: 'text-[#0284C7] font-bold',
+      regStatusClass: 'text-[#0369A1] bg-sky-50 border-sky-200',
+      regDotClass: 'bg-[#0284C7]',
+      schoolStatus: 'approved',
+      schoolBadgeLabel: '已通过',
+      schoolAuditedAt,
+      advancementStatus: 'wait_school_match',
+      secretariatStatus: 'none',
+      isRejectedBySchool: false,
+      isRejectedBySecretariat: false,
+      canModifyTeam: false,
+      canEditTeam: false,
+      canDownloadReceipt: false,
+      actionSummaryLabel: '只能查看，不可修改',
+    };
+  }
+
+  // 4. 高校提交晋级名单（队伍不在名单内） -> 未晋级
+  if (advancementStatus === 'not_advanced') {
+    return {
+      regStatusKey: 'not_advanced',
+      regStatusLabel: '未晋级',
+      regColorClass: 'text-slate-500 font-bold',
+      regStatusClass: 'text-slate-600 bg-slate-100 border-slate-300',
+      regDotClass: 'bg-slate-400',
+      schoolStatus: 'approved',
+      schoolBadgeLabel: '已通过',
+      schoolAuditedAt,
+      advancementStatus: 'not_advanced',
+      advancementSubmittedAt: team.advancementSubmittedAt,
+      secretariatStatus: 'none',
+      isRejectedBySchool: false,
+      isRejectedBySecretariat: false,
+      canModifyTeam: false,
+      canEditTeam: false,
+      canDownloadReceipt: false,
+      actionSummaryLabel: '只能查看，流程结束',
+    };
+  }
+
+  // 6. 秘书处终审驳回该校晋级名单 -> 待秘书处终审（名单被驳回），等待高校重报，队长不可修改
+  if (advancementStatus === 'secretariat_rejected' || secretariatStatus === 'rejected') {
+    return {
+      regStatusKey: 'secretariat_rejected',
+      regStatusLabel: '待秘书处终审（名单被驳回）',
+      regColorClass: 'text-amber-700 font-bold',
+      regStatusClass: 'text-amber-800 bg-amber-50 border-amber-300',
+      regDotClass: 'bg-amber-500',
+      schoolStatus: 'approved',
+      schoolBadgeLabel: '已通过',
+      schoolAuditedAt,
+      advancementStatus: 'secretariat_rejected',
+      schoolRank,
+      advancementSubmittedAt: team.advancementSubmittedAt,
+      secretariatStatus: 'rejected',
+      secretariatBadgeLabel: '名单被驳回（待高校重报）',
+      secretariatRejectReason: team.secretariatRejectReason,
+      secretariatReason: team.secretariatRejectReason,
+      secretariatAuditedAt,
+      isRejectedBySchool: false,
+      isRejectedBySecretariat: true,
+      canModifyTeam: false, // 队长不可修改，由高校管理员重新提报晋级名单
+      canEditTeam: false,
+      canDownloadReceipt: false,
+      actionSummaryLabel: '等待高校重新提报，队长不可修改',
+    };
+  }
+
+  // 5. 高校提交晋级名单（队伍在名单内） -> 待秘书处终审
   return {
-    regStatusKey: 'submitted',
-    regStatusLabel: '已提交',
-    regColorClass: 'text-amber-600 font-bold',
-    regStatusClass: 'text-amber-700 bg-amber-50 border-amber-200',
-    regDotClass: 'bg-amber-500',
-    schoolStatus,
-    schoolRejectReason: team.schoolRejectReason,
-    schoolReason: team.schoolRejectReason,
+    regStatusKey: 'pending_secretariat',
+    regStatusLabel: '待秘书处终审',
+    regColorClass: 'text-indigo-700 font-bold',
+    regStatusClass: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+    regDotClass: 'bg-indigo-500 animate-pulse',
+    schoolStatus: 'approved',
+    schoolBadgeLabel: '已通过',
     schoolAuditedAt,
-    secretariatStatus,
-    secretariatRejectReason: team.secretariatRejectReason,
-    secretariatReason: team.secretariatRejectReason,
-    secretariatAuditedAt,
-    isRejectedBySchool,
-    isRejectedBySecretariat,
-    canModifyTeam: canEdit,
-    canEditTeam: canEdit,
+    advancementStatus: 'pending_secretariat',
+    schoolRank,
+    advancementSubmittedAt: team.advancementSubmittedAt,
+    secretariatStatus: 'pending',
+    secretariatBadgeLabel: '待终审',
+    isRejectedBySchool: false,
+    isRejectedBySecretariat: false,
+    canModifyTeam: false,
+    canEditTeam: false,
+    canDownloadReceipt: false,
+    actionSummaryLabel: '等待秘书处终审',
   };
 }
 
-// 报名状态显示元数据（不包括“已驳回”，仅包含：组建中、邀请中、已提交、报名成功）
+// 报名状态显示元数据
 export function getTeamStatusMeta(
   status: TeamLifecycleStatus,
   team?: CaptainTeamRecord
@@ -2358,11 +3587,16 @@ export function getTeamStatusMeta(
         dotClass: 'bg-[#0284C7] animate-pulse',
       };
     case 'pending_review':
-    case 'rejected':
       return {
         label: '已提交',
         colorClass: 'text-amber-600 font-bold',
         dotClass: 'bg-amber-500',
+      };
+    case 'rejected':
+      return {
+        label: '已驳回',
+        colorClass: 'text-red-600 font-bold',
+        dotClass: 'bg-red-500',
       };
     case 'approved':
       return {
@@ -2480,6 +3714,7 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
   );
   const editingDraftTeam = propEditingDraftTeam ?? existingTeam ?? null;
   const includeAdvisor = registrationConfig?.includeAdvisor ?? true;
+  const minAdvisors = registrationConfig?.minAdvisors ?? 0;
   const maxAdvisors = registrationConfig?.maxAdvisors ?? 2;
   const minTeamSize = registrationConfig?.minTeamSize ?? 2;
   const maxTeamSize = registrationConfig?.maxTeamSize ?? 4;
@@ -2491,6 +3726,11 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
     currentUser.academicStatus === 'verified' && currentUser.university
       ? currentUser.university
       : currentUser.university || '北京航空航天大学';
+  const captainEducation = currentUser.educationLevel || '本科';
+  const captainMajor = currentUser.majorOrDept || '网络空间安全';
+  const captainEnrollRange = `${currentUser.enrollmentDate || '2024-09'} 至 ${
+    currentUser.graduationDate || '2028-06'
+  }`;
 
   const trackOptions =
     competition.tracks.length > 0
@@ -2508,14 +3748,24 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
   const [teamIntro, setTeamIntro] = useState<string>(
     editingDraftTeam?.teamIntro || ''
   );
-  const [selectedTrack, setSelectedTrack] = useState(
-    editingDraftTeam?.subTrackName || initialSubTrackName || trackOptions[0]
+  const [selectedTrack] = useState(
+    editingDraftTeam?.subTrackName || initialSubTrackName || trackOptions[0] || '默认参赛组'
   );
   const [members, setMembers] = useState<InvitedTeamPerson[]>(
     editingDraftTeam?.members || []
   );
   const [advisors, setAdvisors] = useState<InvitedTeamPerson[]>(
     editingDraftTeam?.advisors || []
+  );
+  // 队长给自己分配的 CTF 角色标签（完全选填，队长和队员均可不选）
+  const [captainCtfRoles, setCaptainCtfRoles] = useState<CtfRoleType[]>(
+    editingDraftTeam?.captainCtfRoles || []
+  );
+  // 当前打开“设置角色”下拉多选框的成员 ID（或 'captain'）
+  const [openRolePopoverId, setOpenRolePopoverId] = useState<string | null>(null);
+  // 角色分配单一防呆弱提示弹窗
+  const [singleRoleFormWarnModal, setSingleRoleFormWarnModal] = useState<CtfRoleType | null>(
+    null
   );
 
   // 处理本地上传队伍 LOGO 图片
@@ -2626,6 +3876,7 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
       email: found.email,
       university: found.university,
       role: 'member',
+      ctfRoles: [],
       isVerified: found.isRealNameVerified && found.isAcademicOrTeacherVerified,
       confirmStatus: 'draft',
     };
@@ -2634,7 +3885,7 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
     setMemberSearchQuery('');
     setMemberSearchFeedback({
       type: 'success',
-      text: `已将队员「${found.name}（${found.university}）」加入拟邀请名单（尚未发送通知）。`,
+      text: `已将队员「${found.name}（${found.university}）」加入拟邀请名单，队内角色（Web手/Pwn手等）为选填项，可按需在卡片右侧分配或不选。`,
     });
   };
 
@@ -2761,6 +4012,7 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
       captainEmail: currentUser.email,
       captainUniversity: captainSchool,
       captainVerified: currentUser.isVerified,
+      captainCtfRoles,
       status: targetStatus,
       schoolAuditStatus: 'none',
       secretariatAuditStatus: 'none',
@@ -2791,10 +4043,6 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
       setFormError('队伍名称不能超过20个字符');
       return;
     }
-    if (!selectedTrack) {
-      setFormError('请选择参赛赛道');
-      return;
-    }
     if (!teamIntro.trim()) {
       setFormError('请填写简短的队伍介绍（100字以内）');
       return;
@@ -2814,6 +4062,24 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
         `本赛事要求队伍最多 ${maxTeamSize} 人（含队长），当前共 ${totalPersonCount} 人，请移除多余成员`
       );
       return;
+    }
+    if (includeAdvisor && minAdvisors > 0 && advisors.length < minAdvisors) {
+      setFormError(
+        `本赛事要求队伍最少邀请 ${minAdvisors} 名指导教师，当前已添加 ${advisors.length} 名，请继续添加指导教师`
+      );
+      return;
+    }
+
+    // 防呆弱提示：如果队伍满员（或已添加队员）且6个角色只覆盖了1个角色
+    if (activeMembers.length > 0) {
+      const warnCheck = checkSingleCtfRoleWarning(
+        captainCtfRoles,
+        activeMembers.map((m) => m.ctfRoles)
+      );
+      if (warnCheck.isSingleRole && warnCheck.roleName) {
+        setSingleRoleFormWarnModal(warnCheck.roleName);
+        return;
+      }
     }
 
     const record = buildTeamRecord('inviting');
@@ -2870,10 +4136,10 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* 赛事名称（只读） */}
+              {/* 赛事名称 */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                  赛事名称（只读）
+                  赛事名称
                 </label>
                 <input
                   type="text"
@@ -2883,10 +4149,10 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                 />
               </div>
 
-              {/* 所属院校（自动带出队长认证学校，只读） */}
+              {/* 所属院校 */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                  所属院校（自动带出队长认证学校，只读）
+                  所属院校
                 </label>
                 <div className="relative">
                   <input
@@ -2895,9 +4161,36 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                     value={captainSchool}
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-100 border border-slate-200 rounded-xl text-slate-800 font-bold cursor-not-allowed"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-emerald-700 font-semibold">
-                    已锁定本校
-                  </span>
+                </div>
+              </div>
+
+              {/* 队长学历层次 */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                  学历层次
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={captainEducation}
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-100 border border-slate-200 rounded-xl text-slate-800 font-bold cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* 队长专业及就读周期 */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                  就读专业 / 入学-毕业时间
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${captainMajor}（${captainEnrollRange}）`}
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-100 border border-slate-200 rounded-xl text-slate-800 font-bold cursor-not-allowed"
+                  />
                 </div>
               </div>
 
@@ -2916,27 +4209,9 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                   maxLength={20}
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
-                  placeholder="请输入队伍名称（20字以内，如：北航天枢战队）"
+                  placeholder="请输入队伍名称（20字以内）"
                   className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:border-[#0284C7] focus:outline-none"
                 />
-              </div>
-
-              {/* 参赛赛道（下拉单选） */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  参赛赛道 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={selectedTrack}
-                  onChange={(e) => setSelectedTrack(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:border-[#0284C7] focus:outline-none cursor-pointer"
-                >
-                  {trackOptions.map((trkName) => (
-                    <option key={trkName} value={trkName}>
-                      {trkName}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
@@ -3015,11 +4290,11 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                 <span>二、成员管理（队长、团队成员、指导教师）</span>
               </h2>
               <span className="text-xs text-amber-700 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200/80">
-                注意：此时添加的成员仅代表拟邀请名单，点击底部【发出邀请】后才会正式发送通知
+                注意：此时添加的成员仅代表拟邀请名单，点击底部【保存并发出邀请】后才会正式发送通知
               </span>
             </div>
 
-            {/* 赛事报名配置规则实时提示条 */}
+            {/* 赛事报名配置规则提示条 */}
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>
@@ -3039,35 +4314,60 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                 <span>
                   指导教师：
                   <strong className="text-slate-900">
-                    {includeAdvisor ? `可邀请（上限 ${maxAdvisors} 人）` : '本赛事无需指导教师'}
+                    {includeAdvisor
+                      ? minAdvisors > 0
+                        ? `需邀请 ${minAdvisors} ~ ${maxAdvisors} 人`
+                        : `可邀请（上限 ${maxAdvisors} 人）`
+                      : '本赛事无需指导教师'}
                   </strong>
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400">规则由后台【报名管理】配置实时生效</span>
             </div>
 
-            {/* 1. 队长自己（固定在首位） */}
+            {/* 1. 队长自己（固定在首位，允许队长给自己勾选角色，也可不选） */}
             <div className="space-y-2">
-              <div className="text-xs font-bold text-slate-700">1. 队长信息（固定首位）</div>
+              <div className="text-xs font-bold text-slate-700">
+                1. 队长信息（固定首位 · 队内角色为选填项，队长和队员均可不选）
+              </div>
               <div className="p-4 rounded-xl bg-sky-50/70 border border-sky-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#0284C7] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#0284C7] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                     队长
                   </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <div className="space-y-1">
+                    <div className="text-sm font-bold text-slate-900 flex flex-wrap items-center gap-2">
                       <span>{currentUser.name || currentUser.username}</span>
                       <span className="text-xs font-normal text-slate-500">·</span>
                       <span className="text-xs font-semibold text-[#0369A1]">{captainSchool}</span>
+                      <span className="px-2 py-0.5 rounded bg-white text-[#0284C7] border border-sky-200 text-[11px] font-bold">
+                        {captainEducation}
+                      </span>
+                      <span className="text-xs text-slate-600 font-semibold">{captainMajor}</span>
                     </div>
-                    <div className="text-xs text-slate-500 font-mono-num mt-0.5">
-                      手机：{maskPhone(currentUser.phone || '13810246921')} | 邮箱：{maskEmail(currentUser.email || 'linyuanhang@buaa.edu.cn')}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-500 font-semibold">队内角色：</span>
+                      <CtfRoleBadges roles={captainCtfRoles} emptyText="待分配" />
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono-num">
+                      手机：{maskPhone(currentUser.phone || '13810246921')} | 邮箱：{maskEmail(currentUser.email || 'linyuanhang@buaa.edu.cn')} | 学籍周期：{captainEnrollRange}
                     </div>
                   </div>
                 </div>
-                <div className="text-xs font-bold text-emerald-700 flex items-center gap-1.5 shrink-0">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>已实名 · 已学籍认证</span>
+                <div className="flex flex-wrap items-center gap-3 self-end sm:self-center shrink-0">
+                  <CtfRoleSelectorDropdown
+                    selectedRoles={captainCtfRoles}
+                    onChange={(nextRoles) => setCaptainCtfRoles(nextRoles)}
+                    isOpen={openRolePopoverId === 'captain'}
+                    onToggleOpen={() =>
+                      setOpenRolePopoverId((prev) => (prev === 'captain' ? null : 'captain'))
+                    }
+                    onClose={() => setOpenRolePopoverId(null)}
+                    triggerLabel="设置角色"
+                  />
+                  <div className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>已实名 · 已学生认证</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3075,26 +4375,29 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
             {/* 2. 团队成员（若最多人数限制为 1 人，则隐藏“邀请队员”模块） */}
             {maxTeamSize > 1 ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs font-bold text-slate-700">
                     2. 团队成员（已添加 {members.length} 人，含队长共 {1 + members.length}/
                     {maxTeamSize} 人，最少需 {minTeamSize} 人）
                   </div>
+                  <span className="text-[11px] text-slate-500">
+                    添加队员后可为其勾选 1~6 个 CTF 角色（非必填，队员确认入队时可见）
+                  </span>
                 </div>
 
                 {/* 已添加队员列表 */}
                 {members.length > 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {members.map((m, idx) => (
                       <div
                         key={m.id}
                         className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 text-xs font-mono-num font-bold flex items-center justify-center shrink-0">
+                        <div className="flex items-start gap-3">
+                          <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 text-xs font-mono-num font-bold flex items-center justify-center shrink-0 mt-0.5">
                             {idx + 1}
                           </span>
-                          <div>
+                          <div className="space-y-1">
                             <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
                               <span>{m.name}</span>
                               <span className="text-xs text-slate-400">·</span>
@@ -3102,19 +4405,42 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                                 {m.university}
                               </span>
                             </div>
-                            <div className="text-xs text-slate-500 font-mono-num mt-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-slate-500 font-semibold">
+                                队内角色：
+                              </span>
+                              <CtfRoleBadges roles={m.ctfRoles} emptyText="待分配" />
+                            </div>
+                            <div className="text-xs text-slate-500 font-mono-num">
                               手机：{maskPhone(m.phone)} | 邮箱：{maskEmail(m.email)}
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 self-end sm:self-auto">
+                        <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-center">
+                          <CtfRoleSelectorDropdown
+                            selectedRoles={m.ctfRoles || []}
+                            onChange={(nextRoles) =>
+                              setMembers((prev) =>
+                                prev.map((item) =>
+                                  item.id === m.id ? { ...item, ctfRoles: nextRoles } : item
+                                )
+                              )
+                            }
+                            isOpen={openRolePopoverId === m.id}
+                            onToggleOpen={() =>
+                              setOpenRolePopoverId((prev) => (prev === m.id ? null : m.id))
+                            }
+                            onClose={() => setOpenRolePopoverId(null)}
+                            triggerLabel="设置角色"
+                          />
                           <span className="text-xs text-slate-500">拟邀请（待发通知）</span>
                           <button
                             type="button"
-                            onClick={() =>
-                              setMembers((prev) => prev.filter((item) => item.id !== m.id))
-                            }
+                            onClick={() => {
+                              if (openRolePopoverId === m.id) setOpenRolePopoverId(null);
+                              setMembers((prev) => prev.filter((item) => item.id !== m.id));
+                            }}
                             className="text-xs font-semibold text-red-600 hover:text-red-700 inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -3333,10 +4659,10 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
             )}
           </section>
 
-          {/* 底部按钮栏：【暂存】 与 【发出邀请 / 保存并邀请】 */}
+          {/* 底部按钮栏：【暂存】 与 【保存并发出邀请】 */}
           <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-xs text-slate-500">
-              点击【暂存】状态变为“组建中”（不发通知）；点击【发出邀请】将向名单成员发送站内信/短信，状态变为“邀请中”。
+              点击【暂存】状态变为“组建中”（不发通知）；点击【保存并发出邀请】将向名单成员发送站内信/短信，状态变为“邀请中”。
             </div>
 
             <div className="flex items-center justify-end gap-3 shrink-0">
@@ -3346,7 +4672,7 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                 className="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-4 h-4 text-slate-500" />
-                <span>暂存（组建中）</span>
+                <span>暂存</span>
               </button>
 
               <button
@@ -3354,12 +4680,61 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                 className="px-6 py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs sm:text-sm font-bold shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Send className="w-4 h-4" />
-                <span>发出邀请 / 保存并邀请</span>
+                <span>保存并发出邀请</span>
               </button>
             </div>
           </div>
         </div>
       </form>
+
+      {/* 防呆弱提示弹窗：角色分配较单一 */}
+      {singleRoleFormWarnModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-amber-300 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-amber-500 text-white font-bold text-sm flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                <span>队伍角色配置防呆提示</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSingleRoleFormWarnModal(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs sm:text-sm font-bold leading-relaxed">
+                当前队伍角色分配较单一（全是{singleRoleFormWarnModal}），请确认是否符合参赛策略？
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                提示：CTF 赛制支持策略性单兵或多角色分工，系统不做强拦截。若确认无误，点击下方【确认提交】即可直接放行。
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSingleRoleFormWarnModal(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  返回调整角色
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSingleRoleFormWarnModal(null);
+                    const record = buildTeamRecord('inviting');
+                    onSendInvitations(record);
+                  }}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+                >
+                  确认提交
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
@@ -3369,10 +4744,12 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
 // ============================================================================
 export const AuditStageBadgeWithTooltip: React.FC<{
   status: TwoStageAuditStatus;
+  customLabel?: string;
   rejectReason?: string;
   stageLabel?: '高校审核' | '秘书处审核';
   stage?: 'school' | 'secretariat';
-}> = ({ status, rejectReason, stageLabel, stage }) => {
+  hideRejectReason?: boolean;
+}> = ({ status, customLabel, rejectReason, stageLabel, stage, hideRejectReason }) => {
   const displayStageLabel =
     stageLabel || (stage === 'secretariat' ? '秘书处审核' : '高校审核');
   if (status === 'none') {
@@ -3382,7 +4759,7 @@ export const AuditStageBadgeWithTooltip: React.FC<{
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/80 text-xs font-bold">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-        <span>待审核</span>
+        <span>{customLabel || '待审核'}</span>
       </span>
     );
   }
@@ -3390,7 +4767,7 @@ export const AuditStageBadgeWithTooltip: React.FC<{
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-xs font-bold">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-        <span>已通过</span>
+        <span>{customLabel || '已通过'}</span>
       </span>
     );
   }
@@ -3398,24 +4775,26 @@ export const AuditStageBadgeWithTooltip: React.FC<{
     <div className="inline-flex items-center gap-1.5">
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-200/80 text-xs font-bold">
         <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-        <span>已驳回</span>
+        <span>{customLabel || '已驳回'}</span>
       </span>
-      <div className="relative group inline-flex items-center">
-        <span
-          className="w-4 h-4 rounded-full bg-red-100 hover:bg-red-200 text-red-600 inline-flex items-center justify-center cursor-help transition-colors"
-          title={rejectReason || `${displayStageLabel}未通过，请点击管理队伍查看详情`}
-        >
-          <AlertTriangle className="w-3 h-3" />
-        </span>
-        {/* 悬浮气泡 Tooltip */}
-        <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 p-2.5 rounded-xl bg-slate-900 text-white text-[11px] leading-relaxed shadow-xl">
-          <div className="font-bold text-red-300 mb-0.5">{displayStageLabel}驳回原因：</div>
-          <div className="text-slate-100 break-words whitespace-normal">
-            {rejectReason || '信息填写不完整或不符合赛事规定，请修改后重新提交。'}
+      {!hideRejectReason && (
+        <div className="relative group inline-flex items-center">
+          <span
+            className="w-4 h-4 rounded-full bg-red-100 hover:bg-red-200 text-red-600 inline-flex items-center justify-center cursor-help transition-colors"
+            title={rejectReason || `${displayStageLabel}未通过，请点击查看详情`}
+          >
+            <AlertTriangle className="w-3 h-3" />
+          </span>
+          {/* 悬浮气泡 Tooltip */}
+          <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 p-2.5 rounded-xl bg-slate-900 text-white text-[11px] leading-relaxed shadow-xl">
+            <div className="font-bold text-red-300 mb-0.5">{displayStageLabel}驳回说明：</div>
+            <div className="text-slate-100 break-words whitespace-normal">
+              {rejectReason || '信息填写不完整或不符合赛事规定，请核实后处理。'}
+            </div>
+            <div className="w-2 h-2 bg-slate-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" />
           </div>
-          <div className="w-2 h-2 bg-slate-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" />
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -3487,6 +4866,14 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
     type: 'info' | 'success' | 'error';
     text: string;
   } | null>(null);
+  // 队长在管理页点击【编辑】修改队长或队员角色标签的下拉框状态
+  const [managingRolePopoverId, setManagingRolePopoverId] = useState<string | null>(null);
+  // 队长点击提交审核时的“角色分配较单一”黄字弱提示弹窗
+  const [singleRoleManageWarnModal, setSingleRoleManageWarnModal] = useState<{
+    team: CaptainTeamRecord;
+    isForced: boolean;
+    roleName: CtfRoleType;
+  } | null>(null);
 
   // 队员/老师视角（页面4）同意/拒绝前置校验拦截弹窗
   const [participateInterceptModal, setParticipateInterceptModal] = useState<{
@@ -3496,6 +4883,55 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
   } | null>(null);
   const [declineReasonInput, setDeclineReasonInput] = useState('');
   const [declineModalTeamId, setDeclineModalTeamId] = useState<string | null>(null);
+
+  // 🎉 报名成功（已晋级决赛）回执单预览与下载弹窗
+  const [receiptModalTeam, setReceiptModalTeam] = useState<CaptainTeamRecord | null>(null);
+
+  // 下载电子参赛回执单文件
+  const handleDownloadReceiptFile = (team: CaptainTeamRecord) => {
+    const stages = resolveTeamAuditStages(team);
+    const snap = team.approvedSnapshot || buildApprovedSnapshotFromCaptainTeam(team);
+    const rankNum = stages.schoolRank || snap.schoolRank || 1;
+    const receiptNo = `GWC-2026-${team.university.slice(0, 2)}-${String(rankNum).padStart(2, '0')}-${team.id.slice(-4).toUpperCase()}`;
+    const content = [
+      '====================================================================',
+      '          全国网数智安全大赛 · 晋级决赛报名成功确认回执单',
+      '====================================================================',
+      `回执编号：${receiptNo}`,
+      `参赛赛事：${team.competitionTitle}`,
+      `队伍名称：${team.teamName}`,
+      `所属高校：${team.university}`,
+      `校内排名：第 ${rankNum} 名`,
+      `发起队长：${snap.captainName}（${snap.captainPhone || '已核验'}）`,
+      `当前状态：🎉 报名成功（已晋级决赛）`,
+      `高校资格审核：已通过（${stages.schoolAuditedAt || team.updatedAt}）`,
+      `秘书处终审状态：终审通过（${stages.secretariatAuditedAt || snap.approvedAt}）`,
+      '--------------------------------------------------------------------',
+      '【正式参赛名单与队内CTF角色】',
+      ...snap.members.map(
+        (m, idx) =>
+          `${idx + 1}. ${m.name} | 身份：${m.role} | 院校：${m.university} | 队内角色：${
+            m.role === '指导教师'
+              ? '-'
+              : m.ctfRoles && m.ctfRoles.length > 0
+              ? m.ctfRoles.join('、')
+              : '未分配'
+          }`
+      ),
+      '====================================================================',
+      '大赛组委会秘书处 电子签章核验通过 · 凭本回执参加全国总决赛检录',
+    ].join('\n');
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `参赛晋级回执单_${team.university}_${team.teamName}_第${rankNum}名.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // 个人中心“我发起的（队长的队伍）”严格按当前登录账号匹配
   const myInitiatedTeams = captainTeams.filter((t) => isTeamOwnedByUser(t, currentUser));
@@ -3711,6 +5147,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
       email: found.email,
       university: found.university,
       role,
+      ctfRoles: role === 'member' ? [] : undefined,
       isVerified: true,
       confirmStatus: 'pending', // 自动向新成员发送邀请
     };
@@ -3723,12 +5160,20 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
       updatedAt: '2026-10-28 10:52',
     }));
 
-    if (role === 'member') setAddMemberInput('');
-    else setAddAdvisorInput('');
+    if (role === 'member') {
+      setAddMemberInput('');
+      // 新添加队员后，自动弹出该队员卡片旁的“设置角色”多选框
+      setManagingRolePopoverId(newPerson.id);
+    } else {
+      setAddAdvisorInput('');
+    }
 
     setManageFeedback({
       type: 'success',
-      text: `已成功添加「${found.name}」并自动向其发送入队邀请通知（当前状态：待确认）！`,
+      text:
+        role === 'member'
+          ? `已成功添加「${found.name}」并发送入队邀请！已为您展开该队员的【设置角色】多选框，可随时勾选角色标签。`
+          : `已成功添加「${found.name}」并自动向其发送入队邀请通知（当前状态：待确认）！`,
     });
   };
 
@@ -3770,7 +5215,11 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
   };
 
   // 5. 队长提交审核 / 重新提交审核（无论是首次提交、被高校审核驳回还是被秘书处审核驳回，重新修改提交后均统一进入【高校审核 -> 秘书处审核】两级流程）
-  const handleFormalSubmitForReview = (team: CaptainTeamRecord, isForced = false) => {
+  const handleFormalSubmitForReview = (
+    team: CaptainTeamRecord,
+    isForced = false,
+    skipRoleWarn = false
+  ) => {
     const acceptedMembers = team.members.filter((m) => m.confirmStatus === 'accepted');
     if (acceptedMembers.length === 0) {
       setForceSubmitConfirmModal(null);
@@ -3781,15 +5230,33 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
       return;
     }
 
+    // 防呆弱提示：如果6个角色只覆盖了1个角色（比如全队都是Web手），弹出黄字弱提示确认
+    if (!skipRoleWarn) {
+      const warnCheck = checkSingleCtfRoleWarning(
+        team.captainCtfRoles,
+        acceptedMembers.map((m) => m.ctfRoles)
+      );
+      if (warnCheck.isSingleRole && warnCheck.roleName) {
+        setForceSubmitConfirmModal(null);
+        setSingleRoleManageWarnModal({
+          team,
+          isForced,
+          roleName: warnCheck.roleName,
+        });
+        return;
+      }
+    }
+
     const stages = resolveTeamAuditStages(team);
-    const isResubmittingAfterReject =
-      stages.isRejectedBySchool || stages.isRejectedBySecretariat;
+    const isResubmittingAfterReject = stages.isRejectedBySchool;
 
     updateSingleCaptainTeam(team.id, (prev) => ({
       ...prev,
       status: 'pending_review',
       schoolAuditStatus: 'pending',
       schoolRejectReason: undefined,
+      advancementStatus: 'none',
+      schoolRank: undefined,
       secretariatAuditStatus: 'none',
       secretariatRejectReason: undefined,
       // 若为强制提交，自动作废并清理未确认(pending)与已拒绝(rejected)的人员
@@ -3803,14 +5270,26 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
     }));
 
     setForceSubmitConfirmModal(null);
+    setSingleRoleManageWarnModal(null);
     setManageFeedback({
       type: 'success',
       text: isResubmittingAfterReject
-        ? '修改已保存并重新提交审核！队伍已重新进入【高校审核（待审核）】阶段，待高校审核通过后将进入【秘书处审核】流程。'
+        ? '修改已保存并重新提交高校审核！队伍已进入第一段【高校资格审核（待审核）】阶段。'
         : isForced
-        ? '已作废未确认成员并提交至【高校审核】！当前报名状态为“已提交”，高校审核状态为“待审核”，待高校审核通过后将进入秘书处审核。'
-        : '已正式提交至【高校审核】！当前报名状态为“已提交”，高校审核状态为“待审核”，待高校审核通过后将进入秘书处审核。',
+        ? '已作废未确认成员并提交至【高校资格审核】！当前报名状态为“已提交（等待高校审核）”。'
+        : '已正式提交至【高校资格审核】！当前报名状态为“已提交（等待高校审核）”。',
     });
+  };
+
+  // 获取赛事报名截止时间
+  const resolveRegEndTime = (competitionId: string): string => {
+    const cfg = registrationConfigs.find((c) => c.eventId === competitionId);
+    if (cfg?.regEndTime) return cfg.regEndTime;
+    const comp = competitions.find((c) => c.id === competitionId);
+    if (comp?.endDate) return `${comp.endDate} 23:59:59`;
+    if (competitionId === 'comp-2026-ics-special') return '2026-11-12 23:59:59';
+    if (competitionId === 'comp-2025-archive-ctf') return '2025-10-10 23:59:59';
+    return '2026-11-15 23:59:59';
   };
 
   // ==========================================================================
@@ -3833,7 +5312,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
 
     return (
       <div className="space-y-5">
-        {/* 顶部返回栏与二级审核模拟器 */}
+        {/* 顶部返回栏与三段式审核模拟器 */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <button
             type="button"
@@ -3847,9 +5326,9 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
             <span>返回【我的报名】列表</span>
           </button>
 
-          {/* 闭环全景快捷模拟按钮（模拟高校审核 & 秘书处审核） */}
+          {/* 三段式审核全景快捷模拟按钮（第一段：高校资格审核 -> 第二段：高校晋级提报 -> 第三段：秘书处终审） */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-slate-400">审核流程快捷模拟：</span>
+            <span className="text-slate-400">三段式审核流程模拟：</span>
             {auditStages.schoolStatus === 'pending' && (
               <>
                 <button
@@ -3857,7 +5336,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   onClick={() => setSchoolRejectModalOpen(team.id)}
                   className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold cursor-pointer"
                 >
-                  模拟高校审核【驳回】
+                  ① 模拟高校资格【驳回】
                 </button>
                 <button
                   type="button"
@@ -3866,18 +5345,71 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                       ...prev,
                       status: 'pending_review',
                       schoolAuditStatus: 'approved',
+                      schoolAuditedAt: '2026-10-28 11:05:00',
                       schoolRejectReason: undefined,
-                      secretariatAuditStatus: 'pending',
+                      advancementStatus: 'wait_school_match',
+                      secretariatAuditStatus: 'none',
                       updatedAt: '2026-10-28 11:05',
                     }));
                     setManageFeedback({
                       type: 'success',
-                      text: '高校审核已通过！队伍已自动进入【秘书处审核（待审核）】阶段。',
+                      text: '第一段【高校资格审核】已通过！队伍状态已变更为「高校已通过（待校赛）」，等待高校管理员在后台提报晋级名单。',
                     });
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0369A1] border border-sky-200 font-bold cursor-pointer"
                 >
-                  模拟高校审核【通过 &rarr; 进入秘书处审核】
+                  ① 模拟高校资格【通过 &rarr; 待校赛】
+                </button>
+              </>
+            )}
+
+            {(auditStages.advancementStatus === 'wait_school_match' ||
+              auditStages.advancementStatus === 'secretariat_rejected' ||
+              auditStages.advancementStatus === 'not_advanced') && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateSingleCaptainTeam(team.id, (prev) => ({
+                      ...prev,
+                      status: 'pending_review',
+                      schoolAuditStatus: 'approved',
+                      advancementStatus: 'pending_secretariat',
+                      schoolRank: prev.schoolRank || 1,
+                      advancementSubmittedAt: '2026-10-28 11:06:00',
+                      secretariatAuditStatus: 'pending',
+                      secretariatRejectReason: undefined,
+                      updatedAt: '2026-10-28 11:06',
+                    }));
+                    setManageFeedback({
+                      type: 'success',
+                      text: '第二段【高校晋级提报】已完成！本队已作为「校内第 1 名」提报至秘书处，状态变更为「待秘书处终审」。',
+                    });
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold cursor-pointer"
+                >
+                  ② 模拟高校【提报晋级(第1名) &rarr; 待终审】
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateSingleCaptainTeam(team.id, (prev) => ({
+                      ...prev,
+                      status: 'pending_review',
+                      schoolAuditStatus: 'approved',
+                      advancementStatus: 'not_advanced',
+                      schoolRank: undefined,
+                      secretariatAuditStatus: 'none',
+                      updatedAt: '2026-10-28 11:06',
+                    }));
+                    setManageFeedback({
+                      type: 'info',
+                      text: '已模拟高校提交晋级名单（本队未在名单内）：状态已变更为「未晋级（止步校赛）」，流程结束。',
+                    });
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold cursor-pointer"
+                >
+                  ② 模拟高校提报【未入围 &rarr; 未晋级】
                 </button>
               </>
             )}
@@ -3890,36 +5422,41 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                     onClick={() => setSecretariatRejectModalOpen(team.id)}
                     className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold cursor-pointer"
                   >
-                    模拟秘书处审核【驳回】
+                    ③ 模拟秘书处终审【驳回晋级名单】
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      updateSingleCaptainTeam(team.id, (prev) => ({
-                        ...prev,
-                        status: 'approved',
-                        schoolAuditStatus: 'approved',
-                        secretariatAuditStatus: 'approved',
-                        secretariatRejectReason: undefined,
-                        updatedAt: '2026-10-28 11:08',
-                      }));
+                      updateSingleCaptainTeam(team.id, (prev) => {
+                        const nextTeam: CaptainTeamRecord = {
+                          ...prev,
+                          status: 'approved',
+                          schoolAuditStatus: 'approved',
+                          advancementStatus: 'advanced',
+                          schoolRank: prev.schoolRank || 1,
+                          secretariatAuditStatus: 'approved',
+                          secretariatAuditedAt: '2026-10-28 11:08:00',
+                          secretariatRejectReason: undefined,
+                          updatedAt: '2026-10-28 11:08',
+                        };
+                        return {
+                          ...nextTeam,
+                          approvedSnapshot: buildApprovedSnapshotFromCaptainTeam(
+                            nextTeam,
+                            '2026-10-28 11:08'
+                          ),
+                        };
+                      });
                       setManageFeedback({
                         type: 'success',
-                        text: '秘书处审核已通过！当前队伍报名状态已正式变更为【报名成功】！',
+                        text: '第三段【秘书处终审】已通过！队伍状态正式变更为「🎉 报名成功（已晋级决赛）」，已同步进入【我的竞赛】与后台【最终参赛队伍清单】！',
                       });
                     }}
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
                   >
-                    模拟秘书处审核【通过 &rarr; 报名成功】
+                    ③ 模拟秘书处终审【通过 &rarr; 晋级决赛】
                   </button>
                 </>
-              )}
-
-            {auditStages.schoolStatus !== 'pending' &&
-              auditStages.secretariatStatus !== 'pending' && (
-                <span className="text-[11px] text-slate-400">
-                  （提交审核处于“待审核”时，可在此一键模拟高校审核与秘书处审核）
-                </span>
               )}
           </div>
         </div>
@@ -3945,13 +5482,13 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
           </div>
         )}
 
-        {/* 被高校驳回时的醒目横幅 */}
+        {/* 状态2：被高校资格审核驳回时的醒目横幅（队长可修改并重新提交） */}
         {auditStages.isRejectedBySchool && (
           <div className="p-5 rounded-xl bg-red-50 border-2 border-red-300 space-y-2">
             <div className="flex items-center justify-between">
               <div className="text-sm font-extrabold text-red-800 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
-                <span>高校审核已驳回 · 页面已解锁，请修改队伍信息或成员后重新提交，重新进入【高校审核 &rarr; 秘书处审核】流程</span>
+                <span>高校资格审核已驳回 · 页面已解锁，请修改队伍信息或成员后点击底部【重新提交审核】</span>
               </div>
               <span className="text-xs font-bold text-red-600 flex items-center gap-1">
                 <Unlock className="w-3.5 h-3.5" />
@@ -3965,23 +5502,94 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
           </div>
         )}
 
-        {/* 被秘书处驳回时的醒目横幅 */}
-        {auditStages.isRejectedBySecretariat && (
-          <div className="p-5 rounded-xl bg-red-50 border-2 border-red-300 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-extrabold text-red-800 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
-                <span>秘书处审核已驳回 · 页面已解锁，请修改队伍信息或成员后重新提交，重新进入【高校审核 &rarr; 秘书处审核】流程</span>
+        {/* 状态3：高校资格审核通过（待校赛）横幅 */}
+        {auditStages.regStatusKey === 'wait_school_match' && (
+          <div className="p-4 rounded-xl bg-sky-50 border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="text-xs sm:text-sm font-extrabold text-[#0369A1] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#0284C7] shrink-0" />
+                <span>第一段【高校资格审核】已通过 · 当前处于「高校已通过（待校赛）」阶段</span>
               </div>
-              <span className="text-xs font-bold text-red-600 flex items-center gap-1">
-                <Unlock className="w-3.5 h-3.5" />
-                <span>可修改并重新提交</span>
+              <p className="text-xs text-slate-600">
+                队伍信息已锁定（只能查看，不可修改）。待校内选拔赛结束后，由本校高校管理员在后台勾选晋级队伍、排序并上传成绩单提报至大赛秘书处。
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-lg bg-white border border-sky-200 text-xs font-bold text-[#0369A1] shrink-0">
+              只能查看，不可修改
+            </span>
+          </div>
+        )}
+
+        {/* 状态4：未晋级（止步校赛）横幅 */}
+        {auditStages.regStatusKey === 'not_advanced' && (
+          <div className="p-4 rounded-xl bg-slate-100 border border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-500 shrink-0" />
+                <span>未晋级（止步校赛） · 本次参赛流程已结束</span>
+              </div>
+              <p className="text-xs text-slate-600">
+                贵校管理员已完成本校晋级决赛名单提报，本战队未在本次校赛晋级推荐名单内。感谢您的参与，页面仅供只读归档查看。
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-600 shrink-0">
+              只能查看，流程结束
+            </span>
+          </div>
+        )}
+
+        {/* 状态5：待秘书处终审（高校已提报晋级名单，本队在名单内）横幅 */}
+        {auditStages.regStatusKey === 'pending_secretariat' && (
+          <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="text-xs sm:text-sm font-extrabold text-indigo-900 flex items-center gap-2">
+                <Award className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span>
+                  高校已提报晋级名单（校内排名：第 {auditStages.schoolRank || 1} 名） · 等待大赛秘书处终审
+                </span>
+              </div>
+              <p className="text-xs text-indigo-700">
+                本校管理员已将您的战队列入晋级名单并随附校赛成绩证明提交至秘书处，秘书处终审通过后即正式晋级决赛。
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-lg bg-white border border-indigo-200 text-xs font-bold text-indigo-700 shrink-0">
+              校内排名：第 {auditStages.schoolRank || 1} 名
+            </span>
+          </div>
+        )}
+
+        {/* 状态6：被秘书处驳回该校晋级名单时的醒目横幅（等待高校重新提报，队长不可修改，不向选手展示秘书处驳回说明） */}
+        {auditStages.isRejectedBySecretariat && (
+          <div className="p-5 rounded-xl bg-amber-50 border-2 border-amber-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="text-sm font-extrabold text-amber-900 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>
+                  待秘书处终审（名单被驳回） · 当前校内排名：第 {auditStages.schoolRank || 1} 名
+                </span>
+              </div>
+              <span className="text-xs font-bold text-amber-800 bg-white px-3 py-1 rounded-lg border border-amber-300 flex items-center gap-1 shrink-0">
+                <Lock className="w-3.5 h-3.5" />
+                <span>等待高校重新提报，队长不可修改</span>
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-red-700 leading-relaxed">
-              <strong>秘书处审核驳回原因：</strong>
-              {team.secretariatRejectReason || '队伍材料不符合大赛组委会秘书处规范，请修改后重新提交。'}
-            </p>
+          </div>
+        )}
+
+        {/* 状态7：报名成功横幅 */}
+        {auditStages.regStatusKey === 'approved' && (
+          <div className="p-5 rounded-xl bg-emerald-50 border-2 border-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="text-sm sm:text-base font-extrabold text-emerald-900 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span>
+                  报名成功 · 校内排名：第 {auditStages.schoolRank || 1} 名
+                </span>
+              </div>
+              <p className="text-xs text-emerald-800">
+                恭喜！您的战队已通过高校资格审核、高校晋级提报及大赛秘书处终审，正式列入【最终参赛队伍清单】。
+              </p>
+            </div>
           </div>
         )}
 
@@ -4004,6 +5612,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                     <span>高校审核：</span>
                     <AuditStageBadgeWithTooltip
                       status={auditStages.schoolStatus}
+                      customLabel={auditStages.schoolBadgeLabel}
                       rejectReason={team.schoolRejectReason}
                       stageLabel="高校审核"
                     />
@@ -4013,8 +5622,9 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                     <span>秘书处审核：</span>
                     <AuditStageBadgeWithTooltip
                       status={auditStages.secretariatStatus}
-                      rejectReason={team.secretariatRejectReason}
+                      customLabel={auditStages.secretariatBadgeLabel}
                       stageLabel="秘书处审核"
+                      hideRejectReason
                     />
                   </span>
                 </div>
@@ -4027,12 +5637,19 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   </span>
                   <span>·</span>
                   <span>
-                    赛道：<strong className="text-slate-700">{team.subTrackName}</strong>
-                  </span>
-                  <span>·</span>
-                  <span>
                     所属院校：<strong className="text-[#0369A1]">{team.university}</strong>
                   </span>
+                  {auditStages.schoolRank && (
+                    <>
+                      <span>·</span>
+                      <span>
+                        校内排名：
+                        <strong className="text-emerald-700 font-mono-num">
+                          第 {auditStages.schoolRank} 名
+                        </strong>
+                      </span>
+                    </>
+                  )}
                   <span>·</span>
                   <span className="font-mono-num text-slate-700">
                     成员确认进度：<strong>{progress.label}</strong>
@@ -4068,7 +5685,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       队伍名称（20字以内）
@@ -4086,42 +5703,6 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                       }
                       className="w-full px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      参赛赛道
-                    </label>
-                    {(() => {
-                      const matchedComp = competitions.find(
-                        (c) => c.id === team.competitionId
-                      );
-                      const trackOptions =
-                        matchedComp && matchedComp.tracks.length > 0
-                          ? matchedComp.tracks.map((tr) => tr.name)
-                          : [team.subTrackName];
-                      const finalOptions = trackOptions.includes(team.subTrackName)
-                        ? trackOptions
-                        : [team.subTrackName, ...trackOptions];
-                      return (
-                        <select
-                          value={team.subTrackName}
-                          onChange={(e) =>
-                            updateSingleCaptainTeam(team.id, (prev) => ({
-                              ...prev,
-                              subTrackName: e.target.value,
-                              updatedAt: '2026-10-28 11:02',
-                            }))
-                          }
-                          className="w-full px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none cursor-pointer"
-                        >
-                          {finalOptions.map((trackName) => (
-                            <option key={trackName} value={trackName}>
-                              {trackName}
-                            </option>
-                          ))}
-                        </select>
-                      );
-                    })()}
                   </div>
                 </div>
 
@@ -4194,20 +5775,16 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                     报名提交时间：{team.createdAt}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/70">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/70">
                   <div>
                     <span className="text-slate-400 block mb-0.5">队伍名称</span>
                     <span className="font-bold text-slate-900">{team.teamName}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block mb-0.5">参赛赛道</span>
-                    <span className="font-bold text-slate-800">{team.subTrackName}</span>
-                  </div>
-                  <div>
                     <span className="text-slate-400 block mb-0.5">所属院校</span>
                     <span className="font-bold text-[#0369A1]">{team.university}</span>
                   </div>
-                  <div className="sm:col-span-3">
+                  <div className="sm:col-span-2">
                     <span className="text-slate-400 block mb-0.5">队伍介绍</span>
                     <span className="text-slate-700 leading-relaxed">
                       {team.teamIntro || '未填写队伍介绍'}
@@ -4217,15 +5794,22 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               </div>
             )}
 
-            {/* 1. 队长本人 */}
+            {/* 1. 队长本人（姓名下方直接展示角色标签，未锁定时可点击【编辑】修改队长本人角色） */}
             <div className="space-y-2">
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 队长（固定首位）
               </h3>
-              <div className="p-4 rounded-xl bg-sky-50/50 border border-sky-200/80 flex items-center justify-between">
-                <div className="space-y-1">
+              <div className="p-4 rounded-xl bg-sky-50/50 border border-sky-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1.5">
                   <div className="text-sm font-bold text-slate-900">
                     {team.captainName}（队长本人）
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-500 font-semibold">队内角色：</span>
+                    <CtfRoleBadges
+                      roles={team.captainCtfRoles}
+                      emptyText={isLocked ? '-' : '待分配'}
+                    />
                   </div>
                   <div className="text-xs text-slate-500">
                     所属院校：{team.captainUniversity} · 实名与学籍已核验
@@ -4237,22 +5821,42 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                     })()}
                   </div>
                 </div>
-                <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>已确认</span>
-                </span>
+                <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-center shrink-0">
+                  {!isLocked && (
+                    <CtfRoleSelectorDropdown
+                      selectedRoles={team.captainCtfRoles || []}
+                      onChange={(nextRoles) =>
+                        updateSingleCaptainTeam(team.id, (prev) => ({
+                          ...prev,
+                          captainCtfRoles: nextRoles,
+                          updatedAt: '2026-10-28 11:03',
+                        }))
+                      }
+                      isOpen={managingRolePopoverId === 'captain'}
+                      onToggleOpen={() =>
+                        setManagingRolePopoverId((prev) =>
+                          prev === 'captain' ? null : 'captain'
+                        )
+                      }
+                      onClose={() => setManagingRolePopoverId(null)}
+                      triggerLabel="编辑"
+                      compactTrigger
+                    />
+                  )}
+                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>已确认</span>
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* 2. 团队成员列表与状态操作 */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-bold text-slate-900">
                   团队成员（共 {team.members.length} 人）
                 </h3>
-                <span className="text-xs text-slate-400">
-                  {!isLocked && '支持催办待确认成员、移除拒绝/不合适成员、随时拉入本校新队员'}
-                </span>
               </div>
 
               <div className="space-y-2.5">
@@ -4261,7 +5865,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                     key={mem.id}
                     className="p-4 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2.5">
                         <span className="text-sm font-bold text-slate-900">{mem.name}</span>
                         <span className="text-xs text-slate-500">{mem.university}</span>
@@ -4281,6 +5885,17 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             [ 已拒绝 ]
                           </span>
                         )}
+                      </div>
+
+                      {/* 姓名下方直接展示该队员的角色标签 */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-500 font-semibold">
+                          队内角色：
+                        </span>
+                        <CtfRoleBadges
+                          roles={mem.ctfRoles}
+                          emptyText={isLocked ? '-' : '待分配'}
+                        />
                       </div>
 
                       <div className="text-xs text-slate-500 font-mono-num">
@@ -4330,6 +5945,29 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                           </div>
                         )}
 
+                        {/* 点击【编辑】图标随时修改该队员的角色标签 */}
+                        <CtfRoleSelectorDropdown
+                          selectedRoles={mem.ctfRoles || []}
+                          onChange={(nextRoles) =>
+                            updateSingleCaptainTeam(team.id, (prev) => ({
+                              ...prev,
+                              members: prev.members.map((item) =>
+                                item.id === mem.id ? { ...item, ctfRoles: nextRoles } : item
+                              ),
+                              updatedAt: '2026-10-28 11:03',
+                            }))
+                          }
+                          isOpen={managingRolePopoverId === mem.id}
+                          onToggleOpen={() =>
+                            setManagingRolePopoverId((prev) =>
+                              prev === mem.id ? null : mem.id
+                            )
+                          }
+                          onClose={() => setManagingRolePopoverId(null)}
+                          triggerLabel="编辑"
+                          compactTrigger
+                        />
+
                         {mem.confirmStatus === 'pending' && (
                           <button
                             type="button"
@@ -4359,7 +5997,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               {!isLocked && (
                 <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 space-y-2.5">
                   <div className="text-xs font-bold text-slate-700">
-                    【 + 添加队员】（仅限{team.university}本校学生，添加后自动发送邀请）
+                    【 + 添加队员】（仅限{team.university}本校学生，添加后自动发送邀请并弹出角色设置）
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
@@ -4402,11 +6040,13 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               )}
             </div>
 
-            {/* 3. 指导教师列表与状态操作 */}
+            {/* 3. 指导教师列表与状态操作（指导教师不参与CTF角色分配，角色显示为“-”） */}
             <div className="space-y-3 pt-2 border-t border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">
-                指导教师（共 {team.advisors.length} 人）
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">
+                  指导教师（共 {team.advisors.length} 人）
+                </h3>
+              </div>
 
               <div className="space-y-2.5">
                 {team.advisors.map((adv) => (
@@ -4436,6 +6076,13 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             [ 已拒绝 ]
                           </span>
                         )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-500 font-semibold">
+                          队内角色：
+                        </span>
+                        <CtfRoleBadges isAdvisor />
                       </div>
 
                       <div className="text-xs text-slate-500 font-mono-num">
@@ -4771,26 +6418,79 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   >
                     取消
                   </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateSingleCaptainTeam(team.id, (prev) => ({
+                          ...prev,
+                          status: 'pending_review',
+                          schoolAuditStatus: 'approved',
+                          advancementStatus: 'secretariat_rejected',
+                          schoolRank: prev.schoolRank || 1,
+                          secretariatAuditStatus: 'rejected',
+                          secretariatRejectReason: secretariatRejectReasonInput.trim(),
+                          updatedAt: '2026-10-28 11:12',
+                        }));
+                        setSecretariatRejectModalOpen(null);
+                        setManageFeedback({
+                          type: 'error',
+                          text: '已模拟【秘书处终审驳回晋级名单】！状态变更为“待秘书处终审（名单被驳回）”，等待高校管理员重新提报，队长不可修改队伍。',
+                        });
+                      }}
+                      className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg cursor-pointer"
+                    >
+                      确认驳回
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        {/* 弹窗5：角色分配较单一防呆弱提示弹窗 */}
+        {singleRoleManageWarnModal && (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl border border-amber-300 max-w-md w-full overflow-hidden shadow-2xl">
+              <div className="px-6 py-4 bg-amber-500 text-white font-bold text-sm flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>队伍角色配置防呆弱提示</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSingleRoleManageWarnModal(null)}
+                  className="text-white/80 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs sm:text-sm font-bold leading-relaxed">
+                  当前队伍角色分配较单一（全是{singleRoleManageWarnModal.roleName}），请确认是否符合参赛策略？
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  提示：CTF 竞赛支持策略性全选同一角色或单兵作战，系统不做强制拦截。若确认符合队伍策略，请点击【确认提交】继续放行。
+                </p>
+                <div className="flex justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      updateSingleCaptainTeam(team.id, (prev) => ({
-                        ...prev,
-                        status: 'rejected',
-                        schoolAuditStatus: 'approved',
-                        secretariatAuditStatus: 'rejected',
-                        secretariatRejectReason: secretariatRejectReasonInput.trim(),
-                        updatedAt: '2026-10-28 11:12',
-                      }));
-                      setSecretariatRejectModalOpen(null);
-                      setManageFeedback({
-                        type: 'error',
-                        text: '已模拟【秘书处审核驳回】！当前秘书处审核为“已驳回”，队长修改队伍信息或成员后点击【重新提交审核】，将重新进入【高校审核 -> 秘书处审核】两个流程。',
-                      });
-                    }}
-                    className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg cursor-pointer"
+                    onClick={() => setSingleRoleManageWarnModal(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                   >
-                    确认驳回
+                    返回调整角色
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleFormalSubmitForReview(
+                        singleRoleManageWarnModal.team,
+                        singleRoleManageWarnModal.isForced,
+                        true
+                      )
+                    }
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+                  >
+                    确认提交
                   </button>
                 </div>
               </div>
@@ -4899,12 +6599,12 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
             </div>
           </div>
 
-          {/* 核心展示：队长是谁、队伍名称、所属院校、队伍介绍 */}
+          {/* 核心展示：队长是谁、队伍名称、所属院校、队长分配给我的初始角色标签、队伍介绍 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-5 rounded-xl border border-slate-200/80 text-sm">
             <div>
-              <span className="text-slate-500 text-xs block mb-0.5">参赛赛事与赛道</span>
+              <span className="text-slate-500 text-xs block mb-0.5">参赛赛事</span>
               <span className="font-bold text-slate-900">
-                {item.competitionTitle}（{item.subTrackName}）
+                {item.competitionTitle}
               </span>
             </div>
             <div>
@@ -4921,6 +6621,32 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               <span className="text-slate-500 text-xs block mb-0.5">队伍所属院校</span>
               <span className="font-bold text-[#0369A1]">{item.university}</span>
             </div>
+            <div className="sm:col-span-2 p-3.5 rounded-xl bg-white border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="space-y-1">
+                <span className="text-slate-500 text-xs font-bold block">
+                  队长为您分配的队内角色标签：
+                </span>
+                <div className="flex items-center gap-2">
+                  <CtfRoleBadges
+                    roles={item.myCtfRoles}
+                    isAdvisor={item.myRoleInTeam === '指导教师'}
+                    emptyText="待分配"
+                  />
+                  {item.myRoleInTeam === '指导教师' && (
+                    <span className="text-xs text-slate-400">
+                      （指导教师不参与 CTF 角色分配）
+                    </span>
+                  )}
+                </div>
+              </div>
+              {item.myRoleInTeam === '参赛队员' && (
+                <span className="text-[11px] text-slate-500">
+                  {item.status === 'pending_invite'
+                    ? '点击【同意加入】后角色标签正式生效（如需调整请联系队长修改）'
+                    : '角色标签已生效（仅队长具备修改权限）'}
+                </span>
+              )}
+            </div>
             {item.teamIntro && (
               <div className="sm:col-span-2">
                 <span className="text-slate-500 text-xs block mb-0.5">队伍介绍</span>
@@ -4929,6 +6655,66 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                 </span>
               </div>
             )}
+          </div>
+
+          {/* 队伍成员列表（每个队员姓名下方直接展示角色标签，指导教师显示“-”） */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900">
+                队伍成员与队内角色明细
+              </h3>
+              <span className="text-xs text-slate-400">
+                队员角色由队长统一分配管理
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(item.approvedSnapshot?.members
+                ? item.approvedSnapshot.members.map((m) => ({
+                    name: m.name,
+                    role: m.role,
+                    university: m.university,
+                    ctfRoles: m.ctfRoles,
+                    statusLabel: '报名成功',
+                  }))
+                : item.teamMembersDetail || []
+              ).map((mem, idx) => (
+                <div
+                  key={`${mem.name}-${idx}`}
+                  className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-start justify-between gap-3"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">{mem.name}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                          mem.role === '队长'
+                            ? 'bg-sky-100 text-[#0369A1]'
+                            : mem.role === '指导教师'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {mem.role}
+                      </span>
+                      <span className="text-xs text-slate-500">{mem.university}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-slate-400">队内角色：</span>
+                      <CtfRoleBadges
+                        roles={mem.ctfRoles}
+                        isAdvisor={mem.role === '指导教师'}
+                        emptyText="待分配"
+                      />
+                    </div>
+                  </div>
+                  {mem.statusLabel && (
+                    <span className="text-[11px] font-semibold text-slate-500 shrink-0">
+                      {mem.statusLabel}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="text-xs text-slate-500 bg-sky-50/60 border border-sky-100 rounded-xl p-4">
@@ -5088,7 +6874,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
             </p>
           </div>
 
-          {/* Tab 切换：我发起的（队长的队伍） vs 我参与的（队员/老师的队伍） */}
+          {/* Tab 切换：我发起的 vs 我参与的 */}
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl self-start">
             <button
               type="button"
@@ -5099,7 +6885,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              我发起的（队长的队伍 · {myInitiatedTeams.length}）
+              我发起的
             </button>
             <button
               type="button"
@@ -5110,7 +6896,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>我参与的（队员/老师的队伍 · {participatedTeams.length}）</span>
+              <span>我参与的</span>
               {pendingParticipatedCount > 0 && (
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-num ${
@@ -5142,8 +6928,9 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
-                      <th className="py-3.5 px-4">赛事名称 / 参赛赛道</th>
+                      <th className="py-3.5 px-4">赛事名称</th>
                       <th className="py-3.5 px-4 whitespace-nowrap">队伍名称</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">报名截止时间</th>
                       <th className="py-3.5 px-4 whitespace-nowrap">成员确认进度</th>
                       <th className="py-3.5 px-4 whitespace-nowrap">报名状态</th>
                       <th className="py-3.5 px-4 whitespace-nowrap">高校审核</th>
@@ -5161,13 +6948,10 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                           key={team.id}
                           className="hover:bg-sky-50/40 transition-colors"
                         >
-                          {/* 赛事名称 / 赛道 */}
+                          {/* 赛事名称 */}
                           <td className="py-3.5 px-4 align-middle max-w-xs xl:max-w-md 2xl:max-w-lg">
                             <div className="font-bold text-slate-900 line-clamp-1">
                               {team.competitionTitle}
-                            </div>
-                            <div className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                              赛道：{team.subTrackName}
                             </div>
                           </td>
 
@@ -5199,6 +6983,11 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             </div>
                           </td>
 
+                          {/* 报名截止时间 */}
+                          <td className="py-3.5 px-4 align-middle whitespace-nowrap font-mono-num text-xs text-slate-600">
+                            {resolveRegEndTime(team.competitionId)}
+                          </td>
+
                           {/* 成员确认进度：邀请X人，X人已同意，X人已拒绝 */}
                           <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                             <span className="font-mono-num text-xs font-bold text-slate-800">
@@ -5206,7 +6995,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             </span>
                           </td>
 
-                          {/* 报名状态：组建中、邀请中、已提交、报名成功 */}
+                          {/* 报名状态 */}
                           <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                             <div className="inline-flex items-center gap-1.5 text-xs">
                               <span className={`w-2 h-2 rounded-full ${auditStages.regDotClass}`} />
@@ -5216,25 +7005,27 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             </div>
                           </td>
 
-                          {/* 高校审核：待审核、已通过、已驳回（悬浮图标看原因） */}
+                          {/* 高校审核（双列状态第1列） */}
                           <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                             <AuditStageBadgeWithTooltip
                               status={auditStages.schoolStatus}
+                              customLabel={auditStages.schoolBadgeLabel}
                               rejectReason={team.schoolRejectReason}
                               stageLabel="高校审核"
                             />
                           </td>
 
-                          {/* 秘书处审核：待审核、已通过、已驳回（悬浮图标看原因） */}
+                          {/* 秘书处审核（双列状态第2列：前台不展示驳回说明图标与内容） */}
                           <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                             <AuditStageBadgeWithTooltip
                               status={auditStages.secretariatStatus}
-                              rejectReason={team.secretariatRejectReason}
+                              customLabel={auditStages.secretariatBadgeLabel}
                               stageLabel="秘书处审核"
+                              hideRejectReason
                             />
                           </td>
 
-                          {/* 操作按钮 */}
+                          {/* 操作按钮（严格对应三段式状态机） */}
                           <td className="py-3.5 px-4 align-middle text-right whitespace-nowrap">
                             {team.status === 'draft' && (
                               <div className="inline-flex items-center gap-2">
@@ -5258,8 +7049,8 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                               </button>
                             )}
 
-                            {(auditStages.isRejectedBySchool ||
-                              auditStages.isRejectedBySecretariat) && (
+                            {/* 仅高校资格审核驳回时允许队长修改并重新提交 */}
+                            {auditStages.isRejectedBySchool && (
                               <button
                                 type="button"
                                 onClick={() => setManagingTeamId(team.id)}
@@ -5269,6 +7060,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                               </button>
                             )}
 
+                            {/* 其余只读状态（含报名成功、等待高校审核、待校赛、未晋级、待终审等）：仅显示查看详情 */}
                             {!auditStages.canEditTeam && (
                               <button
                                 type="button"
@@ -5301,8 +7093,9 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
-                      <th className="py-3.5 px-4">赛事名称 / 参赛赛道</th>
+                      <th className="py-3.5 px-4">赛事名称</th>
                       <th className="py-3.5 px-4 whitespace-nowrap">队伍名称</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">报名截止时间</th>
                       <th className="py-3.5 px-4 whitespace-nowrap">发起队长 / 所属院校</th>
                       <th className="py-3.5 px-4 whitespace-nowrap">受邀角色</th>
                       <th className="py-3.5 px-4 whitespace-nowrap">当前状态</th>
@@ -5322,13 +7115,10 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                               : 'hover:bg-sky-50/40'
                           }`}
                         >
-                          {/* 赛事名称 / 赛道 */}
+                          {/* 赛事名称 */}
                           <td className="py-3.5 px-4 align-middle max-w-xs xl:max-w-md 2xl:max-w-lg">
                             <div className="font-bold text-slate-900 line-clamp-1">
                               {item.competitionTitle}
-                            </div>
-                            <div className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                              赛道：{item.subTrackName}
                             </div>
                           </td>
 
@@ -5360,6 +7150,11 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             </div>
                           </td>
 
+                          {/* 报名截止时间 */}
+                          <td className="py-3.5 px-4 align-middle whitespace-nowrap font-mono-num text-xs text-slate-600">
+                            {resolveRegEndTime(item.competitionId)}
+                          </td>
+
                           {/* 发起队长 / 所属院校 */}
                           <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                             <div className="text-xs font-bold text-slate-800">
@@ -5370,9 +7165,16 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             </div>
                           </td>
 
-                          {/* 受邀角色 */}
+                          {/* 受邀角色（含队长分配的队内角色标签） */}
                           <td className="py-3.5 px-4 align-middle whitespace-nowrap text-xs font-semibold text-slate-700">
-                            {item.myRoleInTeam}
+                            <div>{item.myRoleInTeam}</div>
+                            <div className="mt-1">
+                              <CtfRoleBadges
+                                roles={item.myCtfRoles}
+                                isAdvisor={item.myRoleInTeam === '指导教师'}
+                                emptyText="待分配"
+                              />
+                            </div>
                           </td>
 
                           {/* 当前状态 */}
@@ -5386,15 +7188,40 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                               <span className="font-bold text-emerald-700">● 已加入</span>
                             )}
                             {item.status === 'declined' && (
-                              <span className="font-bold text-red-600">
-                                ● 已拒绝{item.declineReason ? `（${item.declineReason}）` : ''}
-                              </span>
+                              <div
+                                className="inline-flex items-center gap-1.5"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-200/80 text-xs font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                  <span>已拒绝</span>
+                                </span>
+                                <div className="relative group inline-flex items-center">
+                                  <span
+                                    className="w-4 h-4 rounded-full bg-red-100 hover:bg-red-200 text-red-600 inline-flex items-center justify-center cursor-help transition-colors"
+                                    title={item.declineReason || '无理由'}
+                                  >
+                                    <AlertTriangle className="w-3 h-3" />
+                                  </span>
+                                  <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 p-2.5 rounded-xl bg-slate-900 text-white text-[11px] leading-relaxed shadow-xl">
+                                    <div className="font-bold text-red-300 mb-0.5">
+                                      拒绝原因：
+                                    </div>
+                                    <div className="text-slate-100 break-words whitespace-normal">
+                                      {item.declineReason || '无理由'}
+                                    </div>
+                                    <div className="w-2 h-2 bg-slate-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" />
+                                  </div>
+                                </div>
+                              </div>
                             )}
                             {item.status === 'team_pending_review' && (
                               <span className="font-bold text-[#0284C7]">● 队伍待审核</span>
                             )}
                             {item.status === 'team_approved' && (
-                              <span className="font-bold text-emerald-700">● 队伍报名成功</span>
+                              <span className="font-bold text-emerald-700 block">
+                                报名成功
+                              </span>
                             )}
                           </td>
 
@@ -5425,6 +7252,133 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
           </div>
         )}
       </div>
+
+      {/* 🎉 报名成功（已晋级决赛）参赛确认回执单弹窗 */}
+      {receiptModalTeam && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-emerald-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5" />
+                <span className="font-extrabold text-sm sm:text-base">
+                  🎉 全国网数智安全大赛 · 晋级决赛报名成功确认回执单
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReceiptModalTeam(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {(() => {
+              const rStages = resolveTeamAuditStages(receiptModalTeam);
+              const rSnap =
+                receiptModalTeam.approvedSnapshot ||
+                buildApprovedSnapshotFromCaptainTeam(receiptModalTeam);
+              const rankNum = rStages.schoolRank || rSnap.schoolRank || 1;
+              const receiptCode = `GWC-2026-${receiptModalTeam.id.slice(-4).toUpperCase()}-R${rankNum}`;
+
+              return (
+                <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-emerald-700 font-bold">
+                        电子回执核验编号：<span className="font-mono-num">{receiptCode}</span>
+                      </div>
+                      <div className="text-base font-extrabold text-slate-900 mt-0.5">
+                        {receiptModalTeam.teamName}（{receiptModalTeam.university}）
+                      </div>
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-extrabold font-mono-num self-start sm:self-center">
+                      最终校内排名：第 {rankNum} 名
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div className="sm:col-span-2">
+                      <span className="text-slate-400 block mb-0.5">参赛赛事</span>
+                      <span className="font-bold text-slate-900">
+                        {receiptModalTeam.competitionTitle}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-0.5">第一段：高校资格审核</span>
+                      <span className="font-bold text-emerald-700">
+                        已通过（{rStages.schoolAuditedAt || receiptModalTeam.updatedAt}）
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-0.5">第三段：秘书处终审</span>
+                      <span className="font-bold text-emerald-700">
+                        终审通过（{rStages.secretariatAuditedAt || rSnap.approvedAt}）
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-slate-700">
+                      晋级决赛正式成员名单（共 {rSnap.members.length} 人）
+                    </div>
+                    <div className="rounded-xl border border-slate-200 overflow-hidden">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
+                            <th className="py-2.5 px-3">姓名</th>
+                            <th className="py-2.5 px-3">队内身份</th>
+                            <th className="py-2.5 px-3">所属高校</th>
+                            <th className="py-2.5 px-3">CTF角色分工</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {rSnap.members.map((m, idx) => (
+                            <tr key={`${m.name}-${idx}`}>
+                              <td className="py-2.5 px-3 font-bold text-slate-900">{m.name}</td>
+                              <td className="py-2.5 px-3 text-slate-700">{m.role}</td>
+                              <td className="py-2.5 px-3 text-slate-600">{m.university}</td>
+                              <td className="py-2.5 px-3">
+                                <CtfRoleBadges
+                                  roles={m.ctfRoles}
+                                  isAdvisor={m.role === '指导教师'}
+                                  emptyText="-"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200 flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-slate-500">
+                      电子签章：全国网数智安全大赛组委会秘书处 · 终审有效
+                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setReceiptModalTeam(null)}
+                        className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                      >
+                        关闭
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadReceiptFile(receiptModalTeam)}
+                        className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                      >
+                        立即下载回执单文件
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -236,7 +236,7 @@ export interface RegistrationSubmission {
 const createStaticBannerDataUri = (svgContent: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(svgContent)}`;
 
-const BANNER_POSTER_1 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+export const BANNER_POSTER_1 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
   <defs>
     <linearGradient id="bg1" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#EBF3FF" />
@@ -308,7 +308,7 @@ const BANNER_POSTER_1 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org
   </g>
 </svg>`);
 
-const BANNER_POSTER_2 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+export const BANNER_POSTER_2 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
   <defs>
     <linearGradient id="bg2" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#E4F0FF" />
@@ -358,7 +358,7 @@ const BANNER_POSTER_2 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org
   </g>
 </svg>`);
 
-const BANNER_POSTER_3 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+export const BANNER_POSTER_3 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
   <defs>
     <linearGradient id="bg3" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#E6F4FF" />
@@ -407,7 +407,7 @@ const BANNER_POSTER_3 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org
   </g>
 </svg>`);
 
-const BANNER_POSTER_4 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+export const BANNER_POSTER_4 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
   <defs>
     <linearGradient id="bg4" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#EBF3FF" />
@@ -446,6 +446,50 @@ const BANNER_POSTER_4 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org
     <text x="0" y="178" fill="url(#titleGrad4)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="48" font-weight="900" letter-spacing="2">国密数字签名与在线核验服务</text>
     <text x="2" y="222" fill="#1D4ED8" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" font-weight="800" letter-spacing="4">OFFICIAL DIGITAL CERTIFICATE VERIFICATION</text>
     <text x="2" y="272" fill="#15459E" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="800" letter-spacing="3">&lt;&lt;  一证一码防伪溯源 · 常年开放权威核验  &gt;&gt;</text>
+  </g>
+</svg>`);
+
+export const BANNER_POSTER_5 = createStaticBannerDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 460" width="1920" height="460" fill="none">
+  <defs>
+    <linearGradient id="bg5" x1="0" y1="0" x2="1920" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EEF2FF" />
+      <stop offset="50%" stop-color="#E0E7FF" />
+      <stop offset="100%" stop-color="#C7D2FE" />
+    </linearGradient>
+    <linearGradient id="titleGrad5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E1B4B" />
+      <stop offset="55%" stop-color="#3730A3" />
+      <stop offset="100%" stop-color="#4F46E5" />
+    </linearGradient>
+    <linearGradient id="aiOrb5" x1="1180" y1="70" x2="1520" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#1E1B4B" />
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="460" fill="url(#bg5)" />
+  <g stroke="#4F46E5" stroke-opacity="0.12" stroke-width="1.5">
+    <line x1="0" y1="130" x2="1920" y2="130" />
+    <line x1="0" y1="260" x2="1920" y2="260" />
+    <line x1="0" y1="390" x2="1920" y2="390" />
+  </g>
+  <g transform="translate(1030, 35)">
+    <circle cx="330" cy="195" r="170" fill="#FFFFFF" fill-opacity="0.6" stroke="#818CF8" stroke-width="2" stroke-dasharray="8 6" />
+    <circle cx="330" cy="195" r="130" fill="url(#aiOrb5)" stroke="#A5B4FC" stroke-width="3" />
+    <text x="330" y="188" text-anchor="middle" fill="#FFFFFF" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="34" font-weight="900" letter-spacing="2">AI SECURITY</text>
+    <text x="330" y="224" text-anchor="middle" fill="#C7D2FE" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="16" font-weight="700" letter-spacing="2">大模型越狱防御与深度鉴伪</text>
+    <rect x="65" y="85" width="150" height="58" rx="12" fill="#FFFFFF" fill-opacity="0.92" stroke="#818CF8" stroke-width="2" />
+    <text x="140" y="120" text-anchor="middle" fill="#3730A3" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="800">提示词注入检测</text>
+    <rect x="455" y="245" width="155" height="58" rx="12" fill="#FFFFFF" fill-opacity="0.92" stroke="#818CF8" stroke-width="2" />
+    <text x="532" y="280" text-anchor="middle" fill="#3730A3" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="800">AIGC 溯源与鲁棒防御</text>
+  </g>
+  <g transform="translate(240, 82)">
+    <rect x="0" y="0" width="44" height="6" rx="3" fill="#4F46E5" />
+    <text x="56" y="8" fill="#4338CA" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700" letter-spacing="1.5">前沿技术先导赛 · 国家级智算云靶场集群支持</text>
+    <path d="M0 24 H340 V34" stroke="#818CF8" stroke-opacity="0.75" stroke-width="2" fill="none" />
+    <text x="0" y="106" fill="url(#titleGrad5)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="56" font-weight="900" letter-spacing="3">大模型与人工智能安全</text>
+    <text x="0" y="178" fill="url(#titleGrad5)" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="48" font-weight="900" letter-spacing="2">先导挑战赛 · 智算攻防演练</text>
+    <text x="2" y="222" fill="#4338CA" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" font-weight="800" letter-spacing="4">LARGE MODEL &amp; AI ENDOGENOUS SECURITY</text>
+    <text x="2" y="272" fill="#312E81" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="800" letter-spacing="3">&lt;&lt;  筑牢大模型内生安全 · 赋能可信人工智能  &gt;&gt;</text>
   </g>
 </svg>`);
 
@@ -2569,3 +2613,330 @@ docker push registry.xxcup-sec.org.cn/teams/your_team_id:submission_v1
     registrationMode: 'platform',
   },
 ];
+
+// ============================================================================
+// 首页配置（Banner 轮播图上传与跳转链接配置 + 首页推荐的 3 个赛事）
+// ============================================================================
+export interface HomeBannerConfig {
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  linkType: 'competition' | 'view' | 'url';
+  targetValue: string; // competitionId | viewName ('competitions' | 'notices' | 'news' | 'moments' | 'directory' | 'help') | custom URL
+  linkLabel: string;
+  sortOrder: number;
+  isEnabled: boolean;
+  updatedAt: string;
+}
+
+export const INITIAL_HOME_BANNERS: HomeBannerConfig[] = [
+  {
+    id: 'hb-1',
+    title: '第五届“XX杯”网数智安全大赛正式开启报名',
+    subtitle: '守护网络安全 · 筑牢安全防线，全国百所高校战队同台竞技',
+    imageUrl: BANNER_POSTER_1,
+    linkType: 'competition',
+    targetValue: 'comp-2026-main',
+    linkLabel: '查看赛事详情',
+    sortOrder: 1,
+    isEnabled: true,
+    updatedAt: '2026-10-25 10:00',
+  },
+  {
+    id: 'hb-2',
+    title: '2026年“奇安信杯”全国大学生网络空间安全精英赛',
+    subtitle: 'CTF夺旗挑战 + AWD Plus对抗，锤炼实战化网安精英战队',
+    imageUrl: BANNER_POSTER_2,
+    linkType: 'competition',
+    targetValue: 'comp-2026-main',
+    linkLabel: '查看赛事详情',
+    sortOrder: 2,
+    isEnabled: true,
+    updatedAt: '2026-10-25 10:05',
+  },
+  {
+    id: 'hb-3',
+    title: '2026“XX杯”全国网数智安全大赛 · 数据安全与隐私计算专项挑战赛',
+    subtitle: '联邦学习、同态加密与数据脱敏治理，打造国家级数据安全实战舞台',
+    imageUrl: BANNER_POSTER_3,
+    linkType: 'competition',
+    targetValue: 'comp-2026-data',
+    linkLabel: '查看赛事详情',
+    sortOrder: 3,
+    isEnabled: true,
+    updatedAt: '2026-10-25 10:10',
+  },
+  {
+    id: 'hb-4',
+    title: '2026“XX杯”全国网数智安全大赛 · 大模型与人工智能安全先导赛',
+    subtitle: '深入探索大模型越狱防御、提示词注入检测与多模态深度伪造鉴伪',
+    imageUrl: BANNER_POSTER_5,
+    linkType: 'competition',
+    targetValue: 'comp-2026-ai-pilot',
+    linkLabel: '查看赛事详情',
+    sortOrder: 4,
+    isEnabled: true,
+    updatedAt: '2026-10-25 10:15',
+  },
+  {
+    id: 'hb-5',
+    title: '大赛官方获奖电子证书防伪查询与国密签章核验通道',
+    subtitle: '一证一码防伪溯源，支持参赛高校与获奖战队在线一键核验',
+    imageUrl: BANNER_POSTER_4,
+    linkType: 'view',
+    targetValue: 'notices',
+    linkLabel: '查看通知公告',
+    sortOrder: 5,
+    isEnabled: true,
+    updatedAt: '2026-10-25 10:20',
+  },
+];
+
+export const INITIAL_RECOMMENDED_COMP_IDS: string[] = [
+  'comp-2026-main',
+  'comp-2026-data',
+  'comp-2026-ai-pilot',
+];
+
+// ============================================================================
+// 系统管理 -> 赛区管理（中国 34 个省级行政区与赛区映射，完整包含港澳台）
+// ============================================================================
+export const ALL_CHINA_PROVINCES: string[] = [
+  '北京市',
+  '天津市',
+  '河北省',
+  '山西省',
+  '内蒙古自治区',
+  '辽宁省',
+  '吉林省',
+  '黑龙江省',
+  '上海市',
+  '江苏省',
+  '浙江省',
+  '安徽省',
+  '福建省',
+  '江西省',
+  '山东省',
+  '河南省',
+  '湖北省',
+  '湖南省',
+  '广东省',
+  '广西壮族自治区',
+  '海南省',
+  '重庆市',
+  '四川省',
+  '贵州省',
+  '云南省',
+  '西藏自治区',
+  '陕西省',
+  '甘肃省',
+  '青海省',
+  '宁夏回族自治区',
+  '新疆维吾尔自治区',
+  '香港特别行政区',
+  '澳门特别行政区',
+  '台湾省',
+];
+
+export interface DivisionRecord {
+  id: string;
+  name: string;
+  code: string;
+  provinces: string[];
+  description: string;
+  updatedAt: string;
+}
+
+export const INITIAL_DIVISIONS: DivisionRecord[] = [
+  {
+    id: 'div-north',
+    name: '华北赛区',
+    code: 'NORTH',
+    provinces: ['北京市', '天津市', '河北省', '山西省', '内蒙古自治区'],
+    description: '覆盖京津冀晋蒙五省市区高校，承担北方核心安全靶场选拔任务',
+    updatedAt: '2026-10-20 09:00',
+  },
+  {
+    id: 'div-northeast',
+    name: '东北赛区',
+    code: 'NORTHEAST',
+    provinces: ['辽宁省', '吉林省', '黑龙江省'],
+    description: '覆盖辽吉黑三省高校，重点支撑工业互联网与关键基础设施安全竞赛',
+    updatedAt: '2026-10-20 09:00',
+  },
+  {
+    id: 'div-east',
+    name: '华东赛区',
+    code: 'EAST',
+    provinces: ['上海市', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省'],
+    description: '覆盖沪苏浙皖闽赣鲁七省市高校，聚焦云原生安全、金融科技与数据治理',
+    updatedAt: '2026-10-20 09:00',
+  },
+  {
+    id: 'div-central',
+    name: '华中赛区',
+    code: 'CENTRAL',
+    provinces: ['河南省', '湖北省', '湖南省'],
+    description: '覆盖豫鄂湘三省高校，依托国家网络安全人才与创新基地开展区域选拔',
+    updatedAt: '2026-10-20 09:00',
+  },
+  {
+    id: 'div-south',
+    name: '华南赛区',
+    code: 'SOUTH',
+    provinces: ['广东省', '广西壮族自治区', '海南省'],
+    description: '覆盖粤桂琼三省区高校，联动粤港澳大湾区与自贸港跨境数据安全生态',
+    updatedAt: '2026-10-20 09:00',
+  },
+  {
+    id: 'div-southwest',
+    name: '西南赛区',
+    code: 'SOUTHWEST',
+    provinces: ['重庆市', '四川省', '贵州省', '云南省', '西藏自治区'],
+    description: '覆盖川渝贵云藏五省市区高校，支撑成渝双城经济圈与国家大数据综合试验区',
+    updatedAt: '2026-10-20 09:00',
+  },
+  {
+    id: 'div-northwest',
+    name: '西北赛区',
+    code: 'NORTHWEST',
+    provinces: ['陕西省', '甘肃省', '青海省', '宁夏回族自治区', '新疆维吾尔自治区'],
+    description: '覆盖陕甘青宁新五省区高校，聚焦密码学工程与无线通信安全攻防',
+    updatedAt: '2026-10-20 09:00',
+  },
+  {
+    id: 'div-hmt',
+    name: '港澳台赛区',
+    code: 'HMT',
+    provinces: ['香港特别行政区', '澳门特别行政区', '台湾省'],
+    description: '覆盖香港特别行政区、澳门特别行政区及台湾省高校，促进两岸四地网安青年技术交流',
+    updatedAt: '2026-10-20 09:00',
+  },
+];
+
+export const UNIVERSITY_FALLBACK_LOCATION_MAP: Record<string, { province: string; city: string }> = {
+  清华大学: { province: '北京市', city: '北京市' },
+  北京大学: { province: '北京市', city: '北京市' },
+  北京航空航天大学: { province: '北京市', city: '北京市' },
+  北京邮电大学: { province: '北京市', city: '北京市' },
+  北京理工大学: { province: '北京市', city: '北京市' },
+  中国科学院大学: { province: '北京市', city: '北京市' },
+  中国人民大学: { province: '北京市', city: '北京市' },
+  北京交通大学: { province: '北京市', city: '北京市' },
+  天津大学: { province: '天津市', city: '天津市' },
+  南开大学: { province: '天津市', city: '天津市' },
+  上海交通大学: { province: '上海市', city: '上海市' },
+  复旦大学: { province: '上海市', city: '上海市' },
+  同济大学: { province: '上海市', city: '上海市' },
+  华东师范大学: { province: '上海市', city: '上海市' },
+  浙江大学: { province: '浙江省', city: '杭州市' },
+  杭州电子科技大学: { province: '浙江省', city: '杭州市' },
+  南京大学: { province: '江苏省', city: '南京市' },
+  东南大学: { province: '江苏省', city: '南京市' },
+  南京邮电大学: { province: '江苏省', city: '南京市' },
+  南京航空航天大学: { province: '江苏省', city: '南京市' },
+  中国科学技术大学: { province: '安徽省', city: '合肥市' },
+  合肥工业大学: { province: '安徽省', city: '合肥市' },
+  山东大学: { province: '山东省', city: '济南市' },
+  中国海洋大学: { province: '山东省', city: '青岛市' },
+  厦门大学: { province: '福建省', city: '厦门市' },
+  福州大学: { province: '福建省', city: '福州市' },
+  武汉大学: { province: '湖北省', city: '武汉市' },
+  华中科技大学: { province: '湖北省', city: '武汉市' },
+  中南大学: { province: '湖南省', city: '长沙市' },
+  湖南大学: { province: '湖南省', city: '长沙市' },
+  国防科技大学: { province: '湖南省', city: '长沙市' },
+  郑州大学: { province: '河南省', city: '郑州市' },
+  中山大学: { province: '广东省', city: '广州市' },
+  华南理工大学: { province: '广东省', city: '广州市' },
+  深圳大学: { province: '广东省', city: '深圳市' },
+  暨南大学: { province: '广东省', city: '广州市' },
+  哈尔滨工业大学: { province: '黑龙江省', city: '哈尔滨市' },
+  哈尔滨工程大学: { province: '黑龙江省', city: '哈尔滨市' },
+  吉林大学: { province: '吉林省', city: '长春市' },
+  大连理工大学: { province: '辽宁省', city: '大连市' },
+  东北大学: { province: '辽宁省', city: '沈阳市' },
+  西安电子科技大学: { province: '陕西省', city: '西安市' },
+  西安交通大学: { province: '陕西省', city: '西安市' },
+  西北工业大学: { province: '陕西省', city: '西安市' },
+  电子科技大学: { province: '四川省', city: '成都市' },
+  四川大学: { province: '四川省', city: '成都市' },
+  重庆大学: { province: '重庆市', city: '重庆市' },
+  重庆邮电大学: { province: '重庆市', city: '重庆市' },
+  香港大学: { province: '香港特别行政区', city: '香港' },
+  香港中文大学: { province: '香港特别行政区', city: '香港' },
+  香港科技大学: { province: '香港特别行政区', city: '香港' },
+  澳门大学: { province: '澳门特别行政区', city: '澳门' },
+  澳门科技大学: { province: '澳门特别行政区', city: '澳门' },
+  台湾大学: { province: '台湾省', city: '台北市' },
+  台湾清华大学: { province: '台湾省', city: '新竹市' },
+};
+
+export function resolveUniversityLocationAndDivision(
+  universityName: string,
+  institutions?: Array<{
+    name: string;
+    location?: string;
+    province?: string;
+    city?: string;
+  }>,
+  divisions: DivisionRecord[] = INITIAL_DIVISIONS
+): {
+  province: string;
+  city: string;
+  locationText: string;
+  divisionName: string;
+} {
+  const cleanName = (universityName || '').trim();
+  const matchedInst = institutions?.find((inst) => inst.name === cleanName);
+  let province = matchedInst?.province || '';
+  let city = matchedInst?.city || '';
+
+  if (!province && matchedInst?.location) {
+    const parts = matchedInst.location.split('·').map((s) => s.trim());
+    province = parts[0] || '';
+    city = parts[1] || parts[0] || '';
+  }
+
+  if (!province && UNIVERSITY_FALLBACK_LOCATION_MAP[cleanName]) {
+    province = UNIVERSITY_FALLBACK_LOCATION_MAP[cleanName].province;
+    city = UNIVERSITY_FALLBACK_LOCATION_MAP[cleanName].city;
+  }
+
+  if (!province) {
+    for (const p of ALL_CHINA_PROVINCES) {
+      const shortProv = p.replace(/省|市|壮族自治区|维吾尔自治区|回族自治区|特别行政区|自治区/g, '');
+      if (shortProv && cleanName.includes(shortProv)) {
+        province = p;
+        city = p.endsWith('市') ? p : '';
+        break;
+      }
+    }
+  }
+
+  if (!province) {
+    province = '北京市';
+    city = '北京市';
+  }
+
+  const matchedDivision = divisions.find((d) =>
+    d.provinces.some(
+      (p) =>
+        p === province ||
+        p.replace(/省|市|壮族自治区|维吾尔自治区|回族自治区|特别行政区|自治区/g, '') ===
+          province.replace(/省|市|壮族自治区|维吾尔自治区|回族自治区|特别行政区|自治区/g, '')
+    )
+  );
+
+  const locationText =
+    city && city !== province ? `${province} ${city}` : province;
+
+  return {
+    province,
+    city: city || province,
+    locationText,
+    divisionName: matchedDivision ? matchedDivision.name : '未分配赛区',
+  };
+}
+

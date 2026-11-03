@@ -13,6 +13,10 @@ import {
   XCircle,
   AlertTriangle,
   ArrowLeft,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
+  Trophy,
   Users,
   Shield,
   Clock,
@@ -27,12 +31,25 @@ import {
   Sparkles,
   FileText,
 } from 'lucide-react';
-import type { CompetitionCatalogItem } from '../data/competitionData';
+import {
+  type CompetitionCatalogItem,
+  type DivisionRecord,
+  INITIAL_DIVISIONS,
+  resolveUniversityLocationAndDivision,
+} from '../data/competitionData';
 import {
   type CaptainTeamRecord,
   type InvitedTeamPerson,
   type TwoStageAuditStatus,
   type PlatformDirectoryUser,
+  type CtfRoleType,
+  type AdvancementProofFile,
+  type UniversityAdvancementSubmission,
+  INITIAL_UNIVERSITY_ADVANCEMENT_SUBMISSIONS,
+  CTF_ROLE_OPTIONS,
+  formatCtfRolesText,
+  CtfRoleBadges,
+  CtfRoleSelectorDropdown,
   PLATFORM_DIRECTORY_USERS,
   TeamLogoAvatar,
   maskPhone,
@@ -64,7 +81,8 @@ export interface EventRegistrationConfig {
   earlyClosed: boolean; // 提前关闭开关（开启后立即停止报名，前端立刻显示“已关闭”）
   allowCrossSchool: boolean; // 允许跨校组队（默认关闭）
   includeAdvisor: boolean; // 包含指导教师（默认开启）
-  maxAdvisors: number; // 教师人数上限（1-5人）
+  minAdvisors?: number; // 指导教师最少人数（0-5人，可设为0人表示可邀请也可不邀请）
+  maxAdvisors: number; // 指导教师人数上限（0-5人）
   minTeamSize: number; // 最少人数（含队长，1-5人）
   maxTeamSize: number; // 最多人数（1-20人；若为1人则前台隐藏邀请队员模块）
   isDisabled: boolean; // 是否已停用（当赛事从B切为A或C时置为true）
@@ -420,6 +438,19 @@ export function getMaskedIdCard(seedStr: string): string {
   return `110108********${suffix}`;
 }
 
+// 完整身份证号生成/解析辅助函数（用于最终参赛队伍清单 Excel 全量详细信息导出）
+export function getFullIdCard(seedStr: string, role: 'captain' | 'member' | 'advisor' = 'member'): string {
+  let hash = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    hash = (hash * 31 + seedStr.charCodeAt(i)) % 10000;
+  }
+  const suffix = String(1000 + (hash % 8999));
+  const birthYear = role === 'advisor' ? '1984' : '2004';
+  const birthMonth = String(1 + (hash % 12)).padStart(2, '0');
+  const birthDay = String(1 + ((hash >> 2) % 28)).padStart(2, '0');
+  return `110108${birthYear}${birthMonth}${birthDay}${suffix}`;
+}
+
 export function getPersonGender(name: string): '男' | '女' {
   if (name.includes('语桐') || name.includes('雪') || name.includes('婷')) return '女';
   return '男';
@@ -470,6 +501,14 @@ interface AdminRegistrationManagementProps {
   captainTeams: CaptainTeamRecord[];
   onUpdateCaptainTeams: (next: CaptainTeamRecord[]) => void;
   platformUsers?: PlatformDirectoryUser[];
+  institutions?: Array<{
+    name: string;
+    location?: string;
+    province?: string;
+    city?: string;
+    district?: string;
+  }>;
+  divisions?: DivisionRecord[];
   adminName: string;
   adminRole?: BackendAdminRoleType;
   adminInstitutionId?: string;
@@ -486,6 +525,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   captainTeams,
   onUpdateCaptainTeams,
   platformUsers = PLATFORM_DIRECTORY_USERS,
+  institutions,
+  divisions = INITIAL_DIVISIONS,
   adminName,
   adminRole = 'super_admin',
   adminInstitutionId = 'inst-3',
@@ -521,16 +562,65 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   const [cfgEarlyClosed, setCfgEarlyClosed] = useState(false);
   const [cfgAllowCrossSchool, setCfgAllowCrossSchool] = useState(false);
   const [cfgIncludeAdvisor, setCfgIncludeAdvisor] = useState(true);
+  const [cfgMinAdvisors, setCfgMinAdvisors] = useState(0);
   const [cfgMaxAdvisors, setCfgMaxAdvisors] = useState(2);
   const [cfgMinTeamSize, setCfgMinTeamSize] = useState(1);
   const [cfgMaxTeamSize, setCfgMaxTeamSize] = useState(4);
   const [cfgFormError, setCfgFormError] = useState<string | null>(null);
 
-  // --- 3. 队伍数据管理（业务层）状态：分为【高校审核】与【秘书处审核】两个TAB ---
+  // --- 3. 队伍数据管理（业务层）状态：分为【高校资格审核】、【晋级名单审核（秘书处终审）】、【最终参赛队伍清单】三大纯净Tab ---
   const [activeEventIdForTeams, setActiveEventIdForTeams] = useState<string>(
     INITIAL_REGISTRATION_CONFIGS[0].eventId
   );
-  const [activeAuditTab, setActiveAuditTab] = useState<'school' | 'secretariat'>('school');
+  const [activeAuditTab, setActiveAuditTab] = useState<
+    'school' | 'secretariat' | 'final_roster'
+  >('school');
+
+  // 高校晋级名单提报聚合表（秘书处以“高校维度”审核）
+  const [universitySubmissions, setUniversitySubmissions] = useState<
+    UniversityAdvancementSubmission[]
+  >(INITIAL_UNIVERSITY_ADVANCEMENT_SUBMISSIONS);
+
+  // Tab 1 高校资格审核：当前操作的高校上下文（高校管理员强制锁定本校；超管/秘书处可切换高校视角体验【申报晋级队伍】）
+  const [activeSchoolContextInTab1, setActiveSchoolContextInTab1] = useState<string>(
+    adminInstitutionName || '北京航空航天大学'
+  );
+
+  // 【晋级名单提报弹窗 (AdvancementSubmissionModal)】核心状态（不设晋级名额上限）
+  const [advancementModalOpen, setAdvancementModalOpen] = useState(false);
+  const [advancementModalUniversity, setAdvancementModalUniversity] = useState<string>(
+    adminInstitutionName || '北京航空航天大学'
+  );
+  const [advancementPoolTrackFilter, setAdvancementPoolTrackFilter] = useState<string>('all');
+  const [advancementPoolCheckedIds, setAdvancementPoolCheckedIds] = useState<string[]>([]);
+  const [advancementSelectedTeamIds, setAdvancementSelectedTeamIds] = useState<string[]>([]);
+  const [advancementProofFiles, setAdvancementProofFiles] = useState<AdvancementProofFile[]>([]);
+  const [advancementDragIndex, setAdvancementDragIndex] = useState<number | null>(null);
+  const [advancementError, setAdvancementError] = useState<string | null>(null);
+
+  // Tab 2 秘书处审核（高校维度晋级名单审核）筛选与弹窗状态
+  const [secFilterStatus, setSecFilterStatus] = useState<
+    'all' | 'pending' | 'approved' | 'rejected'
+  >('all');
+  const [secFilterKeyword, setSecFilterKeyword] = useState<string>('');
+  const [activeUniversitySubmissionDetail, setActiveUniversitySubmissionDetail] =
+    useState<UniversityAdvancementSubmission | null>(null);
+  // Tab 2 查看详情弹窗内点击【查看队伍详情】弹出的队伍详情弹窗 ID
+  const [modalTeamDetailId, setModalTeamDetailId] = useState<string | null>(null);
+  const [secBatchAuditModal, setSecBatchAuditModal] = useState<{
+    submission: UniversityAdvancementSubmission;
+    decision: 'approve' | 'reject';
+  } | null>(null);
+  const [secBatchRejectReason, setSecBatchRejectReason] = useState<string>('');
+  const [secBatchAuditError, setSecBatchAuditError] = useState<string | null>(null);
+  const [previewProofFileModal, setPreviewProofFileModal] =
+    useState<AdvancementProofFile | null>(null);
+
+  // Tab 3 最终参赛队伍清单（只读大名单）筛选状态
+  const [finalRosterScopeEvent, setFinalRosterScopeEvent] = useState<'current' | 'all'>('current');
+  const [finalRosterTrackFilter, setFinalRosterTrackFilter] = useState<string>('all');
+  const [finalRosterSchoolFilter, setFinalRosterSchoolFilter] = useState<string>('');
+  const [finalRosterKeyword, setFinalRosterKeyword] = useState<string>('');
 
   // 筛选表单状态（输入态）与生效筛选状态（点击【查询】后生效）
   const [filterKeywordInput, setFilterKeywordInput] = useState('');
@@ -554,7 +644,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
 
-  // 单条/批量审核弹窗状态（区分高校审核与秘书处审核）
+  // 单条/批量审核弹窗状态（Tab 1 高校资格审核使用）
   const [auditModalState, setAuditModalState] = useState<{
     mode: 'single' | 'batch';
     stage: 'school' | 'secretariat';
@@ -596,6 +686,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   const [newCaptainSearchError, setNewCaptainSearchError] = useState<string | null>(null);
   const [backdoorSearchQuery, setBackdoorSearchQuery] = useState('');
   const [backdoorAddRole, setBackdoorAddRole] = useState<'member' | 'advisor'>('member');
+  const [backdoorAddCtfRoles, setBackdoorAddCtfRoles] = useState<CtfRoleType[]>([]);
+  const [backdoorRolePopoverId, setBackdoorRolePopoverId] = useState<string | null>(null);
   const [backdoorInterceptAlert, setBackdoorInterceptAlert] = useState<{
     candidate: (typeof PLATFORM_DIRECTORY_USERS)[number];
     role: 'member' | 'advisor';
@@ -658,6 +750,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     setCfgEarlyClosed(false);
     setCfgAllowCrossSchool(false);
     setCfgIncludeAdvisor(true);
+    setCfgMinAdvisors(0);
     setCfgMaxAdvisors(2);
     setCfgMinTeamSize(1);
     setCfgMaxTeamSize(4);
@@ -674,6 +767,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     setCfgEarlyClosed(cfg.earlyClosed);
     setCfgAllowCrossSchool(false);
     setCfgIncludeAdvisor(cfg.includeAdvisor);
+    setCfgMinAdvisors(cfg.minAdvisors ?? 0);
     setCfgMaxAdvisors(cfg.maxAdvisors);
     setCfgMinTeamSize(cfg.minTeamSize);
     setCfgMaxTeamSize(cfg.maxTeamSize);
@@ -700,9 +794,19 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       setCfgFormError('报名截止时间必须晚于报名开始时间');
       return;
     }
-    if (cfgIncludeAdvisor && (cfgMaxAdvisors < 1 || cfgMaxAdvisors > 5)) {
-      setCfgFormError('指导教师人数上限须限制在 1 - 5 人之间');
-      return;
+    if (cfgIncludeAdvisor) {
+      if (cfgMinAdvisors < 0 || cfgMinAdvisors > 5) {
+        setCfgFormError('指导教师最少人数须限制在 0 - 5 人之间');
+        return;
+      }
+      if (cfgMaxAdvisors < 0 || cfgMaxAdvisors > 5) {
+        setCfgFormError('指导教师最多人数须限制在 0 - 5 人之间');
+        return;
+      }
+      if (cfgMinAdvisors > cfgMaxAdvisors) {
+        setCfgFormError('指导教师最少人数不能大于最多人数');
+        return;
+      }
     }
     if (cfgMinTeamSize < 1 || cfgMinTeamSize > 5) {
       setCfgFormError('队伍最少人数（含队长）须限制在 1 - 5 人之间');
@@ -732,6 +836,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
               earlyClosed: cfgEarlyClosed,
               allowCrossSchool: false,
               includeAdvisor: cfgIncludeAdvisor,
+              minAdvisors: cfgIncludeAdvisor ? cfgMinAdvisors : 0,
               maxAdvisors: cfgIncludeAdvisor ? cfgMaxAdvisors : 0,
               minTeamSize: cfgMinTeamSize,
               maxTeamSize: cfgMaxTeamSize,
@@ -747,7 +852,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         device: 'Admin Console',
         action: `修改报名配置（${targetComp?.title || cfgEventId}）`,
         result: '成功',
-        detail: `起止：${formattedStart} ~ ${formattedEnd}，提前关闭：${cfgEarlyClosed ? '开启' : '关闭'}，人数：${cfgMinTeamSize}-${cfgMaxTeamSize}人`,
+        detail: `起止：${formattedStart} ~ ${formattedEnd}，提前关闭：${cfgEarlyClosed ? '开启' : '关闭'}，人数：${cfgMinTeamSize}-${cfgMaxTeamSize}人，指导教师：${cfgIncludeAdvisor ? `${cfgMinAdvisors}-${cfgMaxAdvisors}人` : '关闭'}`,
       });
       onToast(`已保存《${targetComp?.title || ''}》的报名规则配置，前台详情页与报名表单已实时生效！`);
     } else {
@@ -759,6 +864,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         earlyClosed: cfgEarlyClosed,
         allowCrossSchool: false,
         includeAdvisor: cfgIncludeAdvisor,
+        minAdvisors: cfgIncludeAdvisor ? cfgMinAdvisors : 0,
         maxAdvisors: cfgIncludeAdvisor ? cfgMaxAdvisors : 0,
         minTeamSize: cfgMinTeamSize,
         maxTeamSize: cfgMaxTeamSize,
@@ -830,6 +936,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
 
     setActiveEventIdForTeams(eventId);
     setActiveAuditTab(adminRole === 'secretariat_admin' ? 'secretariat' : 'school');
+    setActiveSchoolContextInTab1(adminInstitutionName || '北京航空航天大学');
     setFilterKeywordInput('');
     setFilterSchoolInput(adminRole === 'school_admin' ? adminInstitutionName : '');
     setFilterTrackInput('all');
@@ -903,7 +1010,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     );
   };
 
-  // 统计当前赛事在【高校审核】与【秘书处审核】两个TAB下的队伍数量（组建中和邀请中的队伍未提交审核，不进入高校审核流程；高校管理员强制 WHERE 院校ID = 当前登录用户的院校ID）
+  // 统计当前赛事在三大纯净 TAB（Tab1 高校资格审核 / Tab2 晋级名单审核 / Tab3 最终参赛队伍清单）下的数量
   const eventAuditTabCounts = useMemo(() => {
     const eventTeams = captainTeams.filter(
       (t) =>
@@ -917,25 +1024,47 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     const schoolPendingCount = eventTeams.filter(
       (t) => resolveTeamAuditStages(t).schoolStatus === 'pending'
     ).length;
-    // 只有高校审核通过后，才会进入秘书处审核阶段
-    const secretariatEligibleTeams = eventTeams.filter(
-      (t) => resolveTeamAuditStages(t).schoolStatus === 'approved'
+
+    // Tab 2 秘书处终审：按高校维度统计已提报（不含已撤回）的晋级名单数量
+    const eventUnivSubs = universitySubmissions.filter(
+      (sub) => sub.competitionId === activeEventIdForTeams && sub.status !== 'withdrawn'
     );
-    const secretariatTabTotal = secretariatEligibleTeams.length;
-    const secretariatPendingCount = secretariatEligibleTeams.filter(
-      (t) => resolveTeamAuditStages(t).secretariatStatus === 'pending'
+    const secretariatUnivTotal = eventUnivSubs.length;
+    const secretariatUnivPendingCount = eventUnivSubs.filter(
+      (sub) => sub.status === 'pending'
     ).length;
+
+    // Tab 3 最终参赛队伍清单：统计秘书处终审已通过（regStatusKey === 'approved'）的最终晋级队伍数
+    const finalRosterCurrentEventCount = captainTeams.filter(
+      (t) =>
+        t.competitionId === activeEventIdForTeams &&
+        resolveTeamAuditStages(t).regStatusKey === 'approved' &&
+        (adminRole === 'school_admin' ? t.university === adminInstitutionName : true)
+    ).length;
+    const finalRosterAllEventsCount = captainTeams.filter(
+      (t) =>
+        resolveTeamAuditStages(t).regStatusKey === 'approved' &&
+        (adminRole === 'school_admin' ? t.university === adminInstitutionName : true)
+    ).length;
+
     return {
       schoolTabTotal,
       schoolPendingCount,
-      secretariatTabTotal,
-      secretariatPendingCount,
+      secretariatUnivTotal,
+      secretariatUnivPendingCount,
+      finalRosterCurrentEventCount,
+      finalRosterAllEventsCount,
     };
-  }, [captainTeams, activeEventIdForTeams, adminRole, adminInstitutionName]);
+  }, [
+    captainTeams,
+    universitySubmissions,
+    activeEventIdForTeams,
+    adminRole,
+    adminInstitutionName,
+  ]);
 
-  // 根据当前选中的TAB（高校审核 / 秘书处审核）及筛选条件过滤出的队伍列表
+  // Tab 1 高校资格审核：根据筛选条件过滤出的队伍列表
   const filteredEventTeams = useMemo(() => {
-    const effectiveTab = adminRole === 'school_admin' ? 'school' : activeAuditTab;
     return captainTeams.filter((team) => {
       if (team.competitionId !== activeEventIdForTeams) return false;
 
@@ -946,17 +1075,12 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
 
       const stages = resolveTeamAuditStages(team);
 
-      // 只有提交之后的报名信息才会进入高校审核流程，排除组建中和邀请中的队伍
+      // 只有提交之后的报名信息才会进入高校资格审核流程，排除组建中和邀请中的队伍
       if (
         team.status === 'draft' ||
         team.status === 'inviting' ||
         stages.schoolStatus === 'none'
       ) {
-        return false;
-      }
-
-      // TAB 级过滤：秘书处审核 TAB 仅展示高校审核已通过的队伍
-      if (effectiveTab === 'secretariat' && stages.schoolStatus !== 'approved') {
         return false;
       }
 
@@ -984,11 +1108,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         return false;
       }
 
-      // 4. 当前TAB对应的审核状态（全部 / 待审核 / 已通过 / 已驳回 / 未提交）
+      // 4. 高校资格审核状态（全部 / 待审核 / 已通过 / 已驳回）
       if (appliedTeamFilters.auditStatus !== 'all') {
-        const currentStageStatus =
-          effectiveTab === 'school' ? stages.schoolStatus : stages.secretariatStatus;
-        if (currentStageStatus !== appliedTeamFilters.auditStatus) return false;
+        if (stages.schoolStatus !== appliedTeamFilters.auditStatus) return false;
       }
 
       // 5. 报名时间范围
@@ -1005,18 +1127,586 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   }, [
     captainTeams,
     activeEventIdForTeams,
-    activeAuditTab,
     appliedTeamFilters,
     adminRole,
     adminInstitutionName,
+    platformUsers,
+  ]);
+
+  // 当前赛事下拥有队伍的高校列表（供超级管理员在 Tab 1 切换视角体验各校【申报晋级队伍】）
+  const availableSchoolsInCurrentEvent = useMemo(() => {
+    const set = new Set<string>(['北京航空航天大学', '清华大学', '上海交通大学', '浙江大学']);
+    captainTeams.forEach((t) => {
+      if (t.competitionId === activeEventIdForTeams && t.university) {
+        set.add(t.university);
+      }
+    });
+    return Array.from(set);
+  }, [captainTeams, activeEventIdForTeams]);
+
+  // 当前在 Tab 1 选中的高校（高校管理员固定为 adminInstitutionName）
+  const targetUniversityForAdvancement =
+    adminRole === 'school_admin'
+      ? adminInstitutionName
+      : activeSchoolContextInTab1 || '北京航空航天大学';
+
+  // 当前目标高校在当前赛事下的晋级提报单记录（若有）
+  const currentSchoolSubmission = useMemo(() => {
+    return (
+      universitySubmissions.find(
+        (sub) =>
+          sub.competitionId === activeEventIdForTeams &&
+          sub.university === targetUniversityForAdvancement
+      ) || null
+    );
+  }, [universitySubmissions, activeEventIdForTeams, targetUniversityForAdvancement]);
+
+  // 当前目标高校在当前赛事下“高校资格审核已通过”的所有候选队伍
+  const currentSchoolApprovedTeams = useMemo(() => {
+    return captainTeams.filter(
+      (t) =>
+        t.competitionId === activeEventIdForTeams &&
+        t.university === targetUniversityForAdvancement &&
+        t.status !== 'draft' &&
+        t.status !== 'inviting' &&
+        resolveTeamAuditStages(t).schoolStatus === 'approved'
+    );
+  }, [captainTeams, activeEventIdForTeams, targetUniversityForAdvancement]);
+
+  // 打开【晋级名单提报弹窗】（支持驳回与撤回后的数据完整回显：原勾选队伍、校内排名顺序、已上传成绩证明附件）
+  const handleOpenAdvancementModal = (universityName?: string) => {
+    const univ =
+      adminRole === 'school_admin'
+        ? adminInstitutionName
+        : universityName || targetUniversityForAdvancement;
+    setAdvancementModalUniversity(univ);
+    setAdvancementPoolTrackFilter('all');
+    setAdvancementPoolCheckedIds([]);
+    setAdvancementError(null);
+
+    const existingSub = universitySubmissions.find(
+      (sub) => sub.competitionId === activeEventIdForTeams && sub.university === univ
+    );
+
+    const univApprovedTeams = captainTeams.filter(
+      (t) =>
+        t.competitionId === activeEventIdForTeams &&
+        t.university === univ &&
+        t.status !== 'draft' &&
+        t.status !== 'inviting' &&
+        resolveTeamAuditStages(t).schoolStatus === 'approved'
+    );
+    const validApprovedIds = new Set(univApprovedTeams.map((t) => t.id));
+
+    if (existingSub && existingSub.teamIds.length > 0) {
+      // 驳回 / 撤回 / 已提报状态下重新打开：100% 回显之前选中的队伍顺序及已上传的证明材料
+      const echoedIds = existingSub.teamIds.filter((id) => validApprovedIds.has(id));
+      setAdvancementSelectedTeamIds(echoedIds);
+      setAdvancementProofFiles([...existingSub.proofFiles]);
+    } else {
+      // 从队伍自身的 advancementStatus 回显（若存在已排名的队伍）
+      const rankedTeams = univApprovedTeams
+        .filter(
+          (t) =>
+            t.advancementStatus === 'pending_secretariat' ||
+            t.advancementStatus === 'secretariat_rejected' ||
+            t.advancementStatus === 'advanced'
+        )
+        .sort((a, b) => (a.schoolRank || 99) - (b.schoolRank || 99));
+
+      if (rankedTeams.length > 0) {
+        setAdvancementSelectedTeamIds(rankedTeams.map((t) => t.id));
+        setAdvancementProofFiles([
+          {
+            id: `proof-default-${Date.now()}`,
+            name: `${univ}_2026校内选拔赛官方成绩单与排名公示(教务盖章).pdf`,
+            size: '2.35 MB',
+            type: 'pdf',
+            uploadedAt: '2026-10-28 09:30:00',
+          },
+        ]);
+      } else {
+        setAdvancementSelectedTeamIds([]);
+        setAdvancementProofFiles([]);
+      }
+    }
+
+    setAdvancementModalOpen(true);
+  };
+
+  // 【晋级名单提报弹窗】内：手动调整某支已选队伍的校内排名序号（1, 2, 3...）
+  const handleManualRankInputChange = (teamId: string, targetRankOneBased: number) => {
+    setAdvancementSelectedTeamIds((prev) => {
+      const currentIndex = prev.indexOf(teamId);
+      if (currentIndex === -1) return prev;
+      const clampedIndex = Math.max(
+        0,
+        Math.min(prev.length - 1, targetRankOneBased - 1)
+      );
+      if (clampedIndex === currentIndex) return prev;
+      const next = [...prev];
+      next.splice(currentIndex, 1);
+      next.splice(clampedIndex, 0, teamId);
+      return next;
+    });
+  };
+
+  // 【晋级名单提报弹窗】内：上下移动某支队伍的排名
+  const handleMoveSelectedTeamRank = (index: number, direction: 'up' | 'down') => {
+    setAdvancementSelectedTeamIds((prev) => {
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      return next;
+    });
+  };
+
+  // 【晋级名单提报弹窗】内：上传校赛成绩单/证明材料（支持 PDF / Excel / 图片）
+  const handleUploadAdvancementProofFiles = (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    setAdvancementError(null);
+    const added: AdvancementProofFile[] = Array.from(fileList).map((f, i) => {
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      const fileType: 'pdf' | 'excel' | 'image' =
+        ext === 'xls' || ext === 'xlsx' || ext === 'csv'
+          ? 'excel'
+          : ext === 'jpg' || ext === 'jpeg' || ext === 'png'
+          ? 'image'
+          : 'pdf';
+      const sizeMB = Math.max(0.15, f.size / (1024 * 1024)).toFixed(2);
+      return {
+        id: `proof-upload-${Date.now()}-${i}`,
+        name: f.name,
+        size: `${sizeMB} MB`,
+        type: fileType,
+        uploadedAt: '2026-10-28 12:30:00',
+      };
+    });
+    setAdvancementProofFiles((prev) => [...prev, ...added]);
+  };
+
+  // 提取纯人名辅助函数（去除头衔、院校与括号说明）
+  const formatSubmittedByPersonName = (raw: string): string => {
+    if (!raw) return '—';
+    const trimmed = raw.trim();
+    const matchInParens = trimmed.match(/高校管理员[（(]([^）)]+)[）)]/);
+    if (matchInParens && matchInParens[1]) {
+      return matchInParens[1].replace(/\s*(教授|博导|副教授|老师|管理员).*$/, '').trim();
+    }
+    const withoutParens = trimmed.replace(/[（(][^）)]*[）)]/g, '').trim();
+    const afterDash = withoutParens.includes('-')
+      ? withoutParens.split('-').pop()!.trim()
+      : withoutParens;
+    return afterDash.replace(/\s+(教授|博导|副教授|老师|管理员).*$/, '').trim() || trimmed;
+  };
+
+  // 确认提交【高校晋级名单】至秘书处终审（第二段核心动作，不设晋级名额上限）
+  const handleConfirmAdvancementSubmit = () => {
+    setAdvancementError(null);
+
+    if (advancementSelectedTeamIds.length === 0) {
+      setAdvancementError('请至少从左侧待选池中选择 1 支已通过资格审核的队伍加入晋级名单！');
+      return;
+    }
+    if (advancementProofFiles.length === 0) {
+      setAdvancementError('请上传校赛成绩单或晋级证明材料（支持 PDF、Excel、盖章扫描件图片）！');
+      return;
+    }
+
+    const nowStr = '2026-10-28 12:35:00';
+    const univ = advancementModalUniversity;
+    const submitterPersonName = formatSubmittedByPersonName(adminName);
+    const rankMap = new Map<string, number>();
+    advancementSelectedTeamIds.forEach((id, idx) => {
+      rankMap.set(id, idx + 1);
+    });
+
+    const selectedTeamNames: string[] = [];
+    const unselectedTeamNames: string[] = [];
+
+    // 更新 captainTeams：
+    // 1. 被选入晋级名单的队伍 -> advancementStatus: 'pending_secretariat', schoolRank: 1/2/3..., secretariatAuditStatus: 'pending'
+    // 2. 同校同赛事下其他已通过高校资格审核但未被选入的队伍 -> advancementStatus: 'not_advanced' (未晋级/止步校赛), secretariatAuditStatus: 'none'
+    const updatedTeams = captainTeams.map((team) => {
+      if (team.competitionId !== activeEventIdForTeams || team.university !== univ) {
+        return team;
+      }
+      const stages = resolveTeamAuditStages(team);
+      if (stages.schoolStatus !== 'approved') {
+        return team;
+      }
+
+      if (rankMap.has(team.id)) {
+        const assignedRank = rankMap.get(team.id)!;
+        selectedTeamNames.push(`${team.teamName}(第${assignedRank}名)`);
+        return {
+          ...team,
+          status: 'pending_review' as const,
+          schoolAuditStatus: 'approved' as const,
+          advancementStatus: 'pending_secretariat' as const,
+          schoolRank: assignedRank,
+          advancementSubmittedAt: nowStr,
+          secretariatAuditStatus: 'pending' as const,
+          secretariatRejectReason: undefined,
+          secretariatAuditedAt: undefined,
+          updatedAt: nowStr,
+        };
+      } else {
+        unselectedTeamNames.push(team.teamName);
+        return {
+          ...team,
+          status: 'pending_review' as const,
+          schoolAuditStatus: 'approved' as const,
+          advancementStatus: 'not_advanced' as const,
+          schoolRank: undefined,
+          secretariatAuditStatus: 'none' as const,
+          secretariatRejectReason: undefined,
+          secretariatAuditedAt: undefined,
+          updatedAt: nowStr,
+        };
+      }
+    });
+
+    onUpdateCaptainTeams(updatedTeams);
+
+    // 更新或创建 universitySubmissions 聚合记录
+    setUniversitySubmissions((prev) => {
+      const exists = prev.some(
+        (sub) => sub.competitionId === activeEventIdForTeams && sub.university === univ
+      );
+      if (exists) {
+        return prev.map((sub) =>
+          sub.competitionId === activeEventIdForTeams && sub.university === univ
+            ? {
+                ...sub,
+                teamIds: [...advancementSelectedTeamIds],
+                proofFiles: [...advancementProofFiles],
+                status: 'pending',
+                submittedAt: nowStr,
+                submittedBy: submitterPersonName,
+                rejectReason: undefined,
+              }
+            : sub
+        );
+      }
+      const newSub: UniversityAdvancementSubmission = {
+        id: `univ-sub-${Date.now()}`,
+        competitionId: activeEventIdForTeams,
+        competitionTitle:
+          activeEventForTeams?.title ||
+          '2026年“奇安信杯”全国大学生网络空间安全精英赛',
+        university: univ,
+        teamIds: [...advancementSelectedTeamIds],
+        proofFiles: [...advancementProofFiles],
+        status: 'pending',
+        submittedAt: nowStr,
+        submittedBy: submitterPersonName,
+      };
+      return [newSub, ...prev];
+    });
+
+    onSendSystemNotification(
+      `【高校晋级名单已提报】${univ}（共 ${selectedTeamNames.length} 支队伍）`,
+      `${univ}已完成校赛选拔并向组委会秘书处提报晋级名单：${selectedTeamNames.join('、')}。${
+        unselectedTeamNames.length > 0
+          ? `其余 ${unselectedTeamNames.length} 支队伍（${unselectedTeamNames.join('、')}）状态已更新为“未晋级（止步校赛）”。`
+          : ''
+      }`
+    );
+
+    onAddAuditLog({
+      operator: adminName,
+      ip: '202.112.128.45',
+      location: '北京市海淀区',
+      device: 'Admin Console',
+      action: `提报高校晋级名单（${univ} · 共 ${selectedTeamNames.length} 支队伍）`,
+      result: '成功',
+      detail: `晋级排名：${selectedTeamNames.join('、')} | 证明材料：${advancementProofFiles
+        .map((f) => f.name)
+        .join('、')}`,
+    });
+
+    onToast(
+      `已成功将【${univ}】的 ${selectedTeamNames.length} 支晋级队伍及校赛成绩证明提报至秘书处终审！`
+    );
+    setAdvancementModalOpen(false);
+  };
+
+  // 【撤回提报】（在秘书处尚未终审通过前，高校管理员可一键撤回提报调整排名或材料，再次打开弹窗时保留数据回显）
+  const handleWithdrawAdvancementSubmission = (universityName?: string) => {
+    const univ =
+      adminRole === 'school_admin'
+        ? adminInstitutionName
+        : universityName || targetUniversityForAdvancement;
+    const targetSub = universitySubmissions.find(
+      (sub) => sub.competitionId === activeEventIdForTeams && sub.university === univ
+    );
+    if (!targetSub || targetSub.status === 'approved') {
+      onToast('当前晋级名单已通过秘书处终审或尚未提报，无法撤回');
+      return;
+    }
+
+    const nowStr = '2026-10-28 12:38:00';
+    // 将该校在此赛事下已通过资格审核的队伍恢复为 wait_school_match（保留 schoolRank 供再次打开弹窗时回显）
+    const updatedTeams = captainTeams.map((team) => {
+      if (team.competitionId !== activeEventIdForTeams || team.university !== univ) {
+        return team;
+      }
+      const stages = resolveTeamAuditStages(team);
+      if (stages.schoolStatus !== 'approved') return team;
+      return {
+        ...team,
+        status: 'pending_review' as const,
+        advancementStatus: 'wait_school_match' as const,
+        secretariatAuditStatus: 'none' as const,
+        secretariatRejectReason: undefined,
+        updatedAt: nowStr,
+      };
+    });
+
+    onUpdateCaptainTeams(updatedTeams);
+    setUniversitySubmissions((prev) =>
+      prev.map((sub) =>
+        sub.id === targetSub.id
+          ? {
+              ...sub,
+              status: 'withdrawn',
+            }
+          : sub
+      )
+    );
+
+    onAddAuditLog({
+      operator: adminName,
+      ip: '202.112.128.45',
+      location: '北京市海淀区',
+      device: 'Admin Console',
+      action: `撤回高校晋级名单提报（${univ}）`,
+      result: '成功',
+      detail: `高校管理员撤回了《${activeEventForTeams.title}》的晋级名单提报，原排名与证明材料已保留供重新编辑提交`,
+    });
+
+    onToast(
+      `已撤回【${univ}】的晋级名单提报！点击【申报晋级队伍】将自动回显原勾选队伍、校内排名与证明材料。`
+    );
+  };
+
+  // 第三段（Tab 2 秘书处终审）：按“高校维度”审核整批晋级名单与证明材料（通过 / 驳回）
+  const handleConfirmSecretariatUniversityBatchAudit = () => {
+    if (!secBatchAuditModal) return;
+    setSecBatchAuditError(null);
+
+    const { submission, decision } = secBatchAuditModal;
+    const isApprove = decision === 'approve';
+    const trimmedReason = secBatchRejectReason.trim();
+
+    if (!isApprove && !trimmedReason) {
+      setSecBatchAuditError('强校验拦截：驳回高校晋级名单时必须填写具体驳回原因！');
+      return;
+    }
+
+    const nowStr = '2026-10-28 12:45:00';
+    const rankMap = new Map<string, number>();
+    submission.teamIds.forEach((id, idx) => {
+      rankMap.set(id, idx + 1);
+    });
+
+    const affectedTeamNames: string[] = [];
+    const updatedTeams = captainTeams.map((team) => {
+      if (!rankMap.has(team.id)) return team;
+      const schoolRank = rankMap.get(team.id)!;
+      affectedTeamNames.push(`${team.teamName}(校内第${schoolRank}名)`);
+
+      if (isApprove) {
+        const teamWithRank: CaptainTeamRecord = {
+          ...team,
+          schoolRank,
+        };
+        return {
+          ...team,
+          status: 'approved' as const,
+          schoolAuditStatus: 'approved' as const,
+          advancementStatus: 'advanced' as const,
+          schoolRank,
+          secretariatAuditStatus: 'approved' as const,
+          secretariatRejectReason: undefined,
+          secretariatAuditedAt: nowStr,
+          approvedSnapshot: buildApprovedSnapshotFromCaptainTeam(teamWithRank, nowStr),
+          updatedAt: nowStr,
+        };
+      } else {
+        // 秘书处驳回高校提报的晋级名单：打回高校管理员重报（不打回给队长个人修改）
+        return {
+          ...team,
+          status: 'pending_review' as const,
+          schoolAuditStatus: 'approved' as const,
+          advancementStatus: 'secretariat_rejected' as const,
+          schoolRank,
+          secretariatAuditStatus: 'rejected' as const,
+          secretariatRejectReason: trimmedReason,
+          secretariatAuditedAt: nowStr,
+          updatedAt: nowStr,
+        };
+      }
+    });
+
+    onUpdateCaptainTeams(updatedTeams);
+
+    const updatedSub: UniversityAdvancementSubmission = {
+      ...submission,
+      status: isApprove ? 'approved' : 'rejected',
+      auditedAt: nowStr,
+      auditedBy: `赛事秘书处（${adminName}）`,
+      rejectReason: isApprove ? undefined : trimmedReason,
+    };
+
+    setUniversitySubmissions((prev) =>
+      prev.map((sub) => (sub.id === submission.id ? updatedSub : sub))
+    );
+
+    if (activeUniversitySubmissionDetail?.id === submission.id) {
+      setActiveUniversitySubmissionDetail(updatedSub);
+    }
+
+    if (isApprove) {
+      onSendSystemNotification(
+        `【🎉 秘书处终审通过 · 晋级决赛】${submission.university}（${affectedTeamNames.length}支队伍）`,
+        `恭喜！${submission.university}提报的晋级队伍（${affectedTeamNames.join('、')}）已通过秘书处终审，正式进入【最终参赛队伍清单】，个人中心【我的竞赛】与【下载回执】已同步解锁！`
+      );
+      onToast(
+        `已通过【${submission.university}】提报的 ${affectedTeamNames.length} 支晋级队伍！队伍已正式沉淀至 Tab 3【最终参赛队伍清单】！`
+      );
+    } else {
+      onSendSystemNotification(
+        `【晋级名单被秘书处驳回】${submission.university}`,
+        `${submission.university}提报的晋级名单未通过秘书处终审，驳回原因：${trimmedReason}。请高校管理员在后台【高校资格审核 -> 申报晋级队伍】中调整排名或补充证明材料后重新提报。`
+      );
+      onToast(
+        `已驳回【${submission.university}】的晋级名单（原因：${trimmedReason}），已打回该校管理员重新提报！`
+      );
+    }
+
+    onAddAuditLog({
+      operator: adminName,
+      ip: '202.112.128.45',
+      location: '北京市海淀区',
+      device: 'Admin Console',
+      action: `秘书处终审高校晋级名单（${submission.university}）：${
+        isApprove ? '审核通过' : '审核驳回'
+      }`,
+      result: '成功',
+      detail: `涉及队伍：${affectedTeamNames.join('、')}${
+        !isApprove ? ` | 驳回原因：${trimmedReason}` : ''
+      }`,
+    });
+
+    setSecBatchAuditModal(null);
+    setSecBatchRejectReason('');
+  };
+
+  // Tab 2 过滤后的高校晋级提报列表
+  const filteredUniversitySubmissions = useMemo(() => {
+    return universitySubmissions.filter((sub) => {
+      if (sub.competitionId !== activeEventIdForTeams) return false;
+      if (sub.status === 'withdrawn') return false;
+      if (adminRole === 'school_admin' && sub.university !== adminInstitutionName) {
+        return false;
+      }
+      if (secFilterStatus !== 'all' && sub.status !== secFilterStatus) {
+        return false;
+      }
+      if (secFilterKeyword.trim()) {
+        const kw = secFilterKeyword.trim().toLowerCase();
+        const matchUniv = sub.university.toLowerCase().includes(kw);
+        const subTeams = captainTeams.filter((t) => sub.teamIds.includes(t.id));
+        const matchTeam = subTeams.some(
+          (t) =>
+            t.teamName.toLowerCase().includes(kw) ||
+            t.captainName.toLowerCase().includes(kw)
+        );
+        if (!matchUniv && !matchTeam) return false;
+      }
+      return true;
+    });
+  }, [
+    universitySubmissions,
+    activeEventIdForTeams,
+    adminRole,
+    adminInstitutionName,
+    secFilterStatus,
+    secFilterKeyword,
+    captainTeams,
+  ]);
+
+  // Tab 3 过滤后的【最终参赛队伍清单】（只读，仅展示秘书处终审通过的最终晋级队伍）
+  const filteredFinalRosterTeams = useMemo(() => {
+    return captainTeams
+      .filter((team) => {
+        if (
+          finalRosterScopeEvent === 'current' &&
+          team.competitionId !== activeEventIdForTeams
+        ) {
+          return false;
+        }
+        if (adminRole === 'school_admin' && team.university !== adminInstitutionName) {
+          return false;
+        }
+        const stages = resolveTeamAuditStages(team);
+        if (stages.regStatusKey !== 'approved') {
+          return false;
+        }
+        if (
+          finalRosterTrackFilter !== 'all' &&
+          team.subTrackName !== finalRosterTrackFilter
+        ) {
+          return false;
+        }
+        if (finalRosterSchoolFilter.trim()) {
+          const sc = finalRosterSchoolFilter.trim().toLowerCase();
+          if (!team.university.toLowerCase().includes(sc)) return false;
+        }
+        if (finalRosterKeyword.trim()) {
+          const kw = finalRosterKeyword.trim().toLowerCase();
+          const capContact = resolveTeamCaptainContact(team, platformUsers);
+          const matchTeam = team.teamName.toLowerCase().includes(kw);
+          const matchCap = team.captainName.toLowerCase().includes(kw);
+          const matchPhone = capContact.phone.includes(kw);
+          if (!matchTeam && !matchCap && !matchPhone) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.university !== b.university) {
+          return a.university.localeCompare(b.university, 'zh-CN');
+        }
+        return (a.schoolRank || 99) - (b.schoolRank || 99);
+      });
+  }, [
+    captainTeams,
+    finalRosterScopeEvent,
+    activeEventIdForTeams,
+    adminRole,
+    adminInstitutionName,
+    finalRosterTrackFilter,
+    finalRosterSchoolFilter,
+    finalRosterKeyword,
+    platformUsers,
   ]);
 
   // 导出 Excel（联动指标6：若勾选则导出选中项，未勾选则导出当前搜索条件下的所有数据；手机号与身份证号默认脱敏；包含 Sheet1 队伍汇总 & Sheet2 成员明细）
-  const handleTriggerExportExcel = (simulateOver5000 = false) => {
-    const targetTeams =
-      selectedTeamIds.length > 0
-        ? filteredEventTeams.filter((t) => selectedTeamIds.includes(t.id))
-        : filteredEventTeams;
+  const handleTriggerExportExcel = (
+    simulateOver5000 = false,
+    customTeams?: CaptainTeamRecord[],
+    customFilePrefix?: string
+  ) => {
+    const targetTeams = customTeams
+      ? customTeams
+      : selectedTeamIds.length > 0
+      ? filteredEventTeams.filter((t) => selectedTeamIds.includes(t.id))
+      : filteredEventTeams;
 
     if (targetTeams.length === 0) {
       onToast('当前没有可导出的队伍数据');
@@ -1046,12 +1736,15 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       return;
     }
 
-    // 打開预览弹窗并触发双 Sheet Excel 文件下载
+    // 打开预览弹窗并触发双 Sheet Excel 文件下载
     setExportPreviewModal({
       sheetTab: 'sheet1',
       teams: targetTeams,
     });
-    downloadTwoSheetExcelFile(targetTeams, `${activeEventForTeams.title}_报名队伍与成员明细.xls`);
+    const exportFileName = customFilePrefix
+      ? `${customFilePrefix}.xls`
+      : `${activeEventForTeams.title}_报名队伍与成员明细.xls`;
+    downloadTwoSheetExcelFile(targetTeams, exportFileName);
     onAddAuditLog({
       operator: adminName,
       ip: '202.112.128.45',
@@ -1059,25 +1752,122 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       device: 'Admin Console',
       action: `导出报名队伍Excel（共 ${targetTeams.length} 支队伍）`,
       result: '成功',
-      detail: `包含 Sheet1(队伍汇总) 与 Sheet2(成员明细)，手机号与身份证号已执行默认脱敏保护`,
+      detail: `文件：${exportFileName}，包含 Sheet1(队伍汇总·含校内排名) 与 Sheet2(成员明细)，手机号与身份证号已执行默认脱敏保护`,
     });
   };
 
-  // 生成包含 Sheet1（队伍汇总）与 Sheet2（成员明细）的标准 Excel XML 文件并触发浏览器下载
+  // 解析队员/队长/指导教师的完整导出档案信息（手机号、邮箱、身份证号、学历、队内角色、院校所在地、所属赛区）
+  const resolvePersonFullExportInfo = (params: {
+    name: string;
+    phone?: string;
+    email?: string;
+    university: string;
+    roleType: 'captain' | 'member' | 'advisor';
+    ctfRoles?: CtfRoleType[];
+  }) => {
+    const matchedUser =
+      platformUsers.find(
+        (u) =>
+          u.name === params.name ||
+          (params.phone && u.phone === params.phone) ||
+          (params.email && u.email.toLowerCase() === params.email.toLowerCase())
+      ) ||
+      PLATFORM_DIRECTORY_USERS.find(
+        (u) =>
+          u.name === params.name ||
+          (params.phone && u.phone === params.phone)
+      );
+
+    const fullPhone = params.phone || matchedUser?.phone || '13810246921';
+    const fullEmail =
+      params.email || matchedUser?.email || `${params.name}@edu.cn`;
+    const fullIdCard = getFullIdCard(params.name + fullPhone, params.roleType);
+    const educationLevel =
+      params.roleType === 'advisor'
+        ? '博士及以上'
+        : params.name.includes('博')
+        ? '博士及以上'
+        : params.name.includes('硕') || params.name === '陆景川' || params.name === '周子航'
+        ? '硕士'
+        : '本科';
+    const inTeamRoleText =
+      params.roleType === 'advisor'
+        ? '指导教师（不参与CTF角色）'
+        : formatCtfRolesText(params.ctfRoles, false);
+    const locAndDiv = resolveUniversityLocationAndDivision(
+      params.university,
+      institutions,
+      divisions
+    );
+
+    return {
+      name: params.name,
+      identityLabel:
+        params.roleType === 'captain'
+          ? '队长'
+          : params.roleType === 'advisor'
+          ? '指导教师'
+          : '队员',
+      inTeamRoleText,
+      educationLevel,
+      phone: fullPhone,
+      email: fullEmail,
+      idCard: fullIdCard,
+      university: params.university,
+      universityLocation: locAndDiv.locationText,
+      province: locAndDiv.province,
+      divisionName: locAndDiv.divisionName,
+    };
+  };
+
+  // 生成包含 Sheet1（队伍汇总全量详情）与 Sheet2（队伍与队员全部详细信息）的标准 Excel XML 文件并触发浏览器下载
   const downloadTwoSheetExcelFile = (teams: CaptainTeamRecord[], filename: string) => {
     const sheet1Rows = teams
       .map((t) => {
-        const auditMeta = mapTeamStatusToAdminAudit(t.status);
+        const stages = resolveTeamAuditStages(t);
         const totalMembers = 1 + t.members.length;
         const capContact = resolveTeamCaptainContact(t, platformUsers);
+        const capInfo = resolvePersonFullExportInfo({
+          name: t.captainName,
+          phone: capContact.phone,
+          email: capContact.email,
+          university: t.university,
+          roleType: 'captain',
+          ctfRoles: t.captainCtfRoles,
+        });
+        const rankText = stages.schoolRank ? `校内第${stages.schoolRank}名` : '-';
+        const allMemberSummary = [
+          `${capInfo.name}(队长/${capInfo.educationLevel}/${capInfo.inTeamRoleText}/${capInfo.phone})`,
+          ...t.members.map((m) => {
+            const mi = resolvePersonFullExportInfo({
+              name: m.name,
+              phone: m.phone,
+              email: m.email,
+              university: m.university,
+              roleType: 'member',
+              ctfRoles: m.ctfRoles,
+            });
+            return `${mi.name}(队员/${mi.educationLevel}/${mi.inTeamRoleText}/${mi.phone})`;
+          }),
+        ].join('；');
+
         return `<Row>
           <Cell><Data ss:Type="String">${t.teamName}</Data></Cell>
+          <Cell><Data ss:Type="String">${t.competitionTitle}</Data></Cell>
+          <Cell><Data ss:Type="String">${rankText}</Data></Cell>
           <Cell><Data ss:Type="String">${t.university}</Data></Cell>
-          <Cell><Data ss:Type="String">${t.subTrackName}</Data></Cell>
-          <Cell><Data ss:Type="String">${t.captainName}</Data></Cell>
-          <Cell><Data ss:Type="String">${maskPhone(capContact.phone)}</Data></Cell>
-          <Cell><Data ss:Type="String">${auditMeta.label}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.universityLocation}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.divisionName}</Data></Cell>
+          <Cell><Data ss:Type="String">${t.teamIntro || ''}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.name}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.phone}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.email}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.idCard}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.educationLevel}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.inTeamRoleText}</Data></Cell>
           <Cell><Data ss:Type="Number">${totalMembers}</Data></Cell>
+          <Cell><Data ss:Type="String">${allMemberSummary}</Data></Cell>
+          <Cell><Data ss:Type="String">${stages.regStatusLabel}</Data></Cell>
           <Cell><Data ss:Type="String">${t.createdAt}</Data></Cell>
         </Row>`;
       })
@@ -1085,27 +1875,61 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
 
     const sheet2Rows = teams
       .flatMap((t) => {
+        const stages = resolveTeamAuditStages(t);
+        const rankText = stages.schoolRank ? `校内第${stages.schoolRank}名` : '-';
         const capContact = resolveTeamCaptainContact(t, platformUsers);
+        const capInfo = resolvePersonFullExportInfo({
+          name: t.captainName,
+          phone: capContact.phone,
+          email: capContact.email,
+          university: t.captainUniversity || t.university,
+          roleType: 'captain',
+          ctfRoles: t.captainCtfRoles,
+        });
+
         const captainRow = `<Row>
           <Cell><Data ss:Type="String">${t.teamName}</Data></Cell>
-          <Cell><Data ss:Type="String">${t.captainName}</Data></Cell>
-          <Cell><Data ss:Type="String">队长</Data></Cell>
-          <Cell><Data ss:Type="String">${t.captainUniversity}</Data></Cell>
-          <Cell><Data ss:Type="String">${getMaskedIdCard(t.captainName)}</Data></Cell>
-          <Cell><Data ss:Type="String">${maskPhone(capContact.phone)}</Data></Cell>
-          <Cell><Data ss:Type="String">${maskEmail(capContact.email)}</Data></Cell>
+          <Cell><Data ss:Type="String">${t.competitionTitle}</Data></Cell>
+          <Cell><Data ss:Type="String">${rankText}</Data></Cell>
+          <Cell><Data ss:Type="String">${t.teamIntro || ''}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.university}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.universityLocation}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.divisionName}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.name}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.identityLabel}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.inTeamRoleText}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.educationLevel}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.phone}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.email}</Data></Cell>
+          <Cell><Data ss:Type="String">${capInfo.idCard}</Data></Cell>
         </Row>`;
-        const memRows = [...t.members, ...t.advisors].map(
-          (p) => `<Row>
+
+        const memRows = [...t.members, ...t.advisors].map((p) => {
+          const pInfo = resolvePersonFullExportInfo({
+            name: p.name,
+            phone: p.phone,
+            email: p.email,
+            university: p.university || t.university,
+            roleType: p.role === 'advisor' ? 'advisor' : 'member',
+            ctfRoles: p.ctfRoles,
+          });
+          return `<Row>
           <Cell><Data ss:Type="String">${t.teamName}</Data></Cell>
-          <Cell><Data ss:Type="String">${p.name}</Data></Cell>
-          <Cell><Data ss:Type="String">${p.role === 'advisor' ? '指导教师' : '队员'}</Data></Cell>
-          <Cell><Data ss:Type="String">${p.university}</Data></Cell>
-          <Cell><Data ss:Type="String">${getMaskedIdCard(p.name + p.phone)}</Data></Cell>
-          <Cell><Data ss:Type="String">${maskPhone(p.phone)}</Data></Cell>
-          <Cell><Data ss:Type="String">${maskEmail(p.email)}</Data></Cell>
-        </Row>`
-        );
+          <Cell><Data ss:Type="String">${t.competitionTitle}</Data></Cell>
+          <Cell><Data ss:Type="String">${rankText}</Data></Cell>
+          <Cell><Data ss:Type="String">${t.teamIntro || ''}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.university}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.universityLocation}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.divisionName}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.name}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.identityLabel}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.inTeamRoleText}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.educationLevel}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.phone}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.email}</Data></Cell>
+          <Cell><Data ss:Type="String">${pInfo.idCard}</Data></Cell>
+        </Row>`;
+        });
         return [captainRow, ...memRows];
       })
       .join('');
@@ -1114,31 +1938,47 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
- <Worksheet ss:Name="Sheet1-队伍汇总">
+ <Worksheet ss:Name="Sheet1-队伍汇总详情">
   <Table>
    <Row>
     <Cell><Data ss:Type="String">队伍名称</Data></Cell>
-    <Cell><Data ss:Type="String">所属学校</Data></Cell>
-    <Cell><Data ss:Type="String">所选赛道</Data></Cell>
+    <Cell><Data ss:Type="String">参赛赛事</Data></Cell>
+    <Cell><Data ss:Type="String">校内选拔排名</Data></Cell>
+    <Cell><Data ss:Type="String">所属院校</Data></Cell>
+    <Cell><Data ss:Type="String">院校所在地</Data></Cell>
+    <Cell><Data ss:Type="String">所属赛区</Data></Cell>
+    <Cell><Data ss:Type="String">队伍简介</Data></Cell>
     <Cell><Data ss:Type="String">队长姓名</Data></Cell>
-    <Cell><Data ss:Type="String">队长手机号(脱敏)</Data></Cell>
-    <Cell><Data ss:Type="String">审核状态</Data></Cell>
+    <Cell><Data ss:Type="String">队长手机号</Data></Cell>
+    <Cell><Data ss:Type="String">队长邮箱</Data></Cell>
+    <Cell><Data ss:Type="String">队长身份证号</Data></Cell>
+    <Cell><Data ss:Type="String">队长学历</Data></Cell>
+    <Cell><Data ss:Type="String">队长队内角色</Data></Cell>
     <Cell><Data ss:Type="String">队伍人数</Data></Cell>
+    <Cell><Data ss:Type="String">全队成员汇总</Data></Cell>
+    <Cell><Data ss:Type="String">报名与晋级状态</Data></Cell>
     <Cell><Data ss:Type="String">报名时间</Data></Cell>
    </Row>
    ${sheet1Rows}
   </Table>
  </Worksheet>
- <Worksheet ss:Name="Sheet2-成员明细">
+ <Worksheet ss:Name="Sheet2-队伍及队员全部详细信息">
   <Table>
    <Row>
     <Cell><Data ss:Type="String">所属队伍</Data></Cell>
+    <Cell><Data ss:Type="String">参赛赛事</Data></Cell>
+    <Cell><Data ss:Type="String">校内选拔排名</Data></Cell>
+    <Cell><Data ss:Type="String">队伍简介</Data></Cell>
+    <Cell><Data ss:Type="String">所属院校</Data></Cell>
+    <Cell><Data ss:Type="String">院校所在地</Data></Cell>
+    <Cell><Data ss:Type="String">所属赛区</Data></Cell>
     <Cell><Data ss:Type="String">姓名</Data></Cell>
-    <Cell><Data ss:Type="String">角色</Data></Cell>
-    <Cell><Data ss:Type="String">所属学校</Data></Cell>
-    <Cell><Data ss:Type="String">身份证号(脱敏)</Data></Cell>
-    <Cell><Data ss:Type="String">手机号(脱敏)</Data></Cell>
-    <Cell><Data ss:Type="String">邮箱(脱敏)</Data></Cell>
+    <Cell><Data ss:Type="String">队内身份</Data></Cell>
+    <Cell><Data ss:Type="String">队内角色</Data></Cell>
+    <Cell><Data ss:Type="String">学历</Data></Cell>
+    <Cell><Data ss:Type="String">手机号</Data></Cell>
+    <Cell><Data ss:Type="String">邮箱</Data></Cell>
+    <Cell><Data ss:Type="String">身份证号</Data></Cell>
    </Row>
    ${sheet2Rows}
   </Table>
@@ -1156,7 +1996,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     URL.revokeObjectURL(url);
   };
 
-  // 执行单条或批量审核（区分【高校审核】与【秘书处审核】两阶段）
+  // 第一段（Tab 1 高校资格审核）：执行单条或批量资格核验（通过后队伍变为“高校已通过（待校赛）”，并不直接进入秘书处！）
   const handleConfirmAuditExecution = () => {
     if (!auditModalState) return;
     setAuditError(null);
@@ -1167,7 +2007,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     }
 
     const targetIdSet = new Set(auditModalState.teamIds);
-    const isSchoolStage = auditModalState.stage === 'school';
     const isApprove = auditModalState.decision === 'approve';
     const trimmedReason = rejectReasonText.trim();
 
@@ -1176,70 +2015,43 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       if (!targetIdSet.has(team.id)) return team;
       affectedTeamNames.push(team.teamName);
 
-      if (isSchoolStage) {
-        // 高校审核阶段：
-        // - 通过：高校审核变为已通过，自动进入秘书处审核（待审核），报名状态保持“已提交”
-        // - 驳回：高校审核变为已驳回（记录驳回原因），秘书处审核重置为未开启，队长需重新修改提交后再依次进入高校审核、秘书处审核
-        return {
-          ...team,
-          status: isApprove ? ('pending_review' as const) : ('rejected' as const),
-          schoolAuditStatus: isApprove ? ('approved' as const) : ('rejected' as const),
-          schoolRejectReason: isApprove ? undefined : trimmedReason,
-          schoolAuditedAt: '2026-10-28 12:15:00',
-          secretariatAuditStatus: isApprove ? ('pending' as const) : ('none' as const),
-          secretariatRejectReason: undefined,
-          secretariatAuditedAt: undefined,
-          updatedAt: '2026-10-28 12:15:00',
-        };
-      } else {
-        // 秘书处审核阶段（前提：高校审核已通过）：
-        // - 通过：秘书处审核变为已通过，报名状态正式变为“报名成功 (approved)”，并固化生成报名成功时的只读快照 approvedSnapshot
-        // - 驳回：秘书处审核变为已驳回（记录驳回原因），队长需重新修改提交，重新进入【高校审核 -> 秘书处审核】两个流程
-        return {
-          ...team,
-          status: isApprove ? ('approved' as const) : ('rejected' as const),
-          schoolAuditStatus: 'approved' as const,
-          schoolAuditedAt: team.schoolAuditedAt || '2026-10-27 16:30:00',
-          secretariatAuditStatus: isApprove ? ('approved' as const) : ('rejected' as const),
-          secretariatRejectReason: isApprove ? undefined : trimmedReason,
-          secretariatAuditedAt: '2026-10-28 12:15:00',
-          approvedSnapshot: isApprove
-            ? team.approvedSnapshot ||
-              buildApprovedSnapshotFromCaptainTeam(team, '2026-10-28 12:15:00')
-            : team.approvedSnapshot,
-          updatedAt: '2026-10-28 12:15:00',
-        };
-      }
+      // 第一段（高校资格审核）：
+      // - 通过：高校审核变为已通过，晋级阶段状态设为 wait_school_match（高校已通过·待校赛），不直接进入秘书处！后续由高校管理员点击顶部【申报晋级队伍】弹窗提报。
+      // - 驳回：高校审核变为已驳回（记录驳回原因），队长可修改队伍信息后重新提交。
+      return {
+        ...team,
+        status: isApprove ? ('pending_review' as const) : ('rejected' as const),
+        schoolAuditStatus: isApprove ? ('approved' as const) : ('rejected' as const),
+        schoolRejectReason: isApprove ? undefined : trimmedReason,
+        schoolAuditedAt: '2026-10-28 12:15:00',
+        advancementStatus: isApprove
+          ? ('wait_school_match' as const)
+          : ('none' as const),
+        schoolRank: isApprove ? team.schoolRank : undefined,
+        secretariatAuditStatus: 'none' as const,
+        secretariatRejectReason: undefined,
+        secretariatAuditedAt: undefined,
+        updatedAt: '2026-10-28 12:15:00',
+      };
     });
 
     onUpdateCaptainTeams(updatedTeams);
 
-    const stageLabel = isSchoolStage ? '高校审核' : '秘书处审核';
     if (isApprove) {
-      if (isSchoolStage) {
-        onSendSystemNotification(
-          `【高校审核通过】${affectedTeamNames.join('、')}`,
-          `您所在的队伍（${affectedTeamNames.join('、')}）已通过高校审核，现已自动流转进入“秘书处审核”阶段！`
-        );
-        onToast(
-          `已完成高校审核通过（${affectedTeamNames.length} 支队伍），队伍已自动流转进入【秘书处审核】阶段！`
-        );
-      } else {
-        onSendSystemNotification(
-          `【秘书处终审通过 · 报名成功】${affectedTeamNames.join('、')}`,
-          `恭喜！您所在的队伍（${affectedTeamNames.join('、')}）已通过秘书处审核，报名状态已更新为“报名成功”！`
-        );
-        onToast(
-          `已完成秘书处审核通过（${affectedTeamNames.length} 支队伍），前台报名状态已同步更新为【报名成功】！`
-        );
-      }
-    } else {
       onSendSystemNotification(
-        `【${stageLabel}驳回】${affectedTeamNames.join('、')}`,
-        `您所在的队伍在「${stageLabel}」阶段未通过，驳回原因：${trimmedReason}。队长可在【个人中心 - 我的报名】修改队伍信息后重新提交，重新进入【高校审核 -> 秘书处审核】流程。`
+        `【高校资格审核通过 · 待校赛选拔】${affectedTeamNames.join('、')}`,
+        `您所在的队伍（${affectedTeamNames.join('、')}）已通过本校资格审核，状态已更新为“高校已通过（待校赛）”。请等待高校管理员组织校赛选拔并统一提报晋级名单至大赛秘书处。`
       );
       onToast(
-        `已在【${stageLabel}】驳回 ${affectedTeamNames.length} 支队伍，前台将展示“已驳回”及悬浮原因气泡，队长修改重提后将重新进入高校审核与秘书处审核流程！`
+        `已完成高校资格审核通过（${affectedTeamNames.length} 支队伍）！队伍已进入【待校赛选拔池】，可通过顶部【申报晋级队伍】按钮勾选排名并提报秘书处！`
+      );
+    } else {
+      onSendSystemNotification(
+        `【高校资格审核驳回】${affectedTeamNames.join('、')}`,
+        `您所在的队伍在「高校资格审核」阶段未通过，驳回原因：${trimmedReason}。队长可在【个人中心 - 我的报名】修改队伍信息后重新提交。`
+      );
+      onToast(
+        `已在【高校资格审核】驳回 ${affectedTeamNames.length} 支队伍，前台将展示“已驳回”及驳回原因，队长修改后可重新提交本校审核！`
       );
     }
 
@@ -1248,8 +2060,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       ip: '202.112.128.45',
       location: '北京市海淀区',
       device: 'Admin Console',
-      action: `${auditModalState.mode === 'batch' ? '批量' : '单条'}${stageLabel}：${
-        isApprove ? '已通过' : '已驳回'
+      action: `${auditModalState.mode === 'batch' ? '批量' : '单条'}高校资格审核：${
+        isApprove ? '已通过(进入待校赛池)' : '已驳回'
       }`,
       result: '成功',
       detail: `涉及队伍：${affectedTeamNames.join('、')}${
@@ -1265,7 +2077,11 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   const handleOpenAdminBackdoorEdit = (team: CaptainTeamRecord) => {
     const deepCopy: CaptainTeamRecord = {
       ...team,
-      members: team.members.map((m) => ({ ...m })),
+      captainCtfRoles: team.captainCtfRoles ? [...team.captainCtfRoles] : [],
+      members: team.members.map((m) => ({
+        ...m,
+        ctfRoles: m.ctfRoles ? [...m.ctfRoles] : [],
+      })),
       advisors: team.advisors.map((a) => ({ ...a })),
     };
     setEditTeamDraft(deepCopy);
@@ -1273,12 +2089,17 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       JSON.stringify({
         teamName: team.teamName,
         captainName: team.captainName,
-        members: team.members.map((m) => m.name),
+        captainRoles: formatCtfRolesText(team.captainCtfRoles, false),
+        members: team.members.map(
+          (m) => `${m.name}(${formatCtfRolesText(m.ctfRoles, false)})`
+        ),
         advisors: team.advisors.map((a) => a.name),
         status: team.status,
       })
     );
     setBackdoorSearchQuery('');
+    setBackdoorAddCtfRoles([]);
+    setBackdoorRolePopoverId(null);
     setBackdoorInterceptAlert(null);
     setBackdoorForceOverrideChecked(false);
     setBackdoorFeedback(null);
@@ -1470,6 +2291,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       email: found.email,
       university: found.university,
       role: backdoorAddRole,
+      ctfRoles: backdoorAddRole === 'member' ? [...backdoorAddCtfRoles] : undefined,
       isVerified: found.isRealNameVerified && found.isAcademicOrTeacherVerified,
       confirmStatus: 'accepted', // 管理员后门直接拉入设为已确认
     };
@@ -1487,10 +2309,15 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     });
     setBackdoorInterceptAlert(null);
     setBackdoorSearchQuery('');
+    if (backdoorAddRole === 'member' && backdoorAddCtfRoles.length === 0) {
+      // 如果添加队员时还未勾选初始角色，自动弹出该新队员的【编辑】角色下拉框方便直接分配
+      setBackdoorRolePopoverId(newPerson.id);
+    }
+    setBackdoorAddCtfRoles([]);
     setBackdoorFeedback(
       forceBypass
-        ? `【特权后门生效】已跳过规则校验，强行特批「${found.name}（${found.university}）」加入队伍！`
-        : `已将「${found.name}」加入队伍名单。`
+        ? `【特权后门生效】已跳过规则校验，强行特批「${found.name}（${found.university}）」加入队伍！您可随时点击该成员右侧【编辑】调整其队内角色标签。`
+        : `已将「${found.name}」加入队伍名单！您可点击该成员右侧【编辑】分配或修改队内角色标签。`
     );
   };
 
@@ -1500,14 +2327,26 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     const afterSnapshot = JSON.stringify({
       teamName: editTeamDraft.teamName,
       captainName: editTeamDraft.captainName,
-      members: editTeamDraft.members.map((m) => m.name),
+      captainRoles: formatCtfRolesText(editTeamDraft.captainCtfRoles, false),
+      members: editTeamDraft.members.map(
+        (m) => `${m.name}(${formatCtfRolesText(m.ctfRoles, false)})`
+      ),
       advisors: editTeamDraft.advisors.map((a) => a.name),
       status: editTeamDraft.status,
     });
 
-    // 状态保持：编辑保存后，队伍状态不变
+    // 状态保持：编辑保存后，队伍状态不变（若已报名成功则同步更新快照）
     const updated = captainTeams.map((t) =>
-      t.id === editTeamDraft.id ? { ...editTeamDraft, updatedAt: '2026-10-28 12:20' } : t
+      t.id === editTeamDraft.id
+        ? {
+            ...editTeamDraft,
+            approvedSnapshot:
+              editTeamDraft.status === 'approved'
+                ? buildApprovedSnapshotFromCaptainTeam(editTeamDraft, '2026-10-28 12:20')
+                : editTeamDraft.approvedSnapshot,
+            updatedAt: '2026-10-28 12:20',
+          }
+        : t
     );
     onUpdateCaptainTeams(updated);
 
@@ -1758,26 +2597,47 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       </button>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] text-slate-500 mb-1">
-                        教师人数上限（限制 1-5 人）{' '}
-                        {cfgIncludeAdvisor && <span className="text-red-500">*</span>}
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={5}
-                        disabled={!cfgIncludeAdvisor}
-                        required={cfgIncludeAdvisor}
-                        value={cfgIncludeAdvisor ? cfgMaxAdvisors : 0}
-                        onChange={(e) => setCfgMaxAdvisors(Number(e.target.value))}
-                        className="w-full px-3.5 py-2 text-sm font-mono-num bg-white disabled:bg-slate-100 border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-slate-500 mb-1">
+                          最少人数（可设为 0-5 人）{' '}
+                          {cfgIncludeAdvisor && <span className="text-red-500">*</span>}
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={5}
+                          disabled={!cfgIncludeAdvisor}
+                          required={cfgIncludeAdvisor}
+                          value={cfgIncludeAdvisor ? cfgMinAdvisors : 0}
+                          onChange={(e) => setCfgMinAdvisors(Number(e.target.value))}
+                          className="w-full px-3.5 py-2 text-sm font-mono-num bg-white disabled:bg-slate-100 border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-500 mb-1">
+                          最多人数 / 上限（可设为 0-5 人）{' '}
+                          {cfgIncludeAdvisor && <span className="text-red-500">*</span>}
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={5}
+                          disabled={!cfgIncludeAdvisor}
+                          required={cfgIncludeAdvisor}
+                          value={cfgIncludeAdvisor ? cfgMaxAdvisors : 0}
+                          onChange={(e) => setCfgMaxAdvisors(Number(e.target.value))}
+                          className="w-full px-3.5 py-2 text-sm font-mono-num bg-white disabled:bg-slate-100 border border-slate-300 rounded-lg focus:border-[#0284C7] focus:outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
                   <p className="text-[11px] text-slate-500">
                     {cfgIncludeAdvisor
-                      ? `每支战队最多可邀请 ${cfgMaxAdvisors} 名已认证指导教师`
+                      ? cfgMinAdvisors === 0
+                        ? `最少人数为 0 人，最多 ${cfgMaxAdvisors} 人（即每个队伍可以邀请指导老师，也可以不邀请）`
+                        : `每支战队须邀请 ${cfgMinAdvisors} 至 ${cfgMaxAdvisors} 名已认证指导教师`
                       : '已关闭“包含指导教师”开关，前台报名表单不再展示指导教师邀请项'}
                   </p>
                 </div>
@@ -1821,6 +2681,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         gender: getPersonGender(team.captainName),
         roleLabel: '队长',
         roleKey: 'captain' as const,
+        ctfRoles: team.captainCtfRoles,
         university: team.captainUniversity,
         phone: maskPhone(capContact.phone),
         email: maskEmail(capContact.email),
@@ -1833,6 +2694,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         gender: getPersonGender(m.name),
         roleLabel: '队员',
         roleKey: 'member' as const,
+        ctfRoles: m.ctfRoles,
         university: m.university,
         phone: maskPhone(m.phone),
         email: maskEmail(m.email),
@@ -1845,6 +2707,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         gender: getPersonGender(a.name),
         roleLabel: '指导教师',
         roleKey: 'advisor' as const,
+        ctfRoles: undefined,
         university: a.university,
         phone: maskPhone(a.phone),
         email: maskEmail(a.email),
@@ -1865,34 +2728,39 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
             <span>返回查看报名列表</span>
           </button>
           <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" />
-            <span>查看队伍详情（只读页面）</span>
+            <span>查看队伍详情</span>
           </span>
         </div>
 
-        {/* 1. 基础信息：队伍名、LOGO大图、简介、所属院校、赛道、两级审核状态 */}
+        {/* 1. 基础信息：队伍名、LOGO大图、简介、所属院校、报名状态、高校审核、秘书处审核 */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <div className="flex items-start gap-5">
               <TeamLogoAvatar logo={team.teamLogo} teamName={team.teamName} size="lg" />
               <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h2 className="text-xl font-extrabold text-slate-900">{team.teamName}</h2>
-                  <span
-                    className={`px-2.5 py-0.5 rounded border text-xs font-bold ${stages.regStatusClass}`}
-                  >
-                    报名状态：{stages.regStatusLabel}
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <h2 className="text-xl font-extrabold text-slate-900 mr-1">{team.teamName}</h2>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${stages.regDotClass}`} />
+                    <span className={stages.regColorClass}>
+                      报名状态：{stages.regStatusLabel}
+                    </span>
                   </span>
+                  {stages.schoolRank && (
+                    <span className="px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-xs font-extrabold inline-flex items-center gap-1">
+                      <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                      <span>校内排名：第 {stages.schoolRank} 名</span>
+                    </span>
+                  )}
                   <div className="inline-flex items-center gap-1.5 text-xs">
                     <span className="text-slate-500 font-semibold">高校审核：</span>
                     <AuditStageBadgeWithTooltip
                       status={stages.schoolStatus}
                       rejectReason={stages.schoolReason}
                       stage="school"
+                      stageLabel="高校审核"
+                      customLabel={stages.schoolBadgeLabel}
                     />
-                    <span className="text-slate-400 font-mono-num">
-                      （审核时间：{stages.schoolAuditedAt || '—'}）
-                    </span>
                   </div>
                   <div className="inline-flex items-center gap-1.5 text-xs">
                     <span className="text-slate-500 font-semibold">秘书处审核：</span>
@@ -1900,10 +2768,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       status={stages.secretariatStatus}
                       rejectReason={stages.secretariatReason}
                       stage="secretariat"
+                      stageLabel="秘书处审核"
+                      customLabel={stages.secretariatBadgeLabel}
                     />
-                    <span className="text-slate-400 font-mono-num">
-                      （审核时间：{stages.secretariatAuditedAt || '—'}）
-                    </span>
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
@@ -1914,12 +2781,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   <span>
                     所属院校：<strong className="text-[#0369A1]">{team.university}</strong>
                   </span>
-                  <span>
-                    所选赛道：<strong className="text-slate-800">{team.subTrackName}</strong>
-                  </span>
-                  <span>
-                    成员确认进度：<strong className="text-slate-800">{confirmProgress.label}</strong>
-                  </span>
                   <span className="font-mono-num">报名时间：{team.createdAt}</span>
                 </div>
               </div>
@@ -1928,9 +2789,11 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
 
           {/* 2. 成员列表表格（手机号/邮箱/身份证号均脱敏） */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-900">
-              队伍成员与指导教师明细（共 {allPersonRows.length} 人 · 隐私字段已脱敏）
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-slate-900">
+                队伍成员与指导教师明细（共 {allPersonRows.length} 人）
+              </h3>
+            </div>
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -1938,6 +2801,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                     <th className="py-3 px-4">姓名</th>
                     <th className="py-3 px-4">性别</th>
                     <th className="py-3 px-4">角色</th>
+                    <th className="py-3 px-4">队内角色</th>
                     <th className="py-3 px-4">所属院校</th>
                     <th className="py-3 px-4">手机号(脱敏)</th>
                     <th className="py-3 px-4">邮箱(脱敏)</th>
@@ -1962,6 +2826,13 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           {row.roleLabel}
                         </span>
                       </td>
+                      <td className="py-3.5 px-4">
+                        <CtfRoleBadges
+                          roles={row.ctfRoles}
+                          isAdvisor={row.roleKey === 'advisor'}
+                          emptyText="-"
+                        />
+                      </td>
                       <td className="py-3.5 px-4 font-semibold text-slate-700">
                         {row.university}
                       </td>
@@ -1975,52 +2846,10 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
             </div>
           </div>
 
-          {/* 3. 详情页底部两级快捷审核操作栏 */}
+          {/* 3. 详情页底部三段式审核与晋级说明 */}
           <div className="pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="text-xs text-slate-500">
-              审核规则：先由【高校审核】通过后流转至【秘书处审核】，秘书处审核通过后队伍报名状态正式变为“报名成功”；无论被高校审核驳回还是被秘书处审核驳回，队长修改重新提交后均重新进入【高校审核 &rarr; 秘书处审核】流程。
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              {stages.schoolStatus !== 'none' &&
-                adminRole !== 'secretariat_admin' && (
-                  <button
-                    type="button"
-                    disabled={!isSchoolStageOpen}
-                    onClick={() => {
-                      setRejectReasonText(stages.schoolReason || '');
-                      setAuditError(null);
-                      setAuditModalState({
-                        mode: 'single',
-                        stage: 'school',
-                        teamIds: [team.id],
-                        decision: 'approve',
-                      });
-                    }}
-                    className="px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 disabled:opacity-40 disabled:cursor-not-allowed text-[#0284C7] text-xs font-bold cursor-pointer"
-                  >
-                    {isSchoolStageOpen ? '执行高校审核' : '高校审核未开启'}
-                  </button>
-                )}
-              {stages.schoolStatus === 'approved' &&
-                adminRole !== 'school_admin' && (
-                  <button
-                    type="button"
-                    disabled={!isSecretariatStageOpen}
-                    onClick={() => {
-                      setRejectReasonText(stages.secretariatReason || '');
-                      setAuditError(null);
-                      setAuditModalState({
-                        mode: 'single',
-                        stage: 'secretariat',
-                        teamIds: [team.id],
-                        decision: 'approve',
-                      });
-                    }}
-                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold shadow-xs cursor-pointer"
-                  >
-                    {isSecretariatStageOpen ? '执行秘书处审核' : '秘书处审核未开启'}
-                  </button>
-                )}
+            <div className="text-xs text-slate-500 leading-relaxed">
+              三段式审核规则：①【高校审核】核验信息真实性 &rarr; ②【申报晋级队伍】勾选已通过校内赛的队伍、排序排名并上传校赛证明 &rarr; ③【秘书处审核】按高校维度终审通过后沉淀至【最终参赛队伍清单】。
             </div>
           </div>
         </div>
@@ -2143,16 +2972,21 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
             </div>
           </section>
 
-          {/* 2. 成员修改（含移除队长强制指定新队长、添加成员与 [√] 强行特批加入后门） */}
+          {/* 2. 成员修改（含移除队长强制指定新队长、点击【编辑】增删角色标签、添加成员直接分配角色与 [√] 强行特批加入后门） */}
           <section className="space-y-5">
-            <h3 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
-              二、成员修改（移除队长需指定新队长 · 支持特权跳过校验拉人）
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">
+                二、成员与队内角色修改（支持点击【编辑】增删角色标签 · 特权添加或替换队员时可直接分配角色）
+              </h3>
+              <span className="text-xs text-slate-500">
+                管理员可在此直接调整已锁定队伍的成员名单及队内 CTF 角色
+              </span>
+            </div>
 
-            {/* 队长行 */}
-            <div className="p-4 rounded-xl bg-sky-50/60 border border-sky-200 flex items-center justify-between">
-              <div>
-                <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            {/* 队长行（支持点击【编辑】修改队长角色标签） */}
+            <div className="p-4 rounded-xl bg-sky-50/60 border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1.5">
+                <div className="text-sm font-bold text-slate-900 flex flex-wrap items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-[#0284C7] text-white text-xs">
                     当前队长
                   </span>
@@ -2161,33 +2995,57 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                     （{editTeamDraft.captainUniversity}）
                   </span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-500 font-semibold">队内角色：</span>
+                  <CtfRoleBadges roles={editTeamDraft.captainCtfRoles} emptyText="待分配" />
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setNewCaptainSearchQuery('');
-                  setNewCaptainSearchError(null);
-                  setSelectedNewCaptainMemberId(
-                    editTeamDraft.members[0]?.id || newCaptainCandidates[0]?.id || ''
-                  );
-                  setRemoveCaptainModalOpen(true);
-                }}
-                className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>移除队长（需指定新队长）</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-center shrink-0">
+                <CtfRoleSelectorDropdown
+                  selectedRoles={editTeamDraft.captainCtfRoles || []}
+                  onChange={(nextRoles) =>
+                    setEditTeamDraft({
+                      ...editTeamDraft,
+                      captainCtfRoles: nextRoles,
+                    })
+                  }
+                  isOpen={backdoorRolePopoverId === 'captain'}
+                  onToggleOpen={() =>
+                    setBackdoorRolePopoverId((prev) =>
+                      prev === 'captain' ? null : 'captain'
+                    )
+                  }
+                  onClose={() => setBackdoorRolePopoverId(null)}
+                  triggerLabel="编辑"
+                  compactTrigger
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewCaptainSearchQuery('');
+                    setNewCaptainSearchError(null);
+                    setSelectedNewCaptainMemberId(
+                      editTeamDraft.members[0]?.id || newCaptainCandidates[0]?.id || ''
+                    );
+                    setRemoveCaptainModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>移除队长（需指定新队长）</span>
+                </button>
+              </div>
             </div>
 
-            {/* 队员与指导教师列表 */}
+            {/* 队员与指导教师列表（支持点击某队员旁的【编辑】为其增删角色标签） */}
             <div className="space-y-2.5">
               {[...editTeamDraft.members, ...editTeamDraft.advisors].map((person) => (
                 <div
                   key={person.id}
-                  className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-4"
+                  className="p-3.5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
-                  <div>
-                    <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <div className="space-y-1.5">
+                    <div className="text-sm font-bold text-slate-900 flex flex-wrap items-center gap-2">
                       <span
                         className={`px-2 py-0.5 rounded text-xs font-bold ${
                           person.role === 'advisor'
@@ -2205,43 +3063,80 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 font-mono-num mt-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-500 font-semibold">
+                        队内角色：
+                      </span>
+                      <CtfRoleBadges
+                        roles={person.ctfRoles}
+                        isAdvisor={person.role === 'advisor'}
+                        emptyText="待分配"
+                      />
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono-num">
                       手机：{maskPhone(person.phone)} | 邮箱：{maskEmail(person.email)}
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextMembers = editTeamDraft.members.filter(
-                        (m) => m.id !== person.id
-                      );
-                      const nextAdvisors = editTeamDraft.advisors.filter(
-                        (a) => a.id !== person.id
-                      );
-                      setEditTeamDraft({
-                        ...editTeamDraft,
-                        members: nextMembers,
-                        advisors: nextAdvisors,
-                      });
-                      setBackdoorFeedback(
-                        `已将「${person.name}」移出队伍（保存后系统将自动向其发送站内信通知）。`
-                      );
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>移除</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                    {person.role === 'member' && (
+                      <CtfRoleSelectorDropdown
+                        selectedRoles={person.ctfRoles || []}
+                        onChange={(nextRoles) =>
+                          setEditTeamDraft({
+                            ...editTeamDraft,
+                            members: editTeamDraft.members.map((m) =>
+                              m.id === person.id ? { ...m, ctfRoles: nextRoles } : m
+                            ),
+                          })
+                        }
+                        isOpen={backdoorRolePopoverId === person.id}
+                        onToggleOpen={() =>
+                          setBackdoorRolePopoverId((prev) =>
+                            prev === person.id ? null : person.id
+                          )
+                        }
+                        onClose={() => setBackdoorRolePopoverId(null)}
+                        triggerLabel="编辑"
+                        compactTrigger
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (backdoorRolePopoverId === person.id) {
+                          setBackdoorRolePopoverId(null);
+                        }
+                        const nextMembers = editTeamDraft.members.filter(
+                          (m) => m.id !== person.id
+                        );
+                        const nextAdvisors = editTeamDraft.advisors.filter(
+                          (a) => a.id !== person.id
+                        );
+                        setEditTeamDraft({
+                          ...editTeamDraft,
+                          members: nextMembers,
+                          advisors: nextAdvisors,
+                        });
+                        setBackdoorFeedback(
+                          `已将「${person.name}」移出队伍（保存后系统将自动向其发送站内信通知）。`
+                        );
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>移除</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* 管理员后门添加成员搜索框 */}
+            {/* 管理员后门添加成员搜索框（添加队员时可直接分配角色） */}
             <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-bold text-slate-800">
-                  添加成员（支持检测未认证 / 跨校规则拦截，并提供【强行特批加入】后门特权）
+                  添加/替换成员（支持检测未认证 / 跨校规则拦截，提供【强行特批加入】后门特权，并可直接分配角色）
                 </span>
                 <div className="flex items-center gap-2 text-xs">
                   <button
@@ -2268,6 +3163,46 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   </button>
                 </div>
               </div>
+
+              {/* 添加为队员时，支持直接勾选分配 CTF 角色 */}
+              {backdoorAddRole === 'member' && (
+                <div className="p-3 rounded-lg bg-white border border-slate-200 flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-bold text-slate-700">
+                    直接分配队内角色（可多选）：
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {CTF_ROLE_OPTIONS.map((role) => {
+                      const checked = backdoorAddCtfRoles.includes(role);
+                      return (
+                        <label
+                          key={role}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                            checked
+                              ? 'bg-sky-50 border-[#0284C7] text-[#0369A1]'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              setBackdoorAddCtfRoles((prev) =>
+                                prev.includes(role)
+                                  ? prev.filter((r) => r !== role)
+                                  : CTF_ROLE_OPTIONS.filter(
+                                      (r) => r === role || prev.includes(r)
+                                    )
+                              );
+                            }}
+                            className="w-3.5 h-3.5 rounded text-[#0284C7] cursor-pointer"
+                          />
+                          <span>{role}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
@@ -2544,10 +3479,16 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   }
 
   // ==========================================================================
-  // 渲染子视图 3：查看报名列表页（分为【高校审核】与【秘书处审核】两个TAB）
+  // 渲染子视图 3：查看报名列表页（重构为“三段式”三大纯净 TAB）
+  //   Tab 1：【高校资格审核】（信息真实性核验 + 【申报晋级队伍】弹窗提报 + 【撤回提报】）
+  //   Tab 2：【晋级名单审核】（秘书处终审：按“高校维度”聚合审核晋级名单与校赛成绩证明材料）
+  //   Tab 3：【最终参赛队伍清单】（只读：沉淀所有秘书处终审通过的最终参赛队伍，支持多维筛选与导出）
   // ==========================================================================
   if (subView === 'team-list') {
-    const effectiveAuditTab = adminRole === 'school_admin' ? 'school' : activeAuditTab;
+    const effectiveAuditTab: 'school' | 'secretariat' | 'final_roster' =
+      adminRole === 'school_admin' && activeAuditTab === 'secretariat'
+        ? 'school'
+        : activeAuditTab;
     const isCurrentStageSwitchEnabled =
       effectiveAuditTab === 'school' ? isSchoolStageOpen : isSecretariatStageOpen;
 
@@ -2641,6 +3582,25 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       filteredEventTeams.length > 0 &&
       filteredEventTeams.every((t) => selectedTeamIds.includes(t.id));
 
+    // 【晋级名单提报弹窗】左侧待选池与右侧已选/排序池数据计算
+    const modalApprovedTeams = captainTeams.filter(
+      (t) =>
+        t.competitionId === activeEventIdForTeams &&
+        t.university === advancementModalUniversity &&
+        t.status !== 'draft' &&
+        t.status !== 'inviting' &&
+        resolveTeamAuditStages(t).schoolStatus === 'approved'
+    );
+    const modalLeftPoolTeams = modalApprovedTeams.filter(
+      (t) =>
+        !advancementSelectedTeamIds.includes(t.id) &&
+        (advancementPoolTrackFilter === 'all' ||
+          t.subTrackName === advancementPoolTrackFilter)
+    );
+    const modalRightSelectedTeams = advancementSelectedTeamIds
+      .map((id) => modalApprovedTeams.find((t) => t.id === id))
+      .filter((t): t is CaptainTeamRecord => Boolean(t));
+
     return (
       <div className="space-y-5 pb-12">
         {/* 顶部面包屑 */}
@@ -2664,6 +3624,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
               </span>
             )}
           </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500" />
         </div>
 
         {/* ===================================================================
@@ -2732,9 +3693,15 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           </div>
         )}
 
-        {/* 两个审核阶段 TAB 切换：高校审核 / 秘书处审核（高校管理员仅能看到“高校审核”Tab） */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* ===================================================================
+            三大 TAB 导航栏：
+            1. 高校资格审核
+            2. 晋级名单审核
+            3. 最终参赛队伍清单
+           =================================================================== */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
+            {/* 高校审核 */}
             <button
               type="button"
               onClick={() => {
@@ -2743,519 +3710,1989 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 setFilterAuditStatusInput('all');
                 setAppliedTeamFilters((prev) => ({ ...prev, auditStatus: 'all' }));
               }}
-              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-2 transition-all cursor-pointer ${
                 effectiveAuditTab === 'school'
                   ? 'bg-[#0284C7] text-white shadow-xs'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               <span>高校审核</span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[11px] font-mono-num ${
-                  effectiveAuditTab === 'school'
-                    ? 'bg-white/20 text-white'
-                    : 'bg-slate-200 text-slate-700'
-                }`}
-              >
-                共 {eventAuditTabCounts.schoolTabTotal} 支 · 待审 {eventAuditTabCounts.schoolPendingCount}
-              </span>
             </button>
 
+            {/* 晋级名单审核 */}
             {adminRole !== 'school_admin' && (
               <button
                 type="button"
                 onClick={() => {
                   setActiveAuditTab('secretariat');
                   setSelectedTeamIds([]);
-                  setFilterAuditStatusInput('all');
-                  setAppliedTeamFilters((prev) => ({ ...prev, auditStatus: 'all' }));
                 }}
-                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-2 transition-all cursor-pointer ${
                   effectiveAuditTab === 'secretariat'
                     ? 'bg-[#0284C7] text-white shadow-xs'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                <span>秘书处审核</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-mono-num ${
-                    effectiveAuditTab === 'secretariat'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  共 {eventAuditTabCounts.secretariatTabTotal} 支 · 待审 {eventAuditTabCounts.secretariatPendingCount}
-                </span>
+                <span>晋级名单审核</span>
               </button>
             )}
-          </div>
-        </div>
 
-        {/* 1. 搜索筛选区（关键字单框多匹配、所属院校、所选赛道、当前阶段审核状态、报名时间范围、【查询】、【重置】） */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {/* 关键字：队伍名称 / 队长姓名 / 队长手机号 */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                关键字（队伍名/队长姓名/手机号）
-              </label>
-              <input
-                type="text"
-                value={filterKeywordInput}
-                onChange={(e) => setFilterKeywordInput(e.target.value)}
-                placeholder="单框多匹配检索..."
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none"
-              />
-            </div>
-
-            {/* 所属院校 */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                所属院校{adminRole === 'school_admin' ? '（已绑定本校）' : '（模糊匹配）'}
-              </label>
-              <input
-                type="text"
-                value={
-                  adminRole === 'school_admin'
-                    ? adminInstitutionName
-                    : filterSchoolInput
-                }
-                disabled={adminRole === 'school_admin'}
-                onChange={(e) => setFilterSchoolInput(e.target.value)}
-                placeholder="如：北京航空航天大学"
-                className={`w-full px-3 py-2 text-xs border rounded-lg ${
-                  adminRole === 'school_admin'
-                    ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed font-bold'
-                    : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-[#0284C7] focus:outline-none'
-                }`}
-              />
-            </div>
-
-            {/* 所选赛道（根据该赛事配置的赛道拉取） */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                所选赛道
-              </label>
-              <select
-                value={filterTrackInput}
-                onChange={(e) => setFilterTrackInput(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none cursor-pointer"
-              >
-                <option value="all">全部赛道</option>
-                {activeEventForTeams.tracks.map((t) => (
-                  <option key={t.id} value={t.name}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* 审核状态（待审核/已通过/已驳回） */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                {effectiveAuditTab === 'school' ? '高校审核状态' : '秘书处审核状态'}
-              </label>
-              <select
-                value={filterAuditStatusInput}
-                onChange={(e) =>
-                  setFilterAuditStatusInput(e.target.value as 'all' | TwoStageAuditStatus)
-                }
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none cursor-pointer"
-              >
-                <option value="all">全部状态</option>
-                <option value="pending">待审核</option>
-                <option value="approved">已通过</option>
-                <option value="rejected">已驳回</option>
-              </select>
-            </div>
-
-            {/* 报名时间范围 */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                报名时间范围
-              </label>
-              <div className="flex items-center gap-1">
-                <input
-                  type="date"
-                  value={filterDateStartInput}
-                  onChange={(e) => setFilterDateStartInput(e.target.value)}
-                  className="w-full px-2 py-2 text-[11px] font-mono-num bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
-                />
-                <span className="text-slate-400">-</span>
-                <input
-                  type="date"
-                  value={filterDateEndInput}
-                  onChange={(e) => setFilterDateEndInput(e.target.value)}
-                  className="w-full px-2 py-2 text-[11px] font-mono-num bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
-                />
-              </div>
-            </div>
+            {/* 最终参赛队伍清单 */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveAuditTab('final_roster');
+                setSelectedTeamIds([]);
+              }}
+              className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                effectiveAuditTab === 'final_roster'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Trophy className="w-4 h-4" />
+              <span>最终参赛队伍清单</span>
+            </button>
           </div>
 
-          {/* 查询与重置按钮 + 顶部全局操作栏（导出Excel、批量审核、导入线下数据） */}
-          <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* 【导出Excel】（联动指标6） */}
-              <button
-                type="button"
-                onClick={() => handleTriggerExportExcel(false)}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span>
-                  导出Excel ({selectedTeamIds.length > 0 ? `已选${selectedTeamIds.length}项` : '当前筛选全部'})
+          {/* 当处于【高校资格审核】Tab 时，右侧展示当前提报院校与【申报晋级队伍】/【撤回提报】操作 */}
+          {effectiveAuditTab === 'school' && (
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              {adminRole !== 'school_admin' ? (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="font-bold text-slate-600">当前提报院校：</span>
+                  <select
+                    value={activeSchoolContextInTab1}
+                    onChange={(e) => setActiveSchoolContextInTab1(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-bold text-slate-800 focus:border-[#0284C7] focus:outline-none cursor-pointer"
+                  >
+                    {availableSchoolsInCurrentEvent.map((sc) => (
+                      <option key={sc} value={sc}>
+                        {sc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <span className="text-xs font-bold text-slate-600">
+                  当前提报院校：【{targetUniversityForAdvancement}】
                 </span>
-              </button>
+              )}
 
-              {/* 【批量审核】 */}
-              <button
-                type="button"
-                disabled={selectedTeamIds.length === 0 || !isCurrentStageSwitchEnabled}
-                onClick={() => {
-                  setRejectReasonText('');
-                  setAuditError(null);
-                  setAuditModalState({
-                    mode: 'batch',
-                    stage: effectiveAuditTab,
-                    teamIds: selectedTeamIds,
-                    decision: 'approve',
-                  });
-                }}
-                className="px-3.5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>
-                  批量{effectiveAuditTab === 'school' ? '高校审核' : '秘书处审核'} ({selectedTeamIds.length})
-                  {!isCurrentStageSwitchEnabled ? ' [阶段已关闭]' : ''}
-                </span>
-              </button>
-
-              {/* 【导入线下数据】（仅组委会超级管理员可见） */}
-              {adminRole === 'super_admin' && (
+              {currentSchoolSubmission && currentSchoolSubmission.status === 'pending' && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setImportErrorReport(null);
-                    setImportSuccessMsg(null);
-                    setImportModalOpen(true);
-                  }}
-                  className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                  onClick={() =>
+                    handleWithdrawAdvancementSubmission(targetUniversityForAdvancement)
+                  }
+                  className="px-3.5 py-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-amber-800 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
                 >
-                  <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
-                  <span>导入线下数据</span>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>撤回提报</span>
                 </button>
               )}
-            </div>
 
-            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setAppliedTeamFilters({
-                    keyword: filterKeywordInput,
-                    school:
-                      adminRole === 'school_admin'
-                        ? adminInstitutionName
-                        : filterSchoolInput,
-                    track: filterTrackInput,
-                    auditStatus: filterAuditStatusInput,
-                    dateStart: filterDateStartInput,
-                    dateEnd: filterDateEndInput,
-                  })
-                }
-                className="px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                disabled={currentSchoolSubmission?.status === 'approved'}
+                onClick={() => handleOpenAdvancementModal(targetUniversityForAdvancement)}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-45 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 shadow-sm cursor-pointer transition-all"
               >
-                <Search className="w-3.5 h-3.5" />
-                <span>查询</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilterKeywordInput('');
-                  setFilterSchoolInput(
-                    adminRole === 'school_admin' ? adminInstitutionName : ''
-                  );
-                  setFilterTrackInput('all');
-                  setFilterAuditStatusInput('all');
-                  setFilterDateStartInput('');
-                  setFilterDateEndInput('');
-                  setAppliedTeamFilters({
-                    keyword: '',
-                    school:
-                      adminRole === 'school_admin' ? adminInstitutionName : '',
-                    track: 'all',
-                    auditStatus: 'all',
-                    dateStart: '',
-                    dateEnd: '',
-                  });
-                }}
-                className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>重置</span>
+                <Sparkles className="w-4 h-4" />
+                <span>
+                  {currentSchoolSubmission?.status === 'rejected'
+                    ? '重新申报晋级队伍'
+                    : currentSchoolSubmission?.status === 'withdrawn'
+                    ? '申报晋级队伍'
+                    : currentSchoolSubmission?.status === 'pending'
+                    ? '修改已提报晋级名单'
+                    : '申报晋级队伍'}
+                </span>
               </button>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* 2. 列表数据区（带复选框，同步展示报名状态、高校审核、秘书处审核及驳回原因气泡） */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
-                  <th className="py-3.5 pl-5 pr-2 w-10">
+        {/* ===================================================================
+            TAB 1 视图：【高校资格审核】
+           =================================================================== */}
+        {effectiveAuditTab === 'school' && (
+          <div className="space-y-4">
+            {/* 1. 搜索筛选与批量操作区 */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* 关键字：队伍名称 / 队长姓名 / 队长手机号 */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    关键字（队伍名/队长姓名/手机号）
+                  </label>
+                  <input
+                    type="text"
+                    value={filterKeywordInput}
+                    onChange={(e) => setFilterKeywordInput(e.target.value)}
+                    placeholder="单框多匹配检索..."
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none"
+                  />
+                </div>
+
+                {/* 所属院校 */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    所属院校{adminRole === 'school_admin' ? '（已绑定本校）' : '（模糊匹配）'}
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      adminRole === 'school_admin'
+                        ? adminInstitutionName
+                        : filterSchoolInput
+                    }
+                    disabled={adminRole === 'school_admin'}
+                    onChange={(e) => setFilterSchoolInput(e.target.value)}
+                    placeholder="如：北京航空航天大学"
+                    className={`w-full px-3 py-2 text-xs border rounded-lg ${
+                      adminRole === 'school_admin'
+                        ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed font-bold'
+                        : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-[#0284C7] focus:outline-none'
+                    }`}
+                  />
+                </div>
+
+                {/* 高校审核状态 */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    高校审核状态
+                  </label>
+                  <select
+                    value={filterAuditStatusInput}
+                    onChange={(e) =>
+                      setFilterAuditStatusInput(e.target.value as 'all' | TwoStageAuditStatus)
+                    }
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none cursor-pointer"
+                  >
+                    <option value="all">全部状态</option>
+                    <option value="pending">待审核</option>
+                    <option value="approved">已通过</option>
+                    <option value="rejected">已驳回</option>
+                  </select>
+                </div>
+
+                {/* 报名时间范围 */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    报名时间范围
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      value={filterDateStartInput}
+                      onChange={(e) => setFilterDateStartInput(e.target.value)}
+                      className="w-full px-2 py-2 text-[11px] font-mono-num bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                    />
+                    <span className="text-slate-400">-</span>
+                    <input
+                      type="date"
+                      value={filterDateEndInput}
+                      onChange={(e) => setFilterDateEndInput(e.target.value)}
+                      className="w-full px-2 py-2 text-[11px] font-mono-num bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 查询与重置按钮 + 顶部全局操作栏 */}
+              <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerExportExcel(false)}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>
+                      导出Excel ({selectedTeamIds.length > 0 ? `已选${selectedTeamIds.length}项` : '当前筛选全部'})
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={selectedTeamIds.length === 0 || !isCurrentStageSwitchEnabled}
+                    onClick={() => {
+                      setRejectReasonText('');
+                      setAuditError(null);
+                      setAuditModalState({
+                        mode: 'batch',
+                        stage: 'school',
+                        teamIds: selectedTeamIds,
+                        decision: 'approve',
+                      });
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>
+                      批量高校审核 ({selectedTeamIds.length})
+                      {!isCurrentStageSwitchEnabled ? ' [阶段已关闭]' : ''}
+                    </span>
+                  </button>
+
+                  {adminRole === 'super_admin' && (
                     <button
                       type="button"
                       onClick={() => {
-                        if (isAllSelected) {
-                          setSelectedTeamIds([]);
-                        } else {
-                          setSelectedTeamIds(filteredEventTeams.map((t) => t.id));
-                        }
+                        setImportErrorReport(null);
+                        setImportSuccessMsg(null);
+                        setImportModalOpen(true);
                       }}
-                      className="text-slate-500 hover:text-[#0284C7] cursor-pointer flex items-center"
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                     >
-                      {isAllSelected ? (
-                        <CheckSquare className="w-4 h-4 text-[#0284C7]" />
-                      ) : (
-                        <Square className="w-4 h-4" />
-                      )}
+                      <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
+                      <span>导入线下数据</span>
                     </button>
-                  </th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">队伍LOGO / 队伍名称</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">所属院校</th>
-                  <th className="py-3.5 px-4">所选赛道</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">队伍人数</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">队长姓名 / 手机号</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">报名状态</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">高校审核</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">秘书处审核</th>
-                  <th className="py-3.5 pr-5 pl-4 text-right whitespace-nowrap">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs bg-white">
-                {filteredEventTeams.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="py-12 text-center text-slate-400">
-                      {effectiveAuditTab === 'secretariat'
-                        ? '当前暂无已通过高校审核并进入【秘书处审核】阶段的队伍'
-                        : '当前筛选条件下暂无报名队伍数据'}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredEventTeams.map((team) => {
-                    const isChecked = selectedTeamIds.includes(team.id);
-                    const stages = resolveTeamAuditStages(team);
-                    const canAuditInCurrentTab =
-                      isCurrentStageSwitchEnabled &&
-                      (effectiveAuditTab === 'school'
-                        ? stages.schoolStatus !== 'none'
-                        : stages.schoolStatus === 'approved');
+                  )}
+                </div>
 
-                    return (
-                      <tr
-                        key={team.id}
-                        className={`hover:bg-sky-50/40 transition-colors ${
-                          isChecked ? 'bg-sky-50/60' : ''
-                        }`}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAppliedTeamFilters({
+                        keyword: filterKeywordInput,
+                        school:
+                          adminRole === 'school_admin'
+                            ? adminInstitutionName
+                            : filterSchoolInput,
+                        track: filterTrackInput,
+                        auditStatus: filterAuditStatusInput,
+                        dateStart: filterDateStartInput,
+                        dateEnd: filterDateEndInput,
+                      })
+                    }
+                    className="px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    <span>查询</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterKeywordInput('');
+                      setFilterSchoolInput(
+                        adminRole === 'school_admin' ? adminInstitutionName : ''
+                      );
+                      setFilterTrackInput('all');
+                      setFilterAuditStatusInput('all');
+                      setFilterDateStartInput('');
+                      setFilterDateEndInput('');
+                      setAppliedTeamFilters({
+                        keyword: '',
+                        school:
+                          adminRole === 'school_admin' ? adminInstitutionName : '',
+                        track: 'all',
+                        auditStatus: 'all',
+                        dateStart: '',
+                        dateEnd: '',
+                      });
+                    }}
+                    className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>重置</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Tab 1 列表数据区 */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
+                      <th className="py-3.5 pl-5 pr-2 w-10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isAllSelected) {
+                              setSelectedTeamIds([]);
+                            } else {
+                              setSelectedTeamIds(filteredEventTeams.map((t) => t.id));
+                            }
+                          }}
+                          className="text-slate-500 hover:text-[#0284C7] cursor-pointer flex items-center"
+                        >
+                          {isAllSelected ? (
+                            <CheckSquare className="w-4 h-4 text-[#0284C7]" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">队伍LOGO / 队伍名称</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">所属院校</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">队伍人数</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">队长姓名 / 手机号</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">报名状态</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">高校审核</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">秘书处审核</th>
+                      <th className="py-3.5 pr-5 pl-4 text-right whitespace-nowrap">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs bg-white">
+                    {filteredEventTeams.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="py-12 text-center text-slate-400">
+                          当前筛选条件下暂无报名队伍数据
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEventTeams.map((team) => {
+                        const isChecked = selectedTeamIds.includes(team.id);
+                        const stages = resolveTeamAuditStages(team);
+                        const canAuditInSchoolTab =
+                          isSchoolStageOpen && stages.schoolStatus !== 'none';
+
+                        return (
+                          <tr
+                            key={team.id}
+                            className={`hover:bg-sky-50/40 transition-colors ${
+                              isChecked ? 'bg-sky-50/60' : ''
+                            }`}
+                          >
+                            <td className="py-4 pl-5 pr-2 align-middle">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedTeamIds((prev) =>
+                                    prev.includes(team.id)
+                                      ? prev.filter((id) => id !== team.id)
+                                      : [...prev, team.id]
+                                  )
+                                }
+                                className="text-slate-400 hover:text-[#0284C7] cursor-pointer flex items-center"
+                              >
+                                {isChecked ? (
+                                  <CheckSquare className="w-4 h-4 text-[#0284C7]" />
+                                ) : (
+                                  <Square className="w-4 h-4" />
+                                )}
+                              </button>
+                            </td>
+
+                            {/* 队伍LOGO + 队伍名称 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                <TeamLogoAvatar
+                                  logo={team.teamLogo}
+                                  teamName={team.teamName}
+                                  size="sm"
+                                />
+                                <div>
+                                  <div className="font-extrabold text-slate-900">
+                                    {team.teamName}
+                                  </div>
+                                  {team.teamIntro && (
+                                    <div className="text-[11px] text-slate-400 max-w-[180px] xl:max-w-[220px] truncate">
+                                      {team.teamIntro}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* 所属院校 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap font-semibold text-slate-700">
+                              {team.university}
+                            </td>
+
+                            {/* 队伍人数 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <div className="font-bold text-slate-900 font-mono-num">
+                                {1 + team.members.length} 人
+                              </div>
+                              {team.advisors.length > 0 && (
+                                <div className="text-[11px] text-slate-400 mt-0.5">
+                                  指导教师 {team.advisors.length} 人
+                                </div>
+                              )}
+                            </td>
+
+                            {/* 队长姓名 / 手机号 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <div className="font-bold text-slate-900">{team.captainName}</div>
+                              <div className="text-[11px] font-mono-num text-slate-500">
+                                {maskPhone(resolveTeamCaptainContact(team, platformUsers).phone)}
+                              </div>
+                            </td>
+
+                            {/* 报名状态（与前台个人中心【我的报名】保持一致，移至高校审核列前） */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <div className="inline-flex items-center gap-1.5 text-xs">
+                                <span className={`w-2 h-2 rounded-full ${stages.regDotClass}`} />
+                                <span className={stages.regColorClass}>
+                                  {stages.regStatusLabel}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* 高校审核（与前台个人中心【我的报名】保持一致） */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <AuditStageBadgeWithTooltip
+                                status={stages.schoolStatus}
+                                customLabel={stages.schoolBadgeLabel}
+                                rejectReason={stages.schoolReason}
+                                stage="school"
+                                stageLabel="高校审核"
+                              />
+                            </td>
+
+                            {/* 秘书处审核（与前台个人中心【我的报名】保持一致） */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <AuditStageBadgeWithTooltip
+                                status={stages.secretariatStatus}
+                                customLabel={stages.secretariatBadgeLabel}
+                                rejectReason={stages.secretariatReason}
+                                stage="secretariat"
+                                stageLabel="秘书处审核"
+                              />
+                            </td>
+
+                            {/* 单行操作栏 */}
+                            <td className="py-4 pr-5 pl-4 align-middle text-right whitespace-nowrap">
+                              <div className="inline-flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveTeamId(team.id);
+                                    setSubView('team-detail');
+                                  }}
+                                  className="text-slate-700 hover:text-[#0284C7] font-bold cursor-pointer"
+                                >
+                                  查看
+                                </button>
+                                {adminRole === 'super_admin' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAdminBackdoorEdit(team)}
+                                    className="text-[#0284C7] hover:text-[#0369A1] font-bold cursor-pointer"
+                                  >
+                                    编辑
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={!canAuditInSchoolTab}
+                                  onClick={() => {
+                                    setRejectReasonText('');
+                                    setAuditError(null);
+                                    setAuditModalState({
+                                      mode: 'single',
+                                      stage: 'school',
+                                      teamIds: [team.id],
+                                      decision: 'approve',
+                                    });
+                                  }}
+                                  className={`px-2.5 py-1 rounded border font-bold ${
+                                    canAuditInSchoolTab
+                                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 cursor-pointer'
+                                      : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed'
+                                  }`}
+                                >
+                                  通过
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!canAuditInSchoolTab}
+                                  onClick={() => {
+                                    setRejectReasonText(stages.schoolReason || '');
+                                    setAuditError(null);
+                                    setAuditModalState({
+                                      mode: 'single',
+                                      stage: 'school',
+                                      teamIds: [team.id],
+                                      decision: 'reject',
+                                    });
+                                  }}
+                                  className={`px-2.5 py-1 rounded border font-bold ${
+                                    canAuditInSchoolTab
+                                      ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 cursor-pointer'
+                                      : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed'
+                                  }`}
+                                >
+                                  驳回
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB 2 视图：【晋级名单审核】
+           =================================================================== */}
+        {effectiveAuditTab === 'secretariat' && (
+          <div className="space-y-4">
+            {/* 筛选栏 */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      秘书处审核状态
+                    </label>
+                    <select
+                      value={secFilterStatus}
+                      onChange={(e) =>
+                        setSecFilterStatus(
+                          e.target.value as 'all' | 'pending' | 'approved' | 'rejected'
+                        )
+                      }
+                      className="px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:border-[#0284C7] focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">全部状态</option>
+                      <option value="pending">待审核</option>
+                      <option value="approved">已通过</option>
+                      <option value="rejected">已驳回</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      关键字（提报高校 / 晋级队伍名）
+                    </label>
+                    <div className="relative w-64">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={secFilterKeyword}
+                        onChange={(e) => setSecFilterKeyword(e.target.value)}
+                        placeholder="搜索高校名称或队伍名..."
+                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSecFilterStatus('all');
+                      setSecFilterKeyword('');
+                    }}
+                    className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>重置</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 晋级名单审核列表 */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
+                      <th className="py-3.5 px-5 whitespace-nowrap">提报高校</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">提报队伍数量</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">提报时间</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">提报人</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">秘书处审核</th>
+                      <th className="py-3.5 px-5 text-right whitespace-nowrap">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs bg-white">
+                    {filteredUniversitySubmissions.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400">
+                          当前暂无高校提报的晋级名单数据
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredUniversitySubmissions.map((sub) => {
+                        const subTeams = sub.teamIds
+                          .map((id) => captainTeams.find((t) => t.id === id))
+                          .filter((t): t is CaptainTeamRecord => Boolean(t));
+
+                        return (
+                          <tr key={sub.id} className="hover:bg-sky-50/40 transition-colors">
+                            {/* 提报高校（仅展示学校名称） */}
+                            <td className="py-4 px-5 align-middle whitespace-nowrap font-extrabold text-slate-900">
+                              {sub.university}
+                            </td>
+
+                            {/* 提报队伍数量（仅展示数量） */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap font-bold text-slate-900 font-mono-num">
+                              {subTeams.length}
+                            </td>
+
+                            {/* 提报时间 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap font-mono-num text-slate-700">
+                              {sub.submittedAt}
+                            </td>
+
+                            {/* 提报人（仅展示人名） */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap font-semibold text-slate-800">
+                              {formatSubmittedByPersonName(sub.submittedBy)}
+                            </td>
+
+                            {/* 秘书处审核 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <AuditStageBadgeWithTooltip
+                                status={
+                                  sub.status === 'pending'
+                                    ? 'pending'
+                                    : sub.status === 'approved'
+                                    ? 'approved'
+                                    : 'rejected'
+                                }
+                                rejectReason={sub.rejectReason}
+                                stage="secretariat"
+                                stageLabel="秘书处审核"
+                              />
+                            </td>
+
+                            {/* 操作：【查看详情】、【审核通过】、【驳回】 */}
+                            <td className="py-4 px-5 align-middle text-right whitespace-nowrap">
+                              <div className="inline-flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveUniversitySubmissionDetail(sub)}
+                                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold cursor-pointer"
+                                >
+                                  查看详情
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!isSecretariatStageOpen}
+                                  onClick={() => {
+                                    setSecBatchRejectReason('');
+                                    setSecBatchAuditError(null);
+                                    setSecBatchAuditModal({
+                                      submission: sub,
+                                      decision: 'approve',
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold cursor-pointer"
+                                >
+                                  审核通过
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!isSecretariatStageOpen}
+                                  onClick={() => {
+                                    setSecBatchRejectReason(sub.rejectReason || '');
+                                    setSecBatchAuditError(null);
+                                    setSecBatchAuditModal({
+                                      submission: sub,
+                                      decision: 'reject',
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 disabled:opacity-40 text-red-700 font-bold cursor-pointer"
+                                >
+                                  驳回
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB 3 视图：【最终参赛队伍清单】
+           =================================================================== */}
+        {effectiveAuditTab === 'final_roster' && (
+          <div className="space-y-4">
+            {/* 筛选与导出栏 */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    赛事范围
+                  </label>
+                  <select
+                    value={finalRosterScopeEvent}
+                    onChange={(e) =>
+                      setFinalRosterScopeEvent(e.target.value as 'current' | 'all')
+                    }
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none cursor-pointer font-semibold"
+                  >
+                    <option value="current">
+                      当前赛事（{activeEventForTeams.title} · {eventAuditTabCounts.finalRosterCurrentEventCount}支）
+                    </option>
+                    <option value="all">
+                      全部赛事汇总（共 {eventAuditTabCounts.finalRosterAllEventsCount} 支）
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    所属高校
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      adminRole === 'school_admin'
+                        ? adminInstitutionName
+                        : finalRosterSchoolFilter
+                    }
+                    disabled={adminRole === 'school_admin'}
+                    onChange={(e) => setFinalRosterSchoolFilter(e.target.value)}
+                    placeholder="输入高校名称筛选，如：上海交通大学"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    关键字（队伍名 / 队长 / 手机号）
+                  </label>
+                  <input
+                    type="text"
+                    value={finalRosterKeyword}
+                    onChange={(e) => setFinalRosterKeyword(e.target.value)}
+                    placeholder="输入队伍名称或队长姓名..."
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleTriggerExportExcel(
+                      false,
+                      filteredFinalRosterTeams,
+                      `${activeEventForTeams.title}_最终参赛队伍清单_含校内排名`
+                    )
+                  }
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>导出最终参赛队伍清单 (Excel)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFinalRosterScopeEvent('current');
+                    if (adminRole !== 'school_admin') {
+                      setFinalRosterSchoolFilter('');
+                    }
+                    setFinalRosterKeyword('');
+                  }}
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>重置</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 最终参赛队伍清单表格 */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
+                      <th className="py-3.5 px-4 whitespace-nowrap">校内排名</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">队伍LOGO / 队伍名称</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">所属高校 / 所在地 / 赛区</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">队长 / 手机号</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">队伍人数</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">指导教师</th>
+                      <th className="py-3.5 px-4 whitespace-nowrap">终审通过时间</th>
+                      <th className="py-3.5 px-5 text-right whitespace-nowrap">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs bg-white">
+                    {filteredFinalRosterTeams.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                          当前筛选条件下暂无已通过秘书处终审的最终参赛队伍
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredFinalRosterTeams.map((team) => {
+                        const stages = resolveTeamAuditStages(team);
+                        const capContact = resolveTeamCaptainContact(team, platformUsers);
+                        const rankNum = stages.schoolRank || team.schoolRank || 1;
+                        const locAndDiv = resolveUniversityLocationAndDivision(
+                          team.university,
+                          institutions,
+                          divisions
+                        );
+
+                        return (
+                          <tr key={team.id} className="hover:bg-emerald-50/30 transition-colors">
+                            {/* 校内排名 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-extrabold font-mono-num">
+                                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                                <span>第 {rankNum} 名</span>
+                              </span>
+                            </td>
+
+                            {/* 队伍名称 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                <TeamLogoAvatar
+                                  logo={team.teamLogo}
+                                  teamName={team.teamName}
+                                  size="sm"
+                                />
+                                <div>
+                                  <div className="font-extrabold text-slate-900">
+                                    {team.teamName}
+                                  </div>
+                                  {finalRosterScopeEvent === 'all' && (
+                                    <div className="text-[11px] text-slate-400 line-clamp-1">
+                                      {team.competitionTitle}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* 所属高校 / 所在地 / 赛区 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <div className="font-bold text-[#0369A1]">{team.university}</div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">
+                                {locAndDiv.locationText} ·{' '}
+                                <span className="font-bold text-slate-700">
+                                  {locAndDiv.divisionName}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* 队长 / 手机号 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <div className="font-bold text-slate-900">{team.captainName}</div>
+                              <div className="text-[11px] font-mono-num text-slate-500">
+                                {maskPhone(capContact.phone)}
+                              </div>
+                            </td>
+
+                            {/* 队伍人数 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap">
+                              <div className="font-bold text-slate-900 font-mono-num">
+                                {1 + team.members.length} 人
+                              </div>
+                              {team.advisors.length > 0 && (
+                                <div className="text-[11px] text-slate-400 mt-0.5">
+                                  指导教师 {team.advisors.length} 人
+                                </div>
+                              )}
+                            </td>
+
+                            {/* 指导教师 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap text-slate-700">
+                              {team.advisors.length > 0
+                                ? team.advisors.map((a) => a.name).join('、')
+                                : '—'}
+                            </td>
+
+                            {/* 终审通过时间 */}
+                            <td className="py-4 px-4 align-middle whitespace-nowrap font-mono-num text-slate-600">
+                              {team.secretariatAuditedAt ||
+                                team.approvedSnapshot?.approvedAt ||
+                                team.updatedAt}
+                            </td>
+
+                            {/* 操作：【查看详情】 + 超级管理员/秘书处管理员【编辑】 */}
+                            <td className="py-4 px-5 align-middle text-right whitespace-nowrap">
+                              <div className="inline-flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveTeamId(team.id);
+                                    setSubView('team-detail');
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-sky-200 text-slate-700 hover:text-[#0284C7] font-bold cursor-pointer"
+                                >
+                                  查看详情
+                                </button>
+                                {(adminRole === 'super_admin' ||
+                                  adminRole === 'secretariat_admin') && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAdminBackdoorEdit(team)}
+                                    className="px-3 py-1.5 rounded-lg border border-sky-200 bg-sky-50 hover:bg-[#0284C7] text-[#0284C7] hover:text-white font-bold cursor-pointer transition-colors"
+                                  >
+                                    编辑
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            核心弹窗 E：【晋级名单提报弹窗 (AdvancementSubmissionModal)】（不设晋级名额上限）
+           =================================================================== */}
+        {advancementModalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-5xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh]">
+              {/* 弹窗头部 */}
+              <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] via-[#0284C7] to-sky-600 text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[11px] font-extrabold">
+                    高校晋级提报
+                  </span>
+                  <h3 className="text-base sm:text-lg font-extrabold">
+                    【{advancementModalUniversity}】申报晋级队伍与校内选拔排名
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdvancementModalOpen(false)}
+                  className="text-white/80 hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 弹窗主体区 */}
+              <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                {/* 驳回/撤回回显提示条 */}
+                {currentSchoolSubmission &&
+                  currentSchoolSubmission.university === advancementModalUniversity &&
+                  (currentSchoolSubmission.status === 'rejected' ||
+                    currentSchoolSubmission.status === 'withdrawn') && (
+                    <div
+                      className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${
+                        currentSchoolSubmission.status === 'rejected'
+                          ? 'bg-red-50 border-red-200 text-red-800'
+                          : 'bg-amber-50 border-amber-200 text-amber-900'
+                      }`}
+                    >
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <div className="font-extrabold">
+                          {currentSchoolSubmission.status === 'rejected'
+                            ? `秘书处终审驳回重报（已为您完整回显上次勾选的队伍、排名及证明材料）：`
+                            : `撤回后重报（已为您完整回显原勾选队伍、校内排名及已上传证明附件）：`}
+                        </div>
+                        {currentSchoolSubmission.rejectReason && (
+                          <div>驳回原因：{currentSchoolSubmission.rejectReason}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {advancementError && (
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>{advancementError}</span>
+                  </div>
+                )}
+
+                {/* 左右双栏穿梭与排序区 */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                  {/* 左侧（待选池）：展示所有已通过资格审核但尚未被选入右侧的队伍 */}
+                  <div className="lg:col-span-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col h-[360px]">
+                    <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-200">
+                      <div>
+                        <div className="text-xs sm:text-sm font-extrabold text-slate-900">
+                          左侧：待选池（高校审核已通过）
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          待选 {modalLeftPoolTeams.length} 支 · 未被选入右侧的队伍将标记为“未晋级”
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 左侧快捷批量操作 */}
+                    <div className="py-2.5 flex items-center justify-between gap-2 border-b border-slate-200/70 text-xs">
+                      <button
+                        type="button"
+                        disabled={advancementPoolCheckedIds.length === 0}
+                        onClick={() => {
+                          setAdvancementError(null);
+                          setAdvancementSelectedTeamIds((prev) => [
+                            ...prev,
+                            ...advancementPoolCheckedIds.filter((id) => !prev.includes(id)),
+                          ]);
+                          setAdvancementPoolCheckedIds([]);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold cursor-pointer"
                       >
-                        <td className="py-4 pl-5 pr-2 align-middle">
+                        加入右侧晋级名单 ({advancementPoolCheckedIds.length}) &rarr;
+                      </button>
+                    </div>
+
+                    {/* 左侧队伍列表 */}
+                    <div className="flex-1 overflow-y-auto space-y-2 pt-2.5 pr-1">
+                      {modalLeftPoolTeams.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-center text-xs text-slate-400 px-4">
+                          当前待选池暂无更多“已通过高校审核”的队伍
+                        </div>
+                      ) : (
+                        modalLeftPoolTeams.map((team) => {
+                          const checked = advancementPoolCheckedIds.includes(team.id);
+                          return (
+                            <div
+                              key={team.id}
+                              className={`p-3 rounded-xl border bg-white flex items-center justify-between gap-2.5 transition-colors ${
+                                checked
+                                  ? 'border-[#0284C7] bg-sky-50/40'
+                                  : 'border-slate-200 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAdvancementPoolCheckedIds((prev) =>
+                                      prev.includes(team.id)
+                                        ? prev.filter((id) => id !== team.id)
+                                        : [...prev, team.id]
+                                    )
+                                  }
+                                  className="text-slate-400 hover:text-[#0284C7] cursor-pointer"
+                                >
+                                  {checked ? (
+                                    <CheckSquare className="w-4 h-4 text-[#0284C7]" />
+                                  ) : (
+                                    <Square className="w-4 h-4" />
+                                  )}
+                                </button>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-extrabold text-slate-900 truncate">
+                                    {team.teamName}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 truncate">
+                                    队长：{team.captainName}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAdvancementError(null);
+                                  setAdvancementSelectedTeamIds((prev) =>
+                                    prev.includes(team.id) ? prev : [...prev, team.id]
+                                  );
+                                  setAdvancementPoolCheckedIds((prev) =>
+                                    prev.filter((id) => id !== team.id)
+                                  );
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-[#0284C7] text-[#0284C7] hover:text-white border border-sky-200 text-xs font-bold shrink-0 cursor-pointer transition-colors"
+                              >
+                                选入晋级 &rarr;
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 右侧（已选/排序区）：支持上下拖拽排序、上下箭头、直接手动输入排名数字（赋予排名序号 1, 2, 3...） */}
+                  <div className="lg:col-span-7 rounded-2xl border border-sky-200 bg-sky-50/30 p-4 flex flex-col h-[360px] transition-colors">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+                      <div>
+                        <div className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                          <span>右侧：已选晋级名单与校内排名排序区</span>
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-mono-num font-extrabold bg-[#0284C7] text-white">
+                            已选 {advancementSelectedTeamIds.length} 支
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          支持<strong>鼠标上下拖拽行</strong>、点击<strong>上下箭头</strong>或直接<strong>输入排名数字 (1, 2, 3...)</strong>调整校赛晋级名次
+                        </div>
+                      </div>
+
+                      {advancementSelectedTeamIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setAdvancementSelectedTeamIds([])}
+                          className="text-xs font-bold text-slate-500 hover:text-red-600 cursor-pointer"
+                        >
+                          清空已选
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-2.5 pt-3 pr-1">
+                      {modalRightSelectedTeams.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center text-xs text-slate-400 px-4 space-y-1">
+                          <Trophy className="w-7 h-7 text-slate-300 stroke-[1.5]" />
+                          <div>请从左侧【待选池】勾选或点击“选入晋级”添加本校晋级队伍</div>
+                        </div>
+                      ) : (
+                        modalRightSelectedTeams.map((team, idx) => {
+                          const rankNum = idx + 1;
+
+                          return (
+                            <div
+                              key={team.id}
+                              draggable
+                              onDragStart={() => setAdvancementDragIndex(idx)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={() => {
+                                if (
+                                  advancementDragIndex === null ||
+                                  advancementDragIndex === idx
+                                ) {
+                                  return;
+                                }
+                                setAdvancementSelectedTeamIds((prev) => {
+                                  const next = [...prev];
+                                  const [moved] = next.splice(advancementDragIndex, 1);
+                                  next.splice(idx, 0, moved);
+                                  return next;
+                                });
+                                setAdvancementDragIndex(null);
+                              }}
+                              className="p-3 rounded-xl border border-slate-200 hover:border-[#0284C7] bg-white flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 shadow-2xs cursor-move transition-all"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <GripVertical className="w-4 h-4 text-slate-400 shrink-0" />
+                                <span
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-extrabold font-mono-num shrink-0 ${
+                                    rankNum === 1
+                                      ? 'bg-amber-500 text-white'
+                                      : rankNum === 2
+                                      ? 'bg-sky-600 text-white'
+                                      : 'bg-emerald-600 text-white'
+                                  }`}
+                                >
+                                  校内第 {rankNum} 名
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-extrabold text-slate-900 truncate">
+                                    {team.teamName}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 truncate">
+                                    队长：{team.captainName}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* 手动输入排名序号 + 上移/下移 + 移除 */}
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <div className="flex items-center gap-1 text-[11px] text-slate-500 mr-1">
+                                  <span>设排名:</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={modalRightSelectedTeams.length}
+                                    value={rankNum}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value, 10);
+                                      if (!Number.isNaN(val)) {
+                                        handleManualRankInputChange(team.id, val);
+                                      }
+                                    }}
+                                    className="w-12 px-1.5 py-1 text-center font-mono-num font-bold text-xs border border-slate-300 rounded-md bg-slate-50 focus:bg-white focus:border-[#0284C7] focus:outline-none"
+                                  />
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => handleMoveSelectedTeamRank(idx, 'up')}
+                                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                                  title="名次上移"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5 text-slate-700" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === modalRightSelectedTeams.length - 1}
+                                  onClick={() => handleMoveSelectedTeamRank(idx, 'down')}
+                                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                                  title="名次下移"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5 text-slate-700" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAdvancementSelectedTeamIds((prev) =>
+                                      prev.filter((id) => id !== team.id)
+                                    )
+                                  }
+                                  className="px-2 py-1 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold cursor-pointer"
+                                >
+                                  移除
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 底部（材料上传区）：【上传校赛成绩单/证明材料】（必填，支持 PDF/Excel/图片） */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs sm:text-sm font-extrabold text-slate-900">
+                        底部材料上传区：上传校赛成绩单 / 晋级证明材料{' '}
+                        <span className="text-red-500">*（必填）</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        支持上传 PDF、Excel（.xls/.xlsx）、盖章图片（.jpg/.png），作为秘书处终审核验各校晋级名次真实性的官方依据
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                      <label className="px-3.5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>上传校赛成绩单/证明材料</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept=".pdf,.xls,.xlsx,.csv,.jpg,.jpeg,.png"
+                          className="hidden"
+                          onChange={(e) => {
+                            handleUploadAdvancementProofFiles(e.target.files);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdvancementError(null);
+                          setAdvancementProofFiles((prev) => [
+                            ...prev,
+                            {
+                              id: `proof-demo-pdf-${Date.now()}`,
+                              name: `${advancementModalUniversity}_2026校内选拔赛总成绩单(教务处盖章).pdf`,
+                              size: '2.42 MB',
+                              type: 'pdf',
+                              uploadedAt: '2026-10-28 12:32:00',
+                            },
+                            {
+                              id: `proof-demo-xls-${Date.now() + 1}`,
+                              name: `${advancementModalUniversity}_校赛靶场原始积分明细表.xlsx`,
+                              size: '0.68 MB',
+                              type: 'excel',
+                              uploadedAt: '2026-10-28 12:32:05',
+                            },
+                          ]);
+                        }}
+                        className="px-3 py-2 rounded-xl border border-sky-200 bg-white hover:bg-sky-50 text-[#0284C7] text-xs font-bold cursor-pointer"
+                      >
+                        + 一键添加示例成绩单与盖章件
+                      </button>
+                    </div>
+                  </div>
+
+                  {advancementProofFiles.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      {advancementProofFiles.map((pf) => (
+                        <div
+                          key={pf.id}
+                          className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-2 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-4 h-4 text-[#0284C7] shrink-0" />
+                            <span className="font-bold text-slate-800 truncate">{pf.name}</span>
+                            <span className="text-[11px] text-slate-400 font-mono-num shrink-0">
+                              ({pf.size})
+                            </span>
+                          </div>
                           <button
                             type="button"
                             onClick={() =>
-                              setSelectedTeamIds((prev) =>
-                                prev.includes(team.id)
-                                  ? prev.filter((id) => id !== team.id)
-                                  : [...prev, team.id]
+                              setAdvancementProofFiles((prev) =>
+                                prev.filter((item) => item.id !== pf.id)
                               )
                             }
-                            className="text-slate-400 hover:text-[#0284C7] cursor-pointer flex items-center"
+                            className="text-slate-400 hover:text-red-600 cursor-pointer p-1"
+                            title="移除附件"
                           >
-                            {isChecked ? (
-                              <CheckSquare className="w-4 h-4 text-[#0284C7]" />
-                            ) : (
-                              <Square className="w-4 h-4" />
-                            )}
+                            <X className="w-3.5 h-3.5" />
                           </button>
-                        </td>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                        {/* 队伍LOGO（缩略图）+ 队伍名称 */}
-                        <td className="py-4 px-4 align-middle whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <TeamLogoAvatar
-                              logo={team.teamLogo}
-                              teamName={team.teamName}
-                              size="sm"
-                            />
-                            <div>
-                              <div className="font-extrabold text-slate-900">
-                                {team.teamName}
-                              </div>
-                              {team.teamIntro && (
-                                <div className="text-[11px] text-slate-400 max-w-[180px] xl:max-w-[240px] truncate">
-                                  {team.teamIntro}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* 所属院校 */}
-                        <td className="py-4 px-4 align-middle whitespace-nowrap font-semibold text-slate-700">
-                          {team.university}
-                        </td>
-
-                        {/* 所选赛道 */}
-                        <td className="py-4 px-4 align-middle text-slate-700 max-w-[180px] xl:max-w-[240px]">
-                          <div className="line-clamp-1">{team.subTrackName}</div>
-                        </td>
-
-                        {/* 队伍人数 */}
-                        <td className="py-4 px-4 align-middle whitespace-nowrap">
-                          <div className="font-bold text-slate-900 font-mono-num">
-                            {1 + team.members.length} 人
-                          </div>
-                          {team.advisors.length > 0 && (
-                            <div className="text-[11px] text-slate-400 mt-0.5">
-                              指导教师 {team.advisors.length} 人
-                            </div>
-                          )}
-                        </td>
-
-                        {/* 队长姓名 / 队长手机号 */}
-                        <td className="py-4 px-4 align-middle whitespace-nowrap">
-                          <div className="font-bold text-slate-900">{team.captainName}</div>
-                          <div className="text-[11px] font-mono-num text-slate-500">
-                            {maskPhone(resolveTeamCaptainContact(team, platformUsers).phone)}
-                          </div>
-                        </td>
-
-                        {/* 报名状态：组建中 / 邀请中 / 已提交 / 报名成功 */}
-                        <td className="py-4 px-4 align-middle whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded border text-xs font-bold ${stages.regStatusClass}`}
-                          >
-                            {stages.regStatusLabel}
-                          </span>
-                        </td>
-
-                        {/* 高校审核 */}
-                        <td className="py-4 px-4 align-middle whitespace-nowrap">
-                          <AuditStageBadgeWithTooltip
-                            status={stages.schoolStatus}
-                            rejectReason={stages.schoolReason}
-                            stage="school"
-                          />
-                        </td>
-
-                        {/* 秘书处审核 */}
-                        <td className="py-4 px-4 align-middle whitespace-nowrap">
-                          <AuditStageBadgeWithTooltip
-                            status={stages.secretariatStatus}
-                            rejectReason={stages.secretariatReason}
-                            stage="secretariat"
-                          />
-                        </td>
-
-                        {/* 单行操作栏：高校管理员只能看到“高校审核”Tab且只能操作“通过/驳回”（与只读查看）；组委会超级管理员可见【编辑】 */}
-                        <td className="py-4 pr-5 pl-4 align-middle text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTeamId(team.id);
-                                setSubView('team-detail');
-                              }}
-                              className="text-slate-700 hover:text-[#0284C7] font-bold cursor-pointer"
-                            >
-                              查看
-                            </button>
-                            {adminRole === 'super_admin' && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenAdminBackdoorEdit(team)}
-                                className="text-[#0284C7] hover:text-[#0369A1] font-bold cursor-pointer"
-                              >
-                                编辑
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              disabled={!canAuditInCurrentTab}
-                              onClick={() => {
-                                setRejectReasonText('');
-                                setAuditError(null);
-                                setAuditModalState({
-                                  mode: 'single',
-                                  stage: effectiveAuditTab,
-                                  teamIds: [team.id],
-                                  decision: 'approve',
-                                });
-                              }}
-                              title={
-                                !isCurrentStageSwitchEnabled
-                                  ? '当前阶段审核开关已关闭，无法进行新的审核操作'
-                                  : '点击执行审核通过'
-                              }
-                              className={`px-2.5 py-1 rounded border font-bold ${
-                                canAuditInCurrentTab
-                                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 cursor-pointer'
-                                  : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed'
-                              }`}
-                            >
-                              通过
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!canAuditInCurrentTab}
-                              onClick={() => {
-                                setRejectReasonText(
-                                  effectiveAuditTab === 'school'
-                                    ? stages.schoolReason || ''
-                                    : stages.secretariatReason || ''
-                                );
-                                setAuditError(null);
-                                setAuditModalState({
-                                  mode: 'single',
-                                  stage: effectiveAuditTab,
-                                  teamIds: [team.id],
-                                  decision: 'reject',
-                                });
-                              }}
-                              title={
-                                !isCurrentStageSwitchEnabled
-                                  ? '当前阶段审核开关已关闭，无法进行新的审核操作'
-                                  : '点击执行审核驳回'
-                              }
-                              className={`px-2.5 py-1 rounded border font-bold ${
-                                canAuditInCurrentTab
-                                  ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 cursor-pointer'
-                                  : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed'
-                              }`}
-                            >
-                              驳回
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+              {/* 弹窗底部操作栏 */}
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+                <div className="text-xs text-slate-500">
+                  提交后：已选中的 <strong>{advancementSelectedTeamIds.length}</strong> 支队伍状态变为【待秘书处终审】，本校其余未选中已通过队伍状态变为【未晋级（止步校赛）】。
+                </div>
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAdvancementModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    disabled={advancementSelectedTeamIds.length === 0}
+                    onClick={handleConfirmAdvancementSubmit}
+                    className="px-6 py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-extrabold shadow-xs cursor-pointer"
+                  >
+                    确认提交秘书处
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 弹窗 A：单条 / 批量审核弹窗（区分【高校审核】与【秘书处审核】） */}
+        {/* ===================================================================
+            弹窗 F：Tab 2【查看高校晋级提报详情】弹窗（查看该校排名后的队伍列表 + 预览/下载证明附件）
+           =================================================================== */}
+        {activeUniversitySubmissionDetail && (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-4xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[90vh]">
+              <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="text-base sm:text-lg font-extrabold">
+                    {activeUniversitySubmissionDetail.university} — 已提报{' '}
+                    {activeUniversitySubmissionDetail.teamIds.length} 支晋级队伍
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveUniversitySubmissionDetail(null)}
+                  className="text-white/80 hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                {/* 1. 提报概览 */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs">
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-slate-500">提报高校：</span>
+                      <strong className="text-slate-900">
+                        {activeUniversitySubmissionDetail.university}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">提报人 / 提报时间：</span>
+                      <span className="font-mono-num text-slate-700">
+                        {formatSubmittedByPersonName(activeUniversitySubmissionDetail.submittedBy)} ·{' '}
+                        {activeUniversitySubmissionDetail.submittedAt}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500 font-semibold">秘书处审核：</span>
+                    <AuditStageBadgeWithTooltip
+                      status={
+                        activeUniversitySubmissionDetail.status === 'pending'
+                          ? 'pending'
+                          : activeUniversitySubmissionDetail.status === 'approved'
+                          ? 'approved'
+                          : 'rejected'
+                      }
+                      rejectReason={activeUniversitySubmissionDetail.rejectReason}
+                      stage="secretariat"
+                      stageLabel="秘书处审核"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. 该校排名后的晋级队伍清单 */}
+                <div className="space-y-2.5">
+                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                    一、高校校赛选拔排名与晋级队伍明细（共{' '}
+                    {activeUniversitySubmissionDetail.teamIds.length} 支）
+                  </h4>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
+                          <th className="py-3 px-4 whitespace-nowrap">校内选拔排名</th>
+                          <th className="py-3 px-4 whitespace-nowrap">队伍名称</th>
+                          <th className="py-3 px-4 whitespace-nowrap">队长 / 手机号</th>
+                          <th className="py-3 px-4 whitespace-nowrap">队伍人数</th>
+                          <th className="py-3 px-4 text-right whitespace-nowrap">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {activeUniversitySubmissionDetail.teamIds.map((tid, idx) => {
+                          const team = captainTeams.find((t) => t.id === tid);
+                          if (!team) return null;
+                          const capContact = resolveTeamCaptainContact(team, platformUsers);
+                          return (
+                            <tr key={tid} className="hover:bg-sky-50/30">
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-extrabold font-mono-num">
+                                  第 {idx + 1} 名
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 font-extrabold text-slate-900 whitespace-nowrap">
+                                {team.teamName}
+                              </td>
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <div className="font-bold text-slate-900">{team.captainName}</div>
+                                <div className="text-[11px] font-mono-num text-slate-500">
+                                  {maskPhone(capContact.phone)}
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <div className="font-bold text-slate-900 font-mono-num">
+                                  {1 + team.members.length} 人
+                                </div>
+                                {team.advisors.length > 0 && (
+                                  <div className="text-[11px] text-slate-400 mt-0.5">
+                                    指导教师 {team.advisors.length} 人
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => setModalTeamDetailId(team.id)}
+                                  className="text-[#0284C7] hover:underline font-bold cursor-pointer"
+                                >
+                                  查看队伍详情
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 3. 校赛成绩证明附件列表 */}
+                <div className="space-y-2.5">
+                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                    二、高校上传的校赛成绩单与证明材料（共{' '}
+                    {activeUniversitySubmissionDetail.proofFiles.length} 份）
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {activeUniversitySubmissionDetail.proofFiles.map((pf) => (
+                      <div
+                        key={pf.id}
+                        className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <FileText className="w-5 h-5 text-[#0284C7] shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-xs font-extrabold text-slate-900 truncate">
+                              {pf.name}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-mono-num">
+                              大小：{pf.size} · 上传于 {pf.uploadedAt}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewProofFileModal(pf)}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-[#0284C7] text-[#0284C7] text-xs font-bold shrink-0 cursor-pointer"
+                        >
+                          预览/下载
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 底部直接终审操作栏 */}
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveUniversitySubmissionDetail(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer"
+                >
+                  关闭窗口
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSecBatchRejectReason(
+                        activeUniversitySubmissionDetail.rejectReason || ''
+                      );
+                      setSecBatchAuditError(null);
+                      setSecBatchAuditModal({
+                        submission: activeUniversitySubmissionDetail,
+                        decision: 'reject',
+                      });
+                    }}
+                    className="px-4 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold cursor-pointer"
+                  >
+                    驳回该校晋级名单
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSecBatchRejectReason('');
+                      setSecBatchAuditError(null);
+                      setSecBatchAuditModal({
+                        submission: activeUniversitySubmissionDetail,
+                        decision: 'approve',
+                      });
+                    }}
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold cursor-pointer shadow-xs"
+                  >
+                    审核通过
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            弹窗 F-2：点击【查看队伍详情】弹出的队伍详情弹窗（字段与另外两个Tab页队伍详情一致）
+           =================================================================== */}
+        {modalTeamDetailId &&
+          (() => {
+            const modalTeam = captainTeams.find((t) => t.id === modalTeamDetailId);
+            if (!modalTeam) return null;
+            const mStages = resolveTeamAuditStages(modalTeam);
+            const mConfirmProgress = computeTeamConfirmProgress(modalTeam);
+            const mCapContact = resolveTeamCaptainContact(modalTeam, platformUsers);
+            const mPersonRows = [
+              {
+                id: 'cap-row',
+                name: modalTeam.captainName,
+                gender: getPersonGender(modalTeam.captainName),
+                roleLabel: '队长',
+                roleKey: 'captain' as const,
+                ctfRoles: modalTeam.captainCtfRoles,
+                university: modalTeam.captainUniversity,
+                phone: maskPhone(mCapContact.phone),
+                email: maskEmail(mCapContact.email),
+                idCard: getMaskedIdCard(modalTeam.captainName),
+              },
+              ...modalTeam.members.map((m) => ({
+                id: m.id,
+                name: m.name,
+                gender: getPersonGender(m.name),
+                roleLabel: '队员',
+                roleKey: 'member' as const,
+                ctfRoles: m.ctfRoles,
+                university: m.university,
+                phone: maskPhone(m.phone),
+                email: maskEmail(m.email),
+                idCard: getMaskedIdCard(m.name + m.phone),
+              })),
+              ...modalTeam.advisors.map((a) => ({
+                id: a.id,
+                name: a.name,
+                gender: getPersonGender(a.name),
+                roleLabel: '指导教师',
+                roleKey: 'advisor' as const,
+                ctfRoles: undefined,
+                university: a.university,
+                phone: maskPhone(a.phone),
+                email: maskEmail(a.email),
+                idCard: getMaskedIdCard(a.name + a.phone),
+              })),
+            ];
+
+            return (
+              <div className="fixed inset-0 z-[60] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+                <div className="bg-white rounded-2xl border border-slate-200 max-w-5xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[90vh]">
+                  <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between shrink-0">
+                    <h3 className="text-base sm:text-lg font-extrabold">
+                      查看队伍详情 — {modalTeam.teamName}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setModalTeamDetailId(null)}
+                      className="text-white/80 hover:text-white p-1 cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                    {/* 1. 基础信息 */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+                      <div className="flex items-start gap-5">
+                        <TeamLogoAvatar
+                          logo={modalTeam.teamLogo}
+                          teamName={modalTeam.teamName}
+                          size="lg"
+                        />
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-3 text-xs">
+                            <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 mr-1">
+                              {modalTeam.teamName}
+                            </h2>
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className={`w-2 h-2 rounded-full ${mStages.regDotClass}`}
+                              />
+                              <span className={mStages.regColorClass}>
+                                报名状态：{mStages.regStatusLabel}
+                              </span>
+                            </span>
+                            {mStages.schoolRank && (
+                              <span className="px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-xs font-extrabold inline-flex items-center gap-1">
+                                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                                <span>校内排名：第 {mStages.schoolRank} 名</span>
+                              </span>
+                            )}
+                            <div className="inline-flex items-center gap-1.5 text-xs">
+                              <span className="text-slate-500 font-semibold">高校审核：</span>
+                              <AuditStageBadgeWithTooltip
+                                status={mStages.schoolStatus}
+                                rejectReason={mStages.schoolReason}
+                                stage="school"
+                                stageLabel="高校审核"
+                                customLabel={mStages.schoolBadgeLabel}
+                              />
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 text-xs">
+                              <span className="text-slate-500 font-semibold">秘书处审核：</span>
+                              <AuditStageBadgeWithTooltip
+                                status={mStages.secretariatStatus}
+                                rejectReason={mStages.secretariatReason}
+                                stage="secretariat"
+                                stageLabel="秘书处审核"
+                                customLabel={mStages.secretariatBadgeLabel}
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
+                            <strong>队伍简介：</strong>
+                            {modalTeam.teamIntro || '专注网络与数据安全攻防技术研究。'}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
+                            <span>
+                              所属院校：
+                              <strong className="text-[#0369A1]">{modalTeam.university}</strong>
+                            </span>
+                            <span className="font-mono-num">报名时间：{modalTeam.createdAt}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. 成员列表表格 */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-bold text-slate-900">
+                        队伍成员与指导教师明细（共 {mPersonRows.length} 人）
+                      </h4>
+                      <div className="overflow-x-auto rounded-xl border border-slate-200">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
+                              <th className="py-3 px-4">姓名</th>
+                              <th className="py-3 px-4">性别</th>
+                              <th className="py-3 px-4">角色</th>
+                              <th className="py-3 px-4">队内角色</th>
+                              <th className="py-3 px-4">所属院校</th>
+                              <th className="py-3 px-4">手机号(脱敏)</th>
+                              <th className="py-3 px-4">邮箱(脱敏)</th>
+                              <th className="py-3 px-4">身份证号(脱敏)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 text-xs bg-white">
+                            {mPersonRows.map((row) => (
+                              <tr key={row.id} className="hover:bg-sky-50/30">
+                                <td className="py-3.5 px-4 font-bold text-slate-900">
+                                  {row.name}
+                                </td>
+                                <td className="py-3.5 px-4 text-slate-600">{row.gender}</td>
+                                <td className="py-3.5 px-4">
+                                  <span
+                                    className={`px-2 py-0.5 rounded font-bold ${
+                                      row.roleKey === 'captain'
+                                        ? 'bg-[#0284C7] text-white'
+                                        : row.roleKey === 'advisor'
+                                        ? 'bg-sky-100 text-[#0369A1]'
+                                        : 'bg-slate-100 text-slate-700'
+                                    }`}
+                                  >
+                                    {row.roleLabel}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <CtfRoleBadges
+                                    roles={row.ctfRoles}
+                                    isAdvisor={row.roleKey === 'advisor'}
+                                    emptyText="-"
+                                  />
+                                </td>
+                                <td className="py-3.5 px-4 font-semibold text-slate-700">
+                                  {row.university}
+                                </td>
+                                <td className="py-3.5 px-4 font-mono-num text-slate-600">
+                                  {row.phone}
+                                </td>
+                                <td className="py-3.5 px-4 font-mono-num text-slate-600">
+                                  {row.email}
+                                </td>
+                                <td className="py-3.5 px-4 font-mono-num text-slate-600">
+                                  {row.idCard}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 底部三段式审核规则说明与关闭按钮 */}
+                  <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+                    <div className="text-xs text-slate-500 leading-relaxed">
+                      三段式审核规则：①【高校审核】核验信息真实性 &rarr; ②【申报晋级队伍】勾选已通过校内赛的队伍、排序排名并上传校赛证明 &rarr; ③【秘书处审核】按高校维度终审通过后沉淀至【最终参赛队伍清单】。
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setModalTeamDetailId(null)}
+                      className="px-5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer shrink-0"
+                    >
+                      关闭
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+        {/* ===================================================================
+            弹窗 G：秘书处按“高校维度”审核通过 / 驳回确认弹窗
+           =================================================================== */}
+        {secBatchAuditModal && (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl">
+              <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 text-slate-900 font-extrabold text-sm flex items-center justify-between">
+                <span>
+                  秘书处审核 —— 【{secBatchAuditModal.submission.university}】晋级名单（共{' '}
+                  {secBatchAuditModal.submission.teamIds.length} 支队伍）
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSecBatchAuditModal(null)}
+                  className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {secBatchAuditError && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-bold text-red-700">
+                    {secBatchAuditError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSecBatchAuditModal({ ...secBatchAuditModal, decision: 'approve' })
+                    }
+                    className={`py-2.5 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+                      secBatchAuditModal.decision === 'approve'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-800'
+                        : 'bg-white border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>审核通过整批名单</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSecBatchAuditModal({ ...secBatchAuditModal, decision: 'reject' })
+                    }
+                    className={`py-2.5 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+                      secBatchAuditModal.decision === 'reject'
+                        ? 'bg-red-50 border-red-500 text-red-800'
+                        : 'bg-white border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <XCircle className="w-4 h-4 text-red-600" />
+                    <span>驳回高校重报</span>
+                  </button>
+                </div>
+
+                {secBatchAuditModal.decision === 'approve' ? (
+                  <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-900 leading-relaxed">
+                    <strong>秘书处审核通过后：</strong>【
+                    {secBatchAuditModal.submission.university}】提报的{' '}
+                    {secBatchAuditModal.submission.teamIds.length} 支队伍将正式变为
+                    <strong>“报名成功（已晋级）”</strong>，自动进入{' '}
+                    <strong>【最终参赛队伍清单】</strong>，同时前台个人中心【我的竞赛】同步展示！
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+                      <strong>打回高校管理员重报机制：</strong>驳回后将直接退回给【
+                      {secBatchAuditModal.submission.university}
+                      】高校管理员重新调整排名或补充校赛证明材料（前台队长无需也不可自行修改队伍信息）。
+                    </div>
+                    <label className="block text-xs font-bold text-slate-700">
+                      填写驳回原因 <span className="text-red-500">*（必填）</span>
+                    </label>
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <span className="text-slate-400">快捷原因：</span>
+                      {[
+                        '校赛成绩单缺少教务处或学院公章，请补充盖章扫描件后重新提报',
+                        '上传的证明材料模糊，无法核对第1名与第2名积分明细',
+                        '晋级推荐名单与成绩单排名顺序不一致，请核对后重新提报',
+                      ].map((phrase) => (
+                        <button
+                          key={phrase}
+                          type="button"
+                          onClick={() => setSecBatchRejectReason(phrase)}
+                          className="px-2 py-1 rounded bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200 cursor-pointer"
+                        >
+                          {phrase.slice(0, 14)}...
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={secBatchRejectReason}
+                      onChange={(e) => setSecBatchRejectReason(e.target.value)}
+                      placeholder="请输入具体驳回原因（如：材料模糊、缺少公章等）..."
+                      className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:border-[#0284C7] focus:outline-none"
+                    />
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSecBatchAuditModal(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmSecretariatUniversityBatchAudit}
+                    className={`px-6 py-2 rounded-lg text-white text-xs font-bold cursor-pointer ${
+                      secBatchAuditModal.decision === 'approve'
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-red-600 hover:bg-red-700'
+                    }`}
+                  >
+                    确认提交秘书处终审结论
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            弹窗 H：校赛成绩单/证明材料在线预览与下载弹窗
+           =================================================================== */}
+        {previewProofFileModal && (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl">
+              <div className="px-6 py-4 bg-slate-900 text-white text-sm font-extrabold flex items-center justify-between">
+                <span>校赛成绩证明材料预览</span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewProofFileModal(null)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                  <div className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#0284C7]" />
+                    <span>{previewProofFileModal.name}</span>
+                  </div>
+                  <div className="text-slate-500 font-mono-num">
+                    文件大小：{previewProofFileModal.size} · 类型：
+                    {previewProofFileModal.type.toUpperCase()} · 上传时间：
+                    {previewProofFileModal.uploadedAt}
+                  </div>
+                  <div className="pt-2 border-t border-slate-200 text-slate-700 leading-relaxed">
+                    【官方电子归档核验摘要】该附件已通过平台哈希完整性校验（SHA-256），包含校内选拔赛靶场解题积分榜、各参赛队排名序号及高校教务/竞赛管理部门审核签章信息。
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewProofFileModal(null)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 cursor-pointer"
+                  >
+                    关闭
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const content = `文件名：${previewProofFileModal.name}\n文件大小：${previewProofFileModal.size}\n上传时间：${previewProofFileModal.uploadedAt}\n核验状态：校内选拔赛官方成绩证明附件\n`;
+                      const blob = new Blob([content], {
+                        type: 'text/plain;charset=utf-8;',
+                      });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${previewProofFileModal.name}.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      onToast(`已下载证明附件：${previewProofFileModal.name}`);
+                    }}
+                    className="px-5 py-2 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>下载证明附件</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 弹窗 A：Tab 1 单条 / 批量【高校资格审核】弹窗 */}
         {auditModalState && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl">
               <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 text-slate-900 font-extrabold text-sm flex items-center justify-between">
                 <span>
                   {auditModalState.mode === 'batch'
-                    ? `批量${auditModalState.stage === 'school' ? '高校审核' : '秘书处审核'}（已选 ${auditModalState.teamIds.length} 支队伍）`
-                    : `${auditModalState.stage === 'school' ? '高校审核' : '秘书处审核'}报名队伍`}
+                    ? `批量高校审核（已选 ${auditModalState.teamIds.length} 支队伍）`
+                    : '高校审核（核验队伍真实性与合规性）'}
                 </span>
                 <button
                   type="button"
@@ -3276,7 +5713,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 {/* 选择审核结论 */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-2">
-                    选择{auditModalState.stage === 'school' ? '高校审核' : '秘书处审核'}结论：
+                    选择高校审核结论：
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
@@ -3291,7 +5728,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       }`}
                     >
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>{auditModalState.mode === 'batch' ? '批量通过' : '审核通过'}</span>
+                      <span>{auditModalState.mode === 'batch' ? '批量通过' : '高校审核通过'}</span>
                     </button>
                     <button
                       type="button"
@@ -3305,31 +5742,24 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       }`}
                     >
                       <XCircle className="w-4 h-4 text-red-600" />
-                      <span>{auditModalState.mode === 'batch' ? '批量驳回' : '审核驳回'}</span>
+                      <span>{auditModalState.mode === 'batch' ? '批量驳回' : '高校审核驳回'}</span>
                     </button>
                   </div>
                 </div>
 
                 {auditModalState.decision === 'approve' ? (
                   <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-800 leading-relaxed">
-                    {auditModalState.stage === 'school' ? (
-                      <>
-                        <strong>高校审核通过后：</strong>该队伍的【高校审核】状态将更新为“已通过”，并自动进入<strong>【秘书处审核（待审核）】</strong>阶段，待秘书处终审通过后报名状态变为“报名成功”。
-                      </>
-                    ) : (
-                      <>
-                        <strong>秘书处审核通过后：</strong>该队伍的【秘书处审核】状态将更新为“已通过”，前台队长侧【报名状态】将正式变为<strong>“报名成功”</strong>！
-                      </>
-                    )}
+                    <strong>高校审核通过后：</strong>队伍状态将更新为
+                    <strong>“高校已通过（待校赛）”</strong>，并进入本校<strong>【申报晋级队伍】</strong>待选池（不会直接流转至秘书处）。待校赛选拔结束后，请点击列表顶部<strong>【申报晋级队伍】</strong>统一排序并上传成绩单提交秘书处终审。
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-800 leading-relaxed">
-                      <strong>驳回重提规则：</strong>无论是【高校审核】驳回还是【秘书处审核】驳回，队长修改报名信息并重新提交后，均需重新进入<strong>【高校审核（待审核）】&rarr;【秘书处审核】</strong>两个完整流程。
+                      <strong>高校审核驳回规则：</strong>驳回原因将同步展示在前台队长【我的报名】页面，队长可根据驳回原因修改队伍信息或调整队内角色后重新提交本校审核。
                     </div>
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-700">
-                        填写{auditModalState.stage === 'school' ? '高校审核' : '秘书处审核'}驳回原因{' '}
+                        填写高校审核驳回原因{' '}
                         <span className="text-red-500">*（必填，前台悬浮小图标将显示此原因）</span>
                       </label>
                     </div>
@@ -3338,6 +5768,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       <span className="text-slate-400">快捷语：</span>
                       {[
                         '队伍成员学籍认证信息存疑，请重新核对后提交',
+                        '队内角色分配不合理或与参赛作品方向不符，请核实调整后重提',
                         '指导教师研究方向或院系信息填写不完整，请补充后重提',
                         '队伍名称或简介不符合大赛规范，请修改后重提',
                       ].map((phrase) => (
@@ -3355,7 +5786,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       rows={3}
                       value={rejectReasonText}
                       onChange={(e) => setRejectReasonText(e.target.value)}
-                      placeholder="请输入具体驳回原因，前台【我的报名】对应审核列将展示“已驳回”及悬浮原因图标，队长修改重新提交后将重新进入高校审核与秘书处审核流程..."
+                      placeholder="请输入具体驳回原因，前台【我的报名】将展示“已驳回”及悬浮原因气泡，队长修改后可重新提交本校审核..."
                       className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:border-[#0284C7] focus:outline-none"
                     />
                   </div>
@@ -3378,7 +5809,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                         : 'bg-red-600 hover:bg-red-700'
                     }`}
                   >
-                    确认提交{auditModalState.stage === 'school' ? '高校审核' : '秘书处审核'}结果
+                    确认提交高校审核结果
                   </button>
                 </div>
               </div>
@@ -3389,10 +5820,10 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         {/* 弹窗 B：导出 Excel 双 Sheet 预览弹窗 */}
         {exportPreviewModal && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl border border-slate-200 max-w-4xl w-full overflow-hidden shadow-2xl">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-6xl w-full overflow-hidden shadow-2xl">
               <div className="px-6 py-4 bg-emerald-50 border-b border-emerald-200 text-emerald-900 font-extrabold text-sm flex items-center justify-between">
                 <span>
-                  Excel 导出文件已生成并下载（含双工作表 Sheet1 & Sheet2 · 隐私字段默认脱敏）
+                  Excel 导出文件已生成并下载（包含队伍和队员的所有详细信息：手机号、邮箱、身份证号、学历、队内角色、院校所在地、所属赛区）
                 </span>
                 <button
                   type="button"
@@ -3403,7 +5834,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 </button>
               </div>
               <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -3416,7 +5847,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           : 'bg-slate-100 text-slate-700'
                       }`}
                     >
-                      Sheet1（队伍汇总）
+                      Sheet1（队伍汇总详情 · 含所在地/赛区/队长全量信息）
                     </button>
                     <button
                       type="button"
@@ -3429,7 +5860,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           : 'bg-slate-100 text-slate-700'
                       }`}
                     >
-                      Sheet2（成员明细 · 身份证/手机脱敏）
+                      Sheet2（队伍及队员全部详细信息 · 手机/邮箱/身份证/学历/角色/所在地/赛区）
                     </button>
                   </div>
                   <span className="text-xs text-slate-500">
@@ -3437,69 +5868,144 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   </span>
                 </div>
 
-                <div className="overflow-x-auto max-h-72 border border-slate-200 rounded-xl">
+                <div className="overflow-x-auto max-h-80 border border-slate-200 rounded-xl">
                   {exportPreviewModal.sheetTab === 'sheet1' ? (
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
+                        <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600 whitespace-nowrap">
                           <th className="py-2.5 px-3">队伍名</th>
-                          <th className="py-2.5 px-3">学校</th>
-                          <th className="py-2.5 px-3">赛道</th>
+                          <th className="py-2.5 px-3">校内排名</th>
+                          <th className="py-2.5 px-3">所属院校</th>
+                          <th className="py-2.5 px-3">院校所在地</th>
+                          <th className="py-2.5 px-3">所属赛区</th>
                           <th className="py-2.5 px-3">队长</th>
-                          <th className="py-2.5 px-3">状态</th>
+                          <th className="py-2.5 px-3">队长学历</th>
+                          <th className="py-2.5 px-3">队长角色</th>
+                          <th className="py-2.5 px-3">队长手机号</th>
+                          <th className="py-2.5 px-3">队长邮箱</th>
+                          <th className="py-2.5 px-3">队长身份证号</th>
                           <th className="py-2.5 px-3">人数</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {exportPreviewModal.teams.map((t) => (
-                          <tr key={t.id}>
-                            <td className="py-2 px-3 font-bold">{t.teamName}</td>
-                            <td className="py-2 px-3">{t.university}</td>
-                            <td className="py-2 px-3">{t.subTrackName}</td>
-                            <td className="py-2 px-3">{t.captainName}</td>
-                            <td className="py-2 px-3">{mapTeamStatusToAdminAudit(t.status).label}</td>
-                            <td className="py-2 px-3 font-mono-num">{1 + t.members.length}</td>
-                          </tr>
-                        ))}
+                      <tbody className="divide-y divide-slate-100 whitespace-nowrap">
+                        {exportPreviewModal.teams.map((t) => {
+                          const st = resolveTeamAuditStages(t);
+                          const capContact = resolveTeamCaptainContact(t, platformUsers);
+                          const capInfo = resolvePersonFullExportInfo({
+                            name: t.captainName,
+                            phone: capContact.phone,
+                            email: capContact.email,
+                            university: t.university,
+                            roleType: 'captain',
+                            ctfRoles: t.captainCtfRoles,
+                          });
+                          return (
+                            <tr key={t.id}>
+                              <td className="py-2 px-3 font-bold">{t.teamName}</td>
+                              <td className="py-2 px-3 font-mono-num font-bold text-amber-700">
+                                {st.schoolRank ? `校内第${st.schoolRank}名` : '-'}
+                              </td>
+                              <td className="py-2 px-3">{t.university}</td>
+                              <td className="py-2 px-3">{capInfo.universityLocation}</td>
+                              <td className="py-2 px-3 font-semibold text-[#0284C7]">
+                                {capInfo.divisionName}
+                              </td>
+                              <td className="py-2 px-3 font-semibold">{capInfo.name}</td>
+                              <td className="py-2 px-3">{capInfo.educationLevel}</td>
+                              <td className="py-2 px-3">{capInfo.inTeamRoleText}</td>
+                              <td className="py-2 px-3 font-mono-num">{capInfo.phone}</td>
+                              <td className="py-2 px-3 font-mono-num">{capInfo.email}</td>
+                              <td className="py-2 px-3 font-mono-num">{capInfo.idCard}</td>
+                              <td className="py-2 px-3 font-mono-num">{1 + t.members.length}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   ) : (
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
+                        <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600 whitespace-nowrap">
                           <th className="py-2.5 px-3">所属队伍</th>
+                          <th className="py-2.5 px-3">校内排名</th>
                           <th className="py-2.5 px-3">姓名</th>
-                          <th className="py-2.5 px-3">角色</th>
-                          <th className="py-2.5 px-3">学校</th>
-                          <th className="py-2.5 px-3">身份证号(脱敏)</th>
-                          <th className="py-2.5 px-3">手机号(脱敏)</th>
-                          <th className="py-2.5 px-3">邮箱(脱敏)</th>
+                          <th className="py-2.5 px-3">队内身份</th>
+                          <th className="py-2.5 px-3">队内角色</th>
+                          <th className="py-2.5 px-3">学历</th>
+                          <th className="py-2.5 px-3">手机号</th>
+                          <th className="py-2.5 px-3">邮箱</th>
+                          <th className="py-2.5 px-3">身份证号</th>
+                          <th className="py-2.5 px-3">所属院校</th>
+                          <th className="py-2.5 px-3">院校所在地</th>
+                          <th className="py-2.5 px-3">所属赛区</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 whitespace-nowrap">
                         {exportPreviewModal.teams.flatMap((t) => {
+                          const st = resolveTeamAuditStages(t);
+                          const rankText = st.schoolRank ? `校内第${st.schoolRank}名` : '-';
                           const capContact = resolveTeamCaptainContact(t, platformUsers);
+                          const capInfo = resolvePersonFullExportInfo({
+                            name: t.captainName,
+                            phone: capContact.phone,
+                            email: capContact.email,
+                            university: t.captainUniversity || t.university,
+                            roleType: 'captain',
+                            ctfRoles: t.captainCtfRoles,
+                          });
                           return [
                             <tr key={`${t.id}-cap`}>
                               <td className="py-2 px-3 font-bold">{t.teamName}</td>
-                              <td className="py-2 px-3">{t.captainName}</td>
+                              <td className="py-2 px-3 font-mono-num font-bold text-amber-700">
+                                {rankText}
+                              </td>
+                              <td className="py-2 px-3 font-bold">{capInfo.name}</td>
                               <td className="py-2 px-3">队长</td>
-                              <td className="py-2 px-3">{t.captainUniversity}</td>
-                              <td className="py-2 px-3 font-mono-num">{getMaskedIdCard(t.captainName)}</td>
-                              <td className="py-2 px-3 font-mono-num">{maskPhone(capContact.phone)}</td>
-                              <td className="py-2 px-3 font-mono-num">{maskEmail(capContact.email)}</td>
+                              <td className="py-2 px-3 font-semibold text-[#0284C7]">
+                                {capInfo.inTeamRoleText}
+                              </td>
+                              <td className="py-2 px-3">{capInfo.educationLevel}</td>
+                              <td className="py-2 px-3 font-mono-num">{capInfo.phone}</td>
+                              <td className="py-2 px-3 font-mono-num">{capInfo.email}</td>
+                              <td className="py-2 px-3 font-mono-num">{capInfo.idCard}</td>
+                              <td className="py-2 px-3">{capInfo.university}</td>
+                              <td className="py-2 px-3">{capInfo.universityLocation}</td>
+                              <td className="py-2 px-3 font-semibold text-emerald-700">
+                                {capInfo.divisionName}
+                              </td>
                             </tr>,
-                            ...[...t.members, ...t.advisors].map((p) => (
-                              <tr key={`${t.id}-${p.id}`}>
-                                <td className="py-2 px-3 font-bold">{t.teamName}</td>
-                                <td className="py-2 px-3">{p.name}</td>
-                                <td className="py-2 px-3">{p.role === 'advisor' ? '指导教师' : '队员'}</td>
-                                <td className="py-2 px-3">{p.university}</td>
-                                <td className="py-2 px-3 font-mono-num">{getMaskedIdCard(p.name + p.phone)}</td>
-                                <td className="py-2 px-3 font-mono-num">{maskPhone(p.phone)}</td>
-                                <td className="py-2 px-3 font-mono-num">{maskEmail(p.email)}</td>
-                              </tr>
-                            )),
+                            ...[...t.members, ...t.advisors].map((p) => {
+                              const pInfo = resolvePersonFullExportInfo({
+                                name: p.name,
+                                phone: p.phone,
+                                email: p.email,
+                                university: p.university || t.university,
+                                roleType: p.role === 'advisor' ? 'advisor' : 'member',
+                                ctfRoles: p.ctfRoles,
+                              });
+                              return (
+                                <tr key={`${t.id}-${p.id}`}>
+                                  <td className="py-2 px-3 font-bold">{t.teamName}</td>
+                                  <td className="py-2 px-3 font-mono-num font-bold text-amber-700">
+                                    {rankText}
+                                  </td>
+                                  <td className="py-2 px-3 font-semibold">{pInfo.name}</td>
+                                  <td className="py-2 px-3">{pInfo.identityLabel}</td>
+                                  <td className="py-2 px-3 font-semibold text-[#0284C7]">
+                                    {pInfo.inTeamRoleText}
+                                  </td>
+                                  <td className="py-2 px-3">{pInfo.educationLevel}</td>
+                                  <td className="py-2 px-3 font-mono-num">{pInfo.phone}</td>
+                                  <td className="py-2 px-3 font-mono-num">{pInfo.email}</td>
+                                  <td className="py-2 px-3 font-mono-num">{pInfo.idCard}</td>
+                                  <td className="py-2 px-3">{pInfo.university}</td>
+                                  <td className="py-2 px-3">{pInfo.universityLocation}</td>
+                                  <td className="py-2 px-3 font-semibold text-emerald-700">
+                                    {pInfo.divisionName}
+                                  </td>
+                                </tr>
+                              );
+                            }),
                           ];
                         })}
                       </tbody>
@@ -3671,6 +6177,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           captainVerified: true,
                           status: 'pending_review',
                           schoolAuditStatus: 'pending',
+                          advancementStatus: 'none',
                           secretariatAuditStatus: 'none',
                           members: [
                             {

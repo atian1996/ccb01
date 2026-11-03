@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import {
   BANNER_SLIDES,
+  BANNER_POSTER_1,
   COMPETITION_TRACKS,
   NOTICE_ITEMS,
   NEWS_ITEMS,
@@ -50,8 +51,11 @@ import {
   UNIVERSITY_PARTNERS,
   LEADERSHIP_ORGS,
   INITIAL_COMPETITION_CATALOG,
+  INITIAL_HOME_BANNERS,
+  INITIAL_RECOMMENDED_COMP_IDS,
+  INITIAL_DIVISIONS,
   DEFAULT_NEWS_COVER_SVG,
-  HELP_CENTER_HOME_EXCERPT_MARKDOWN,
+  HELP_CENTER_MARKDOWN_DOC,
   type CompetitionCatalogItem,
   computeCompetitionStatus,
   getCompetitionStatusLabel,
@@ -61,6 +65,8 @@ import {
   type CertificateRecord,
   type RegistrationSubmission,
   type LeadershipOrg,
+  type HomeBannerConfig,
+  type DivisionRecord,
 } from './data/competitionData';
 import {
   TrackCoverIllustration,
@@ -92,6 +98,7 @@ import {
   type CaptainTeamRecord,
   type ParticipatedTeamRecord,
   type PlatformDirectoryUser,
+  type UserExtendedRole,
 } from './components/TeamRegistrationSystem';
 import {
   INITIAL_REGISTRATION_CONFIGS,
@@ -259,10 +266,14 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfileData>({
     username: 'linyuanhang',
     name: '林远航',
+    idCard: '110108200305162819',
     role: 'student',
     roleLabel: '参赛学生',
     university: '北京航空航天大学',
-    majorOrDept: '网络空间安全学院',
+    educationLevel: '本科',
+    majorOrDept: '网络空间安全',
+    enrollmentDate: '2024-09',
+    graduationDate: '2028-06',
     studentId: 'BY2406118',
     email: 'linyuanhang@buaa.edu.cn',
     phone: '13810246921',
@@ -278,7 +289,7 @@ export default function App() {
     currentLoginLocation: '北京市海淀区',
   });
 
-  // 前台个人中心修改资料或完成实名/学籍认证时，实时同步回写全平台用户总表 platformUsers
+  // 前台个人中心修改资料或完成实名/学生/教师认证时，实时同步回写全平台用户总表 platformUsers
   const handleUpdateCurrentUser = (updated: UserProfileData) => {
     const prevUsername = currentUser.username;
     const prevPhone = currentUser.phone;
@@ -307,6 +318,10 @@ export default function App() {
             phone: updated.phone,
             email: updated.email,
             university: updated.university || u.university,
+            educationLevel: updated.educationLevel || u.educationLevel,
+            majorOrDept: updated.majorOrDept || u.majorOrDept,
+            enrollmentDate: updated.enrollmentDate || u.enrollmentDate,
+            graduationDate: updated.graduationDate || u.graduationDate,
             identityType: nextIdentity,
             baseRole: nextBaseRole,
             isRealNameVerified: isRealVerified,
@@ -540,17 +555,57 @@ export default function App() {
   const [bellDropdownOpen, setBellDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  // --- Module 1: Banner Carousel State ---
+  // --- Module 1: Banner Carousel State & Homepage Config State ---
+  const [homeBanners, setHomeBanners] = useState<HomeBannerConfig[]>(INITIAL_HOME_BANNERS);
+  const [recommendedCompIds, setRecommendedCompIds] = useState<string[]>(
+    INITIAL_RECOMMENDED_COMP_IDS
+  );
+  const [divisions, setDivisions] = useState<DivisionRecord[]>(INITIAL_DIVISIONS);
+  const [helpCenterContent, setHelpCenterContent] = useState<string>(HELP_CENTER_MARKDOWN_DOC);
+
+  const activeHomeBanners = useMemo(() => {
+    const enabled = [...homeBanners]
+      .filter((b) => b.isEnabled)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    return enabled.length > 0 ? enabled : homeBanners;
+  }, [homeBanners]);
+
+  const homeRecommendedCompetitions = useMemo(() => {
+    const picked: CompetitionCatalogItem[] = [];
+    recommendedCompIds.forEach((cid) => {
+      const found = competitions.find((c) => c.id === cid && c.isPublic !== false);
+      if (found && !picked.some((p) => p.id === found.id)) {
+        picked.push(found);
+      }
+    });
+    if (picked.length < 3) {
+      competitions
+        .filter((c) => c.isPublic !== false)
+        .forEach((c) => {
+          if (picked.length < 3 && !picked.some((p) => p.id === c.id)) {
+            picked.push(c);
+          }
+        });
+    }
+    return picked.slice(0, 3);
+  }, [competitions, recommendedCompIds]);
+
   const [currentBannerIdx, setCurrentBannerIdx] = useState(0);
   const [bannerPaused, setBannerPaused] = useState(false);
 
   useEffect(() => {
-    if (bannerPaused) return;
+    if (currentBannerIdx >= activeHomeBanners.length) {
+      setCurrentBannerIdx(0);
+    }
+  }, [activeHomeBanners.length, currentBannerIdx]);
+
+  useEffect(() => {
+    if (bannerPaused || activeHomeBanners.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentBannerIdx((prev) => (prev + 1) % BANNER_SLIDES.length);
+      setCurrentBannerIdx((prev) => (prev + 1) % activeHomeBanners.length);
     }, 5500);
     return () => clearInterval(timer);
-  }, [bannerPaused]);
+  }, [bannerPaused, activeHomeBanners.length]);
 
   // --- Module 4: Moments Carousel & Category Tab State（联动后台内容管理 -> 赛事动态已发布数据，默认展示进展报道） ---
   const [activeMomentTab, setActiveMomentTab] = useState<MomentCategory>('进展报道');
@@ -715,20 +770,50 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleBannerAction = (slide: (typeof BANNER_SLIDES)[number]) => {
-    if (slide.targetType === 'track') {
-      const found = COMPETITION_TRACKS.find((t) => t.id === slide.targetId) || COMPETITION_TRACKS[0];
-      handleNavigateToTrackDetail(found);
-    } else if (slide.targetType === 'notice') {
-      const found =
-        publishedNotices.find((n) => n.id === slide.targetId) ||
-        publishedNotices[0] ||
-        NOTICE_ITEMS[0];
-      setInitialSelectedNoticeId(found.id);
-      setCurrentView('notice-detail');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (slide.targetType === 'verify') {
-      scrollToSection('utility-service-section');
+  const handleBannerConfigAction = (banner: HomeBannerConfig) => {
+    if (banner.linkType === 'competition') {
+      const foundComp =
+        competitions.find((c) => c.id === banner.targetValue) || competitions[0];
+      if (foundComp) {
+        setSelectedCompetitionId(foundComp.id);
+        setCurrentView('competition-detail');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } else if (banner.linkType === 'view') {
+      if (banner.targetValue === 'notices') {
+        setInitialSelectedNoticeId(null);
+        setCurrentView('notices');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (banner.targetValue === 'news') {
+        setInitialSelectedNewsId(null);
+        setCurrentView('news');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (banner.targetValue === 'moments') {
+        setInitialSelectedMomentId(null);
+        setCurrentView('moments');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (
+        banner.targetValue === 'directory' ||
+        banner.targetValue === 'competitions'
+      ) {
+        setCurrentView('directory');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (banner.targetValue === 'help') {
+        setCurrentView('help');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (banner.targetValue === 'utility-service-section') {
+        scrollToSection('utility-service-section');
+      }
+    } else if (banner.linkType === 'url' && banner.targetValue) {
+      if (banner.targetValue.startsWith('#')) {
+        scrollToSection(banner.targetValue.slice(1));
+      } else {
+        const a = document.createElement('a');
+        a.href = banner.targetValue;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.click();
+      }
     }
   };
 
@@ -864,9 +949,73 @@ export default function App() {
         onUpdateManagedMoments={setManagedMoments}
         managedNotices={managedNotices}
         onUpdateManagedNotices={setManagedNotices}
+        homeBanners={homeBanners}
+        onChangeHomeBanners={setHomeBanners}
+        recommendedCompIds={recommendedCompIds}
+        onChangeRecommendedCompIds={setRecommendedCompIds}
+        divisions={divisions}
+        onChangeDivisions={setDivisions}
+        helpCenterContent={helpCenterContent}
+        onChangeHelpCenterContent={setHelpCenterContent}
         verificationRecords={verificationRecords}
         onUpdateVerificationRecords={setVerificationRecords}
         onApproveVerificationSync={(record) => {
+          if (record.applicantType === 'univ_admin') {
+            setPlatformUsers((prev) =>
+              prev.map((u) => {
+                if (
+                  (u.username || '').toLowerCase() === record.username.toLowerCase() ||
+                  (record.phone && u.phone === record.phone)
+                ) {
+                  const existingRoles = u.extendedRoles || [];
+                  const nextRoles: UserExtendedRole[] = existingRoles.includes('高校管理员')
+                    ? existingRoles
+                    : [...existingRoles, '高校管理员'];
+                  const nextTags = Array.from(new Set([...(u.tags || []), '高校管理员']));
+                  return {
+                    ...u,
+                    extendedRoles: nextRoles,
+                    tags: nextTags,
+                  };
+                }
+                return u;
+              })
+            );
+            if (
+              (currentUser.username || '').toLowerCase() === record.username.toLowerCase() ||
+              (record.phone && currentUser.phone === record.phone)
+            ) {
+              setCurrentUser((prev) => ({
+                ...prev,
+                univAdminStatus: 'verified',
+                univAdminVerifiedAt: '2026-10-28 15:20:00',
+                univAdminReviewer: record.reviewer || '组委会超级管理员',
+                univAdminReviewedAt: '2026-10-28 15:20:00',
+                univAdminRejectReason: undefined,
+              }));
+            }
+            setNotifications((prev) => [
+              {
+                id: `notif-admin-pass-${Date.now()}`,
+                title: '【认证通过】高校管理员认证审核已通过',
+                desc: `恭喜您！您提交的【${record.university}】高校管理员资质认证已由大赛组委会审核通过，您已正式开通本校高校管理员工作台权限。`,
+                time: '刚刚',
+                unread: true,
+              },
+              ...prev,
+            ]);
+            handleAddAuditLog({
+              operator: currentUser.username || 'admin',
+              ip: currentUser.currentLoginIp,
+              location: currentUser.currentLoginLocation,
+              device: 'Windows 11 / Chrome 130.0',
+              action: '审核通过高校管理员认证',
+              result: '成功',
+              detail: `申请人：${record.realName} (${record.username})，所属高校：${record.university}`,
+            });
+            return;
+          }
+
           const nextBaseRole = record.applicantType === 'teacher' ? '教师' : '学生';
           const nextIdentity = record.applicantType === 'teacher' ? 'teacher' : 'student';
           setPlatformUsers((prev) =>
@@ -878,6 +1027,12 @@ export default function App() {
                 return {
                   ...u,
                   university: record.university,
+                  educationLevel:
+                    record.educationLevel ||
+                    (record.applicantType === 'student' ? record.levelOrTitle : u.educationLevel),
+                  majorOrDept: record.majorOrDept,
+                  enrollmentDate: record.enrollmentDate || u.enrollmentDate,
+                  graduationDate: record.graduationDate || u.graduationDate,
                   identityType: nextIdentity,
                   baseRole: nextBaseRole,
                   isRealNameVerified: true,
@@ -897,7 +1052,13 @@ export default function App() {
               roleLabel: nextIdentity === 'teacher' ? '指导教师' : '参赛学生',
               identityType: nextIdentity,
               university: record.university,
+              educationLevel:
+                record.educationLevel ||
+                (record.applicantType === 'student' ? record.levelOrTitle : prev.educationLevel),
               majorOrDept: record.majorOrDept,
+              teacherMajor: record.teacherMajor || prev.teacherMajor,
+              enrollmentDate: record.enrollmentDate || prev.enrollmentDate,
+              graduationDate: record.graduationDate || prev.graduationDate,
               studentId: record.studentOrStaffId,
               academicStatus: 'verified',
               academicVerifiedAt: '2026-10-28',
@@ -909,9 +1070,9 @@ export default function App() {
             {
               id: `notif-verify-pass-${Date.now()}`,
               title: `【认证通过】${
-                record.applicantType === 'student' ? '学生学籍' : '指导教师资格'
-              }人工审核已通过`,
-              desc: `提交的 ${record.university}（${record.majorOrDept}）认证材料已由管理员审核通过，认证状态已更新为【已认证】。`,
+                record.applicantType === 'student' ? '学生认证' : '指导教师资格认证'
+              }审核已通过`,
+              desc: `您提交的 ${record.university}（${record.majorOrDept}）认证信息已由管理员审核通过，认证状态已更新为【验证成功】。`,
               time: '刚刚',
               unread: true,
             },
@@ -928,6 +1089,41 @@ export default function App() {
           });
         }}
         onRejectVerificationSync={(record, reason) => {
+          if (record.applicantType === 'univ_admin') {
+            if (
+              (currentUser.username || '').toLowerCase() === record.username.toLowerCase() ||
+              (record.phone && currentUser.phone === record.phone)
+            ) {
+              setCurrentUser((prev) => ({
+                ...prev,
+                univAdminStatus: 'rejected',
+                univAdminRejectReason: reason,
+                univAdminReviewer: record.reviewer || '组委会超级管理员',
+                univAdminReviewedAt: '2026-10-28 15:25:00',
+              }));
+            }
+            setNotifications((prev) => [
+              {
+                id: `notif-admin-rej-${Date.now()}`,
+                title: '【认证驳回】高校管理员认证审核未通过',
+                desc: `您提交的【${record.university}】高校管理员认证申请被驳回（原因：${reason}），请前往【个人中心 -> 用户认证】查看驳回原因并可重新申请认证。`,
+                time: '刚刚',
+                unread: true,
+              },
+              ...prev,
+            ]);
+            handleAddAuditLog({
+              operator: currentUser.username || 'admin',
+              ip: currentUser.currentLoginIp,
+              location: currentUser.currentLoginLocation,
+              device: 'Windows 11 / Chrome 130.0',
+              action: '驳回高校管理员认证申请',
+              result: '失败',
+              detail: `申请人：${record.realName} (${record.username})，驳回原因：${reason}`,
+            });
+            return;
+          }
+
           setPlatformUsers((prev) =>
             prev.map((u) => {
               if (
@@ -948,6 +1144,14 @@ export default function App() {
           ) {
             setCurrentUser((prev) => ({
               ...prev,
+              university: record.university || prev.university,
+              educationLevel:
+                record.applicantType === 'student'
+                  ? record.levelOrTitle || prev.educationLevel
+                  : prev.educationLevel,
+              majorOrDept: record.majorOrDept || prev.majorOrDept,
+              enrollmentDate: record.enrollmentDate || prev.enrollmentDate,
+              graduationDate: record.graduationDate || prev.graduationDate,
               academicStatus: 'rejected',
               academicRejectReason: reason,
               isVerified: false,
@@ -957,9 +1161,9 @@ export default function App() {
             {
               id: `notif-verify-rej-${Date.now()}`,
               title: `【认证驳回】${
-                record.applicantType === 'student' ? '学生学籍' : '指导教师资格'
-              }人工审核未通过`,
-              desc: `您提交的 ${record.university} 认证材料被驳回（原因：${reason}），请前往【个人中心 -> 用户认证】重新上传材料提交。`,
+                record.applicantType === 'student' ? '学生认证' : '指导教师资格认证'
+              }审核未通过`,
+              desc: `您提交的 ${record.university} 认证信息被驳回（原因：${reason}），请前往【个人中心 -> 用户认证】点击【重新验证】修改后提交。`,
               time: '刚刚',
               unread: true,
             },
@@ -1595,7 +1799,13 @@ export default function App() {
             setVerificationRecords((prev) => [
               {
                 ...newRec,
-                id: `ver-${newRec.applicantType === 'student' ? 'stu' : 'tea'}-${Date.now()}`,
+                id: `ver-${
+                  newRec.applicantType === 'student'
+                    ? 'stu'
+                    : newRec.applicantType === 'univ_admin'
+                    ? 'admin'
+                    : 'tea'
+                }-${Date.now()}`,
                 reviewStatus: 'pending',
               },
               ...prev,
@@ -1647,6 +1857,7 @@ export default function App() {
       ) : currentView === 'help' ? (
         <FrontendHelpCenterPage
           faqList={FAQ_ITEMS}
+          markdownContent={helpCenterContent}
           onBackHome={() => {
             setCurrentView('home');
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1804,12 +2015,12 @@ export default function App() {
             onMouseEnter={() => setBannerPaused(true)}
             onMouseLeave={() => setBannerPaused(false)}
           >
-            {BANNER_SLIDES.map((slide, index) => {
+            {activeHomeBanners.map((slide, index) => {
               const isActive = index === currentBannerIdx;
               return (
                 <div
                   key={slide.id}
-                  onClick={() => handleBannerAction(slide)}
+                  onClick={() => handleBannerConfigAction(slide)}
                   className={`absolute inset-0 transition-opacity duration-500 cursor-pointer ${
                     isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                   }`}
@@ -1818,6 +2029,12 @@ export default function App() {
                     src={slide.imageUrl}
                     alt={slide.title}
                     draggable={false}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src !== BANNER_POSTER_1) {
+                        target.src = BANNER_POSTER_1;
+                      }
+                    }}
                     className="w-full h-full object-cover block"
                   />
                 </div>
@@ -1829,7 +2046,7 @@ export default function App() {
               type="button"
               onClick={() =>
                 setCurrentBannerIdx(
-                  (prev) => (prev - 1 + BANNER_SLIDES.length) % BANNER_SLIDES.length
+                  (prev) => (prev - 1 + activeHomeBanners.length) % activeHomeBanners.length
                 )
               }
               className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white/70 hover:bg-white border border-blue-200 text-[#1664FF] flex items-center justify-center shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
@@ -1839,7 +2056,9 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => setCurrentBannerIdx((prev) => (prev + 1) % BANNER_SLIDES.length)}
+              onClick={() =>
+                setCurrentBannerIdx((prev) => (prev + 1) % activeHomeBanners.length)
+              }
               className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white/70 hover:bg-white border border-blue-200 text-[#1664FF] flex items-center justify-center shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
               aria-label="下一张海报"
             >
@@ -1848,7 +2067,7 @@ export default function App() {
 
             {/* 底部指示器小圆点 */}
             <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/65 backdrop-blur-xs px-3 py-1 rounded-full border border-blue-100">
-              {BANNER_SLIDES.map((s, idx) => (
+              {activeHomeBanners.map((s, idx) => (
                 <button
                   key={s.id}
                   type="button"
@@ -1891,12 +2110,9 @@ export default function App() {
                     <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
                   </div>
 
-                  {/* 赛事列表（联动后台赛事管理公开状态，点击整行直接进入对应赛事详情页） */}
+                  {/* 赛事列表（联动后台内容管理 -> 首页配置推荐的 3 个赛事，点击整行直接进入对应赛事详情页） */}
                   <div className="flex-1 divide-y divide-slate-100 flex flex-col justify-between">
-                    {competitions
-                      .filter((c) => c.isPublic !== false)
-                      .slice(0, 3)
-                      .map((comp) => {
+                    {homeRecommendedCompetitions.map((comp) => {
                         const matchedTrack = COMPETITION_TRACKS.find(
                           (t) => t.catalogId === comp.id
                         );
@@ -2269,7 +2485,7 @@ export default function App() {
 
                     <div className="relative max-h-[290px] overflow-hidden pr-1">
                       <HelpMarkdownDocumentView
-                        content={HELP_CENTER_HOME_EXCERPT_MARKDOWN}
+                        content={helpCenterContent}
                         compact
                       />
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white via-white/90 to-transparent" />
