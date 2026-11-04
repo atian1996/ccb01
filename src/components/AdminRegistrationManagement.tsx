@@ -3733,7 +3733,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                <span>晋级名单审核</span>
+                <span>晋级队伍审核</span>
               </button>
             )}
 

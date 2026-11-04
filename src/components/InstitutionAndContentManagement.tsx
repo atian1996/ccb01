@@ -2676,8 +2676,9 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
   const [editingItem, setEditingItem] = useState<ManagedNewsItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // 删除确认弹窗
+  // 删除确认弹窗与定时发布确认弹窗
   const [deletingItem, setDeletingItem] = useState<ManagedNewsItem | null>(null);
+  const [publishingItem, setPublishingItem] = useState<ManagedNewsItem | null>(null);
 
   // 表单字段
   const [formTitle, setFormTitle] = useState('');
@@ -2809,15 +2810,25 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
   };
 
   const handleTogglePublishOffline = (item: ManagedNewsItem) => {
-    const nextStatus: ContentPublishStatus = item.publishStatus === 'published' ? 'unpublished' : 'published';
+    if (item.publishStatus === 'unpublished') {
+      setPublishingItem(item);
+      return;
+    }
+    const nextStatus: ContentPublishStatus = 'unpublished';
     onChangeNewsList((prev) =>
       prev.map((n) => (n.id === item.id ? { ...n, publishStatus: nextStatus } : n))
     );
-    triggerToast(
-      nextStatus === 'published'
-        ? `已发布《${item.title}》`
-        : `已设为未发布《${item.title}》，前台赛事新闻页不再展示`
+    triggerToast(`已设为未发布《${item.title}》，前台赛事新闻页不再展示`);
+  };
+
+  const confirmPublish = () => {
+    if (!publishingItem) return;
+    const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    onChangeNewsList((prev) =>
+      prev.map((n) => (n.id === publishingItem.id ? { ...n, publishStatus: 'published', publishTime: nowStr } : n))
     );
+    triggerToast(`已发布《${publishingItem.title}》`);
+    setPublishingItem(null);
   };
 
   if (isFormOpen) {
@@ -2926,31 +2937,61 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                 placeholder="支持段落、小标题（### 标题）、多图混排及视频嵌入..."
                 className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 font-mono leading-relaxed focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
+
+              {/* 本地视频上传（仅上传本地视频文件，无需URL和标题） */}
+              <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Video className="w-4 h-4 text-[#0284C7]" />
+                    <span>正文视频上传（选填，支持上传本地视频文件）</span>
+                  </span>
+                  {formVideoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormVideoUrl('');
+                        triggerToast('已移除视频文件');
+                      }}
+                      className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer"
+                    >
+                      删除视频
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-sky-50 text-[#0284C7] border border-sky-200 text-xs font-bold rounded-xl shadow-2xs cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>点击上传视频</span>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const videoBlobUrl = URL.createObjectURL(file);
+                        setFormVideoUrl(videoBlobUrl);
+                        triggerToast(`已成功上传本地视频：${file.name}`);
+                      }}
+                    />
+                  </label>
+                  {formVideoUrl ? (
+                    <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                      ✓ 已上传本地视频
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400">尚未上传本地视频</span>
+                  )}
+                </div>
+                {formVideoUrl && (
+                  <div className="mt-2 aspect-video max-w-sm rounded-lg overflow-hidden bg-black border border-slate-200">
+                    <video src={formVideoUrl} controls className="w-full h-full object-contain" />
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">正文内嵌视频地址（选填，MP4或视频外链）</label>
-                <input
-                  type="text"
-                  value={formVideoUrl}
-                  onChange={(e) => setFormVideoUrl(e.target.value)}
-                  placeholder="https://.../video.mp4"
-                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">内嵌视频标题说明</label>
-                <input
-                  type="text"
-                  value={formVideoTitle}
-                  onChange={(e) => setFormVideoTitle(e.target.value)}
-                  placeholder="如：赛事启动仪式全程回顾视频"
-                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0284C7]"
-                />
-              </div>
             </div>
-          </div>
 
           {/* 右侧：封面图上传 & 发布设置 */}
           <div className="space-y-4">
@@ -3283,6 +3324,33 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold cursor-pointer shadow-xs"
               >
                 确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {publishingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-extrabold text-slate-900">确认立即发布？</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              该内容原定于 <span className="font-mono font-bold text-slate-800">{publishingItem.publishTime || '2024-11-05 10:00'}</span> 发布，确认要立即发布吗？
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPublishingItem(null)}
+                className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={confirmPublish}
+                className="px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-xs font-bold text-white cursor-pointer shadow-xs"
+              >
+                确认
               </button>
             </div>
           </div>
@@ -4048,6 +4116,7 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
   const [editingItem, setEditingItem] = useState<ManagedNoticeItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<ManagedNoticeItem | null>(null);
+  const [publishingItem, setPublishingItem] = useState<ManagedNoticeItem | null>(null);
 
   const [formTitle, setFormTitle] = useState('');
   const [formCategory, setFormCategory] = useState<NoticeCategoryType>('通知');
@@ -4195,16 +4264,25 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
   };
 
   const handleTogglePublishOffline = (item: ManagedNoticeItem) => {
-    const nextStatus: ContentPublishStatus =
-      item.publishStatus === 'published' ? 'unpublished' : 'published';
+    if (item.publishStatus === 'unpublished') {
+      setPublishingItem(item);
+      return;
+    }
+    const nextStatus: ContentPublishStatus = 'unpublished';
     onChangeNoticesList((prev) =>
       prev.map((n) => (n.id === item.id ? { ...n, publishStatus: nextStatus } : n))
     );
-    triggerToast(
-      nextStatus === 'published'
-        ? `已发布上线《${item.title}》，前台立即可见`
-        : `已设为未发布《${item.title}》，前台【通知公告】不再展示`
+    triggerToast(`已设为未发布《${item.title}》，前台【通知公告】不再展示`);
+  };
+
+  const confirmPublish = () => {
+    if (!publishingItem) return;
+    const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 10);
+    onChangeNoticesList((prev) =>
+      prev.map((n) => (n.id === publishingItem.id ? { ...n, publishStatus: 'published', fullDate: nowStr } : n))
     );
+    triggerToast(`已发布上线《${publishingItem.title}》，前台立即可见`);
+    setPublishingItem(null);
   };
 
   if (isFormOpen) {
@@ -4702,6 +4780,33 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold cursor-pointer shadow-xs"
               >
                 确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {publishingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-extrabold text-slate-900">确认立即发布？</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              该内容原定于 <span className="font-mono font-bold text-slate-800">{publishingItem.publishTime || '2024-11-05 10:00'}</span> 发布，确认要立即发布吗？
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPublishingItem(null)}
+                className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={confirmPublish}
+                className="px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-xs font-bold text-white cursor-pointer shadow-xs"
+              >
+                确认
               </button>
             </div>
           </div>
@@ -8528,8 +8633,8 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
   const handleOpenAddBanner = () => {
     setEditingBanner(null);
     setFormImageUrl(BANNER_POSTER_1);
-    setFormLinkType('competition');
-    setFormTargetValue(publicCompetitions[0]?.id || 'comp-2026-main');
+    setFormLinkType('url');
+    setFormTargetValue('https://');
     setFormSortOrder(homeBanners.length + 1);
     setIsAddingBanner(true);
   };
@@ -8537,7 +8642,7 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
   const handleOpenEditBanner = (banner: HomeBannerConfig) => {
     setEditingBanner(banner);
     setFormImageUrl(banner.imageUrl);
-    setFormLinkType(banner.linkType);
+    setFormLinkType('url');
     setFormTargetValue(banner.targetValue);
     setFormSortOrder(banner.sortOrder);
     setIsAddingBanner(true);
@@ -8665,22 +8770,7 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
   };
 
   const resolveLinkTargetSummary = (banner: HomeBannerConfig) => {
-    if (banner.linkType === 'competition') {
-      const c = competitions.find((item) => item.id === banner.targetValue);
-      return `跳转赛事详情：${c ? c.title : banner.targetValue}`;
-    }
-    if (banner.linkType === 'view') {
-      const map: Record<string, string> = {
-        competitions: '赛事目录页',
-        notices: '通知公告页',
-        news: '赛事新闻页',
-        moments: '赛事动态页',
-        directory: '参赛院校页',
-        help: '帮助中心页',
-      };
-      return `跳转站内栏目：${map[banner.targetValue] || banner.targetValue}`;
-    }
-    return `跳转外部链接：${banner.targetValue}`;
+    return banner.targetValue || '-';
   };
 
   return (
@@ -8891,25 +8981,7 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-[#0284C7] focus:outline-none font-mono"
                   />
                 </div>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <span className="text-[11px] text-slate-400">快捷示例图：</span>
-                  {[
-                    { label: '示例1：大赛主视觉', url: BANNER_POSTER_1 },
-                    { label: '示例2：攻防实战靶场', url: BANNER_POSTER_2 },
-                    { label: '示例3：数据安全挑战赛', url: BANNER_POSTER_3 },
-                    { label: '示例4：AI大模型安全', url: BANNER_POSTER_5 },
-                    { label: '示例5：证书防伪核验', url: BANNER_POSTER_4 },
-                  ].map((preset) => (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => setFormImageUrl(preset.url)}
-                      className="px-2 py-1 rounded bg-slate-100 hover:bg-sky-50 text-slate-600 hover:text-[#0284C7] text-[11px] font-semibold cursor-pointer"
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
+
                 {formImageUrl && (
                   <div className="mt-2 h-36 w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
                     <img
@@ -8926,90 +8998,15 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
                 <div className="font-bold text-slate-800">
                   跳转链接配置 <span className="text-red-500">*</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { key: 'competition', label: '跳转赛事详情' },
-                    { key: 'view', label: '跳转站内栏目' },
-                    { key: 'url', label: '自定义外部链接' },
-                  ].map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => {
-                        const nextType = item.key as 'competition' | 'view' | 'url';
-                        setFormLinkType(nextType);
-                        if (nextType === 'competition') {
-                          setFormTargetValue(publicCompetitions[0]?.id || 'comp-2026-main');
-                        } else if (nextType === 'view') {
-                          setFormTargetValue('competitions');
-                        } else {
-                          setFormTargetValue('https://');
-                        }
-                      }}
-                      className={`py-2 px-3 rounded-lg font-bold border text-center cursor-pointer ${
-                        formLinkType === item.key
-                          ? 'bg-[#0284C7] text-white border-[#0284C7]'
-                          : 'bg-white text-slate-600 border-slate-200'
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                <div>
+                  <input
+                    type="text"
+                    value={formTargetValue}
+                    onChange={(e) => setFormTargetValue(e.target.value)}
+                    placeholder="https://example.com 或 /competitions"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono text-xs"
+                  />
                 </div>
-
-                {formLinkType === 'competition' && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                      选择跳转的目标赛事
-                    </label>
-                    <select
-                      value={formTargetValue}
-                      onChange={(e) => setFormTargetValue(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-semibold"
-                    >
-                      {competitions.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {formLinkType === 'view' && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                      选择跳转的站内栏目
-                    </label>
-                    <select
-                      value={formTargetValue}
-                      onChange={(e) => setFormTargetValue(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-semibold"
-                    >
-                      <option value="competitions">赛事目录</option>
-                      <option value="notices">通知公告</option>
-                      <option value="news">赛事新闻</option>
-                      <option value="moments">赛事动态</option>
-                      <option value="directory">参赛院校</option>
-                      <option value="help">帮助中心</option>
-                    </select>
-                  </div>
-                )}
-
-                {formLinkType === 'url' && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                      输入外部跳转链接 URL
-                    </label>
-                    <input
-                      type="url"
-                      value={formTargetValue}
-                      onChange={(e) => setFormTargetValue(e.target.value)}
-                      placeholder="https://example.com"
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono"
-                    />
-                  </div>
-                )}
               </div>
 
               {/* 字段 3：轮播排序号 */}

@@ -1658,37 +1658,35 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveMenu('verify-univ-admin')}
-                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                      activeMenu === 'verify-univ-admin'
-                        ? 'bg-[#0284C7] text-white shadow-xs'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Building2 className="w-3.5 h-3.5" />
-                      <span>高校管理员认证</span>
-                    </span>
-                    <span
-                      className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                  {adminRole !== 'school_admin' && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveMenu('verify-univ-admin')}
+                      className={`w-full px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
                         activeMenu === 'verify-univ-admin'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          ? 'bg-[#0284C7] text-white shadow-xs'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                     >
-                      {
-                        verificationRecords.filter(
-                          (r) =>
-                            r.applicantType === 'univ_admin' &&
-                            (adminRole !== 'school_admin' ||
-                              r.university ===
-                                (currentSchoolInstitution?.name || '北京航空航天大学'))
-                        ).length
-                      }
-                    </span>
-                  </button>
+                      <span className="flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5" />
+                        <span>高校管理员认证</span>
+                      </span>
+                      <span
+                        className={`text-[11px] font-mono-num px-1.5 py-0.5 rounded ${
+                          activeMenu === 'verify-univ-admin'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                        }`}
+                      >
+                        {
+                          verificationRecords.filter(
+                            (r) => r.applicantType === 'univ_admin'
+                          ).length
+                        }
+                      </span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -3078,17 +3076,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                insertMarkdownSnippet(
-                                  `- [📎 附件：${att.name} (${att.size})](${att.url || `#attachment-${att.id}`})`
-                                )
-                              }
-                              className="text-[#0284C7] hover:underline font-semibold cursor-pointer"
-                            >
-                              插入正文
-                            </button>
                             <button
                               type="button"
                               onClick={() =>

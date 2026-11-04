@@ -5590,10 +5590,6 @@ export const StandaloneUserCenterPage: React.FC<{
                           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                           <span>申请资格说明：目前仅支持通过【指导教师认证】的教师申请成为本校“高校管理员”</span>
                         </div>
-                        <p className="text-amber-800 leading-relaxed">
-                          您当前账号身份为【{user.roleLabel || (user.identityType === 'teacher' ? '指导教师' : '参赛学生')}】，
-                          尚未通过教师资格认证。请先在上方完成指导教师资质认证后，即可开通高校管理员申请通道。
-                        </p>
                       </div>
                     ) : (
                       /* 教师已通过认证：显示高校管理员审核状态及明细 */
@@ -6625,7 +6621,7 @@ export const StandaloneUserCenterPage: React.FC<{
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
-                        <th className="py-3 px-3.5 whitespace-nowrap">姓名 / 队内角色</th>
+                        <th className="py-3 px-3.5 whitespace-nowrap">姓名</th>
                         <th className="py-3 px-3.5 whitespace-nowrap">队伍身份</th>
                         <th className="py-3 px-3.5 whitespace-nowrap">队内角色</th>
                         <th className="py-3 px-3.5 whitespace-nowrap">所属院校</th>
@@ -6638,11 +6634,6 @@ export const StandaloneUserCenterPage: React.FC<{
                         <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                           <td className="py-3 px-3.5 whitespace-nowrap">
                             <div className="font-bold text-slate-900">{m.name}</div>
-                            {m.role !== '指导教师' && (
-                              <div className="mt-1">
-                                <CtfRoleBadges roles={m.ctfRoles} emptyText="待分配" />
-                              </div>
-                            )}
                           </td>
                           <td className="py-3 px-3.5 whitespace-nowrap">
                             <span
