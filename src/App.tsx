@@ -771,50 +771,72 @@ export default function App() {
   };
 
   const handleBannerConfigAction = (banner: HomeBannerConfig) => {
-    if (banner.linkType === 'competition') {
+    const rawTarget = (banner.targetValue || '').trim();
+    if (!rawTarget) return;
+
+    // 兼容标准 URL 中的站内赛事路由（如 https://xxcup.edu.cn/competitions/comp-2026-main）或直接赛事 ID
+    const compMatch = rawTarget.match(/\/competitions\/([a-zA-Z0-9_-]+)/);
+    const matchedCompId = compMatch ? compMatch[1] : banner.linkType === 'competition' ? rawTarget : null;
+    if (matchedCompId) {
       const foundComp =
-        competitions.find((c) => c.id === banner.targetValue) || competitions[0];
+        competitions.find((c) => c.id === matchedCompId) || competitions[0];
       if (foundComp) {
         setSelectedCompetitionId(foundComp.id);
         setCurrentView('competition-detail');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } else if (banner.linkType === 'view') {
-      if (banner.targetValue === 'notices') {
-        setInitialSelectedNoticeId(null);
-        setCurrentView('notices');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (banner.targetValue === 'news') {
-        setInitialSelectedNewsId(null);
-        setCurrentView('news');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (banner.targetValue === 'moments') {
-        setInitialSelectedMomentId(null);
-        setCurrentView('moments');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (
-        banner.targetValue === 'directory' ||
-        banner.targetValue === 'competitions'
-      ) {
-        setCurrentView('directory');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (banner.targetValue === 'help') {
-        setCurrentView('help');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (banner.targetValue === 'utility-service-section') {
-        scrollToSection('utility-service-section');
-      }
-    } else if (banner.linkType === 'url' && banner.targetValue) {
-      if (banner.targetValue.startsWith('#')) {
-        scrollToSection(banner.targetValue.slice(1));
-      } else {
-        const a = document.createElement('a');
-        a.href = banner.targetValue;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.click();
+        return;
       }
     }
+
+    // 兼容标准 URL 中的站内栏目路由（如 https://xxcup.edu.cn/notices）或旧版 view 标识
+    if (rawTarget === 'notices' || rawTarget.endsWith('/notices')) {
+      setInitialSelectedNoticeId(null);
+      setCurrentView('notices');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (rawTarget === 'news' || rawTarget.endsWith('/news')) {
+      setInitialSelectedNewsId(null);
+      setCurrentView('news');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (rawTarget === 'moments' || rawTarget.endsWith('/moments')) {
+      setInitialSelectedMomentId(null);
+      setCurrentView('moments');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (
+      rawTarget === 'directory' ||
+      rawTarget === 'competitions' ||
+      rawTarget.endsWith('/directory') ||
+      rawTarget.endsWith('/competitions')
+    ) {
+      setCurrentView('directory');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (rawTarget === 'help' || rawTarget.endsWith('/help')) {
+      setCurrentView('help');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (rawTarget === 'utility-service-section' || rawTarget.endsWith('#utility-service-section')) {
+      scrollToSection('utility-service-section');
+      return;
+    }
+    if (rawTarget.startsWith('#')) {
+      scrollToSection(rawTarget.slice(1));
+      return;
+    }
+
+    // 统一标准外部 URL 跳转
+    const a = document.createElement('a');
+    a.href = rawTarget;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.click();
   };
 
   const handleCertificateSearch = (
@@ -906,7 +928,7 @@ export default function App() {
             setNotifications((prev) => [
               {
                 id: `notif-loc-${Date.now()}`,
-                title: '【安全告警】异地登录提醒（指标2）',
+                title: '【安全告警】异地登录提醒',
                 desc: `检测到您的账号于 ${user.currentLoginLocation} (${user.currentLoginIp}) 登录，与常用地(${user.lastLoginLocation})不符，已同步发送告警邮件。`,
                 time: '刚刚',
                 unread: true,
@@ -2827,7 +2849,7 @@ export default function App() {
             <div className="px-6 py-4 bg-gradient-to-r from-amber-600 to-amber-500 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
-                <span className="font-bold text-base">异地登录安全提醒（指标2）</span>
+                <span className="font-bold text-base">异地登录安全提醒</span>
               </div>
               <button
                 type="button"

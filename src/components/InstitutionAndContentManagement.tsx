@@ -1666,7 +1666,7 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
               <History className="w-5 h-5 text-[#0284C7]" />
               <h3 className="text-base font-bold text-slate-900">四、院校信息变更与状态操作审计日志</h3>
             </div>
-            <span className="text-xs text-slate-400">满足指标20操作可追溯性要求</span>
+            <span className="text-xs text-slate-400">操作审计日志与可追溯性记录</span>
           </div>
 
           <div className="space-y-3">
@@ -2847,7 +2847,7 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
               {editingItem ? '编辑赛事新闻' : '新增赛事新闻'}
             </h2>
           </div>
-          <span className="text-xs text-slate-500">支持富文本多图混排、内嵌视频、定时发布与置顶有效期</span>
+          <span className="text-xs text-slate-500">支持图文混排、本地视频上传、定时发布与置顶有效期</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -2892,11 +2892,11 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
               />
             </div>
 
-            {/* 富文本编辑器（支持插入图片与嵌入视频） */}
+            {/* 富文本编辑器（支持插入高清图片） */}
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                 <label className="text-xs text-slate-700 font-bold">
-                  正文内容（富文本编辑器 · 支持插入图片与嵌入视频） <span className="text-red-500">*</span>
+                  正文内容（富文本编辑器 · 支持插入高清图片） <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <button
@@ -2912,21 +2912,6 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                   >
                     <ImageIcon className="w-3.5 h-3.5" />
                     插入高清图片
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!formVideoUrl) {
-                        setFormVideoUrl(
-                          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
-                        );
-                        setFormVideoTitle('大赛官方宣传与技术解读视频');
-                      }
-                    }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-xs font-bold text-indigo-700 cursor-pointer transition-colors"
-                  >
-                    <Video className="w-3.5 h-3.5" />
-                    嵌入视频播放器
                   </button>
                 </div>
               </div>
@@ -5179,7 +5164,7 @@ export const INITIAL_VERIFICATION_RECORDS: VerificationApplicationRecord[] = [
     teacherMajor: '网络空间安全',
     educationLevel: '博士及以上',
     studentOrStaffId: 'THU-TEA-0821',
-    levelOrTitle: '教授 / 博士生导师',
+    levelOrTitle: '博士及以上',
     submitChannel: '高校管理员人工审核 · 组委会核验',
     materialFileName: '清华大学教师在职证明与管理员授权书.pdf',
     materialPreviewUrl:
@@ -5211,7 +5196,7 @@ export const INITIAL_VERIFICATION_RECORDS: VerificationApplicationRecord[] = [
     teacherMajor: '计算机科学与技术',
     educationLevel: '博士及以上',
     studentOrStaffId: 'BUAA-T-2016',
-    levelOrTitle: '副教授',
+    levelOrTitle: '博士及以上',
     submitChannel: '高校管理员人工审核 · 组委会核验',
     materialFileName: '北航网络安全实验室负责人资质与委托书.pdf',
     materialPreviewUrl:
@@ -5245,7 +5230,7 @@ export const INITIAL_VERIFICATION_RECORDS: VerificationApplicationRecord[] = [
     teacherMajor: '信息工程',
     educationLevel: '硕士',
     studentOrStaffId: 'SJTU-00921',
-    levelOrTitle: '讲师',
+    levelOrTitle: '硕士',
     submitChannel: '高校管理员人工审核 · 组委会核验',
     materialFileName: '上海交通大学校内选拔赛协调人委托公函.pdf',
     materialPreviewUrl:
@@ -6135,14 +6120,6 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
                         {inspectingRecord.graduationDate || '2028-06'}
                       </span>
                     </div>
-                    {inspectingRecord.applicantNote && (
-                      <div className="col-span-2">
-                        <span className="text-slate-400 block">申请备注</span>
-                        <span className="text-slate-700">
-                          {inspectingRecord.applicantNote}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
@@ -6203,14 +6180,15 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
                         {inspectingRecord.username}
                       </span>
                     </div>
-                    {inspectingRecord.applicantNote && (
-                      <div className="col-span-2">
-                        <span className="text-slate-400 block">申请备注</span>
-                        <span className="text-slate-700">
-                          {inspectingRecord.applicantNote}
-                        </span>
-                      </div>
-                    )}
+                    {inspectingRecord.applicantType === 'univ_admin' &&
+                      inspectingRecord.applicantNote && (
+                        <div className="col-span-2">
+                          <span className="text-slate-400 block">申请备注</span>
+                          <span className="text-slate-700">
+                            {inspectingRecord.applicantNote}
+                          </span>
+                        </div>
+                      )}
                   </div>
                 )}
 
@@ -8615,8 +8593,8 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
   const [editingBanner, setEditingBanner] = useState<HomeBannerConfig | null>(null);
   const [isAddingBanner, setIsAddingBanner] = useState(false);
   const [formImageUrl, setFormImageUrl] = useState('');
-  const [formLinkType, setFormLinkType] = useState<'competition' | 'view' | 'url'>('competition');
-  const [formTargetValue, setFormTargetValue] = useState('comp-2026-main');
+  const [formLinkType, setFormLinkType] = useState<'competition' | 'view' | 'url'>('url');
+  const [formTargetValue, setFormTargetValue] = useState('https://xxcup.edu.cn/competitions/comp-2026-main');
   const [formSortOrder, setFormSortOrder] = useState(1);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -8686,7 +8664,7 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
             ? {
                 ...b,
                 imageUrl: formImageUrl.trim(),
-                linkType: formLinkType,
+                linkType: 'url' as const,
                 targetValue: formTargetValue.trim(),
                 sortOrder: orderNum,
                 updatedAt: nowStr,
@@ -8702,7 +8680,7 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
         device: 'Admin Console',
         action: `编辑首页Banner（序号 #${orderNum}）`,
         result: '成功',
-        detail: `跳转类型：${formLinkType} -> ${formTargetValue.trim()}`,
+        detail: `跳转类型：url -> ${formTargetValue.trim()}`,
       });
       showToast('已保存首页 Banner 修改，前台首页轮播已实时同步！');
     } else {
@@ -8711,7 +8689,7 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
         title: `首页 Banner #${orderNum}`,
         subtitle: '',
         imageUrl: formImageUrl.trim(),
-        linkType: formLinkType,
+        linkType: 'url',
         targetValue: formTargetValue.trim(),
         linkLabel: '查看详情',
         sortOrder: orderNum,
@@ -8728,7 +8706,7 @@ export const AdminHomeConfigManagement: React.FC<AdminHomeConfigManagementProps>
         device: 'Admin Console',
         action: `新增首页Banner（序号 #${orderNum}）`,
         result: '成功',
-        detail: `跳转类型：${formLinkType} -> ${formTargetValue.trim()}`,
+        detail: `跳转类型：url -> ${formTargetValue.trim()}`,
       });
       showToast('已新增首页 Banner，前台首页轮播已实时生效！');
     }

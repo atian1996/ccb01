@@ -6088,7 +6088,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl border border-slate-200 max-w-xl w-full overflow-hidden shadow-2xl">
               <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 text-slate-900 font-extrabold text-sm flex items-center justify-between">
-                <span>导入线下报名数据（指标6：三重校验与错误行报告）</span>
+                <span>导入线下报名数据（三重校验与错误行报告）</span>
                 <button
                   type="button"
                   onClick={() => setImportModalOpen(false)}
