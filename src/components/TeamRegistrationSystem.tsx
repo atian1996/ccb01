@@ -5658,12 +5658,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               </div>
             </div>
 
-            {isLocked ? (
-              <div className="px-3.5 py-2 rounded-lg bg-slate-100 border border-slate-200 text-xs font-bold text-slate-600 flex items-center gap-1.5 shrink-0">
-                <Lock className="w-4 h-4 text-slate-500" />
-                <span>审核中/已通过（只读锁定）</span>
-              </div>
-            ) : (
+            {!isLocked && (
               <div className="px-3.5 py-2 rounded-lg bg-sky-50 border border-sky-200 text-xs font-bold text-[#0369A1] flex items-center gap-1.5 shrink-0">
                 <Unlock className="w-4 h-4 text-[#0284C7]" />
                 <span>支持修改队伍信息与成员</span>

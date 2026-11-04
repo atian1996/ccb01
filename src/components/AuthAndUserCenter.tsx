@@ -4917,28 +4917,132 @@ export const StandaloneUserCenterPage: React.FC<{
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedIdentityRadio('student');
+                      setSelectedIdentityRadio('teacher');
                       onUpdateUser({
                         ...user,
-                        name: '林远航',
-                        idCard: '110108200305162819',
+                        name: '沈星河',
                         realNameStatus: 'verified',
-                        realNameVerifiedAt: '2026-10-28 10:00:00',
-                        identityType: 'student',
-                        university: '北京航空航天大学',
-                        educationLevel: '本科',
-                        majorOrDept: '网络空间安全实验班',
-                        enrollmentDate: '2024-09',
-                        graduationDate: '2027-06',
+                        identityType: 'teacher',
+                        university: '北京大学',
+                        majorOrDept: '网络空间安全学院',
+                        teacherMajor: '网络空间安全',
+                        educationLevel: '博士及以上',
+                        academicStatus: 'pending',
+                        academicSubmittedAt: '2026-10-28 10:30:00',
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 border border-amber-300/30 text-amber-100 cursor-pointer"
+                  >
+                    模拟：教师认证【审核中】
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIdentityRadio('teacher');
+                      onUpdateUser({
+                        ...user,
+                        name: '沈星河',
+                        realNameStatus: 'verified',
+                        identityType: 'teacher',
+                        university: '北京大学',
+                        majorOrDept: '网络空间安全学院',
+                        teacherMajor: '网络空间安全',
+                        educationLevel: '博士及以上',
+                        academicStatus: 'verified',
+                        academicVerifiedAt: '2026-10-28',
+                        univAdminStatus: 'unverified',
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded bg-sky-500/30 hover:bg-sky-500/50 border border-sky-300/30 text-white cursor-pointer"
+                  >
+                    模拟：教师【验证成功】
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIdentityRadio('teacher');
+                      onUpdateUser({
+                        ...user,
+                        name: '沈星河',
+                        realNameStatus: 'verified',
+                        identityType: 'teacher',
+                        university: '北京大学',
+                        majorOrDept: '网络空间安全学院',
+                        teacherMajor: '网络空间安全',
+                        educationLevel: '博士及以上',
                         academicStatus: 'rejected',
-                        academicRejectReason:
-                          '专业名称与本校不符（应为“网络空间安全”），且四年制本科预计毕业时间应为 2028-06',
-                        isVerified: false,
+                        academicRejectReason: '院系部门与教工人事库信息不匹配，请补充工作证照片',
                       });
                     }}
                     className="px-2.5 py-1 rounded bg-red-500/25 hover:bg-red-500/40 border border-red-300/30 text-red-100 cursor-pointer"
                   >
-                    模拟：学生驳回【验证失败】（可点重新验证回显）
+                    模拟：教师驳回【验证失败】
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIdentityRadio('teacher');
+                      onUpdateUser({
+                        ...user,
+                        name: '沈星河',
+                        realNameStatus: 'verified',
+                        identityType: 'teacher',
+                        university: '北京大学',
+                        majorOrDept: '网络空间安全学院',
+                        teacherMajor: '网络空间安全',
+                        educationLevel: '博士及以上',
+                        academicStatus: 'verified',
+                        univAdminStatus: 'pending',
+                        univAdminSubmittedAt: '2026-10-28 16:10:00',
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 border border-amber-300/30 text-amber-100 cursor-pointer"
+                  >
+                    模拟：高校管理员【审核中】
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIdentityRadio('teacher');
+                      onUpdateUser({
+                        ...user,
+                        name: '沈星河',
+                        realNameStatus: 'verified',
+                        identityType: 'teacher',
+                        university: '北京大学',
+                        majorOrDept: '网络空间安全学院',
+                        teacherMajor: '网络空间安全',
+                        educationLevel: '博士及以上',
+                        academicStatus: 'verified',
+                        univAdminStatus: 'rejected',
+                        univAdminRejectReason: '未提供加盖高校官方教务处或院系公章的管理授权委托证明',
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded bg-red-500/25 hover:bg-red-500/40 border border-red-300/30 text-red-100 cursor-pointer"
+                  >
+                    模拟：高校管理员【被驳回】
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIdentityRadio('teacher');
+                      onUpdateUser({
+                        ...user,
+                        name: '沈星河',
+                        realNameStatus: 'verified',
+                        identityType: 'teacher',
+                        university: '北京大学',
+                        majorOrDept: '网络空间安全学院',
+                        teacherMajor: '网络空间安全',
+                        educationLevel: '博士及以上',
+                        academicStatus: 'verified',
+                        univAdminStatus: 'verified',
+                        univAdminVerifiedAt: '2026-10-28 16:30:00',
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-300/30 text-emerald-100 cursor-pointer"
+                  >
+                    模拟：高校管理员【验证成功】
                   </button>
                 </div>
               </div>
@@ -5123,29 +5227,6 @@ export const StandaloneUserCenterPage: React.FC<{
                       >
                         {isEmailBound ? `✓ 3. 邮箱已绑定（${user.email}）` : '○ 3. 邮箱（未绑定）'}
                       </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      {!isRealNameDone && (
-                        <button
-                          type="button"
-                          onClick={handleStartRealNameVerify}
-                          className="px-3 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white font-bold cursor-pointer"
-                        >
-                          立即去实名认证
-                        </button>
-                      )}
-                      {(!isPhoneBound || !isEmailBound) && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveTab('profile');
-                            handleOpenEditModal(!isPhoneBound ? 'phone' : 'email', 'bind');
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold cursor-pointer"
-                        >
-                          前往【个人信息】完善手机号/邮箱 &rarr;
-                        </button>
-                      )}
                     </div>
                   </div>
                 )}
@@ -5511,42 +5592,8 @@ export const StandaloneUserCenterPage: React.FC<{
                         </div>
                         <p className="text-amber-800 leading-relaxed">
                           您当前账号身份为【{user.roleLabel || (user.identityType === 'teacher' ? '指导教师' : '参赛学生')}】，
-                          {user.academicStatus !== 'verified'
-                            ? '尚未通过教师资格认证。请先在上方完成指导教师资质认证后，即可开通高校管理员申请通道。'
-                            : '当前身份为学生，无法申请高校管理权限。'}
+                          尚未通过教师资格认证。请先在上方完成指导教师资质认证后，即可开通高校管理员申请通道。
                         </p>
-                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenAcademicModal('teacher')}
-                            className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white font-bold cursor-pointer transition-colors"
-                          >
-                            前往认证指导教师 &rarr;
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onUpdateUser({
-                                ...user,
-                                role: 'teacher',
-                                roleLabel: '指导教师',
-                                identityType: 'teacher',
-                                academicStatus: 'verified',
-                                academicVerifiedAt: '2026-10-28',
-                                university: user.university || '北京大学',
-                                majorOrDept: user.majorOrDept || '计算机科学与技术学院',
-                                teacherMajor: user.teacherMajor || '网络空间安全',
-                                educationLevel: user.educationLevel || '博士及以上',
-                                studentId: user.studentId || 'TEA-2024098',
-                                univAdminStatus: 'unverified',
-                              });
-                              setAdminNotificationBanner('【演示辅助】已一键切换为已认证指导教师账号，现可直接测试高校管理员申请！');
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-100 font-bold cursor-pointer transition-colors"
-                          >
-                            ⚡ 一键切换为已认证教师账号（便于测试申请）
-                          </button>
-                        </div>
                       </div>
                     ) : (
                       /* 教师已通过认证：显示高校管理员审核状态及明细 */
@@ -5687,9 +5734,6 @@ export const StandaloneUserCenterPage: React.FC<{
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">我的竞赛</h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    仅展示通过秘书处终审、报名状态为“报名成功”的参赛队伍档案（处于组建中、邀请中、已提交、已驳回、待校赛、未晋级或待终审状态的队伍请在“我的报名”中查看）。
-                  </p>
                 </div>
               </div>
 
