@@ -58,6 +58,7 @@ import {
   resolveTeamAuditStages,
   resolveTeamCaptainContact,
   buildApprovedSnapshotFromCaptainTeam,
+  insertCaptainAtOrderIndex,
   AuditStageBadgeWithTooltip,
 } from './TeamRegistrationSystem';
 import type { AuditLogEntry } from './AuthAndUserCenter';
@@ -1836,9 +1837,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           ctfRoles: t.captainCtfRoles,
         });
         const rankText = stages.schoolRank ? `校内第${stages.schoolRank}名` : '-';
-        const allMemberSummary = [
+        const allMemberSummary = insertCaptainAtOrderIndex(
           `${capInfo.name}(队长/${capInfo.educationLevel}/${capInfo.inTeamRoleText}/${capInfo.phone})`,
-          ...t.members.map((m) => {
+          t.members.map((m) => {
             const mi = resolvePersonFullExportInfo({
               name: m.name,
               phone: m.phone,
@@ -1849,7 +1850,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
             });
             return `${mi.name}(队员/${mi.educationLevel}/${mi.inTeamRoleText}/${mi.phone})`;
           }),
-        ].join('；');
+          t.captainOrderIndex
+        ).join('；');
 
         return `<Row>
           <Cell><Data ss:Type="String">${t.teamName}</Data></Cell>
@@ -1887,33 +1889,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           ctfRoles: t.captainCtfRoles,
         });
 
-        const captainRow = `<Row>
-          <Cell><Data ss:Type="String">${t.teamName}</Data></Cell>
-          <Cell><Data ss:Type="String">${t.competitionTitle}</Data></Cell>
-          <Cell><Data ss:Type="String">${rankText}</Data></Cell>
-          <Cell><Data ss:Type="String">${t.teamIntro || ''}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.university}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.universityLocation}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.divisionName}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.name}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.identityLabel}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.inTeamRoleText}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.educationLevel}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.phone}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.email}</Data></Cell>
-          <Cell><Data ss:Type="String">${capInfo.idCard}</Data></Cell>
-        </Row>`;
-
-        const memRows = [...t.members, ...t.advisors].map((p) => {
-          const pInfo = resolvePersonFullExportInfo({
-            name: p.name,
-            phone: p.phone,
-            email: p.email,
-            university: p.university || t.university,
-            roleType: p.role === 'advisor' ? 'advisor' : 'member',
-            ctfRoles: p.ctfRoles,
-          });
-          return `<Row>
+        const makeXmlRow = (pInfo: ReturnType<typeof resolvePersonFullExportInfo>) => `<Row>
           <Cell><Data ss:Type="String">${t.teamName}</Data></Cell>
           <Cell><Data ss:Type="String">${t.competitionTitle}</Data></Cell>
           <Cell><Data ss:Type="String">${rankText}</Data></Cell>
@@ -1929,8 +1905,32 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           <Cell><Data ss:Type="String">${pInfo.email}</Data></Cell>
           <Cell><Data ss:Type="String">${pInfo.idCard}</Data></Cell>
         </Row>`;
-        });
-        return [captainRow, ...memRows];
+
+        const orderedContestantInfos = insertCaptainAtOrderIndex(
+          capInfo,
+          t.members.map((p) =>
+            resolvePersonFullExportInfo({
+              name: p.name,
+              phone: p.phone,
+              email: p.email,
+              university: p.university || t.university,
+              roleType: 'member',
+              ctfRoles: p.ctfRoles,
+            })
+          ),
+          t.captainOrderIndex
+        );
+        const advisorInfos = t.advisors.map((p) =>
+          resolvePersonFullExportInfo({
+            name: p.name,
+            phone: p.phone,
+            email: p.email,
+            university: p.university || t.university,
+            roleType: 'advisor',
+            ctfRoles: p.ctfRoles,
+          })
+        );
+        return [...orderedContestantInfos, ...advisorInfos].map(makeXmlRow);
       })
       .join('');
 
@@ -2675,32 +2675,35 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
 
     const capContact = resolveTeamCaptainContact(team, platformUsers);
     const allPersonRows = [
-      {
-        id: 'cap-row',
-        name: team.captainName,
-        gender: getPersonGender(team.captainName),
-        roleLabel: '队长',
-        roleKey: 'captain' as const,
-        ctfRoles: team.captainCtfRoles,
-        university: team.captainUniversity,
-        phone: maskPhone(capContact.phone),
-        email: maskEmail(capContact.email),
-        idCard: getMaskedIdCard(team.captainName),
-        isVerified: team.captainVerified,
-      },
-      ...team.members.map((m) => ({
-        id: m.id,
-        name: m.name,
-        gender: getPersonGender(m.name),
-        roleLabel: '队员',
-        roleKey: 'member' as const,
-        ctfRoles: m.ctfRoles,
-        university: m.university,
-        phone: maskPhone(m.phone),
-        email: maskEmail(m.email),
-        idCard: getMaskedIdCard(m.name + m.phone),
-        isVerified: m.isVerified,
-      })),
+      ...insertCaptainAtOrderIndex(
+        {
+          id: 'cap-row',
+          name: team.captainName,
+          gender: getPersonGender(team.captainName),
+          roleLabel: '队长',
+          roleKey: 'captain' as const,
+          ctfRoles: team.captainCtfRoles,
+          university: team.captainUniversity,
+          phone: maskPhone(capContact.phone),
+          email: maskEmail(capContact.email),
+          idCard: getMaskedIdCard(team.captainName),
+          isVerified: team.captainVerified,
+        },
+        team.members.map((m) => ({
+          id: m.id,
+          name: m.name,
+          gender: getPersonGender(m.name),
+          roleLabel: '队员',
+          roleKey: 'member' as const,
+          ctfRoles: m.ctfRoles,
+          university: m.university,
+          phone: maskPhone(m.phone),
+          email: maskEmail(m.email),
+          idCard: getMaskedIdCard(m.name + m.phone),
+          isVerified: m.isVerified,
+        })),
+        team.captainOrderIndex
+      ),
       ...team.advisors.map((a) => ({
         id: a.id,
         name: a.name,
@@ -5287,30 +5290,33 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
             const mConfirmProgress = computeTeamConfirmProgress(modalTeam);
             const mCapContact = resolveTeamCaptainContact(modalTeam, platformUsers);
             const mPersonRows = [
-              {
-                id: 'cap-row',
-                name: modalTeam.captainName,
-                gender: getPersonGender(modalTeam.captainName),
-                roleLabel: '队长',
-                roleKey: 'captain' as const,
-                ctfRoles: modalTeam.captainCtfRoles,
-                university: modalTeam.captainUniversity,
-                phone: maskPhone(mCapContact.phone),
-                email: maskEmail(mCapContact.email),
-                idCard: getMaskedIdCard(modalTeam.captainName),
-              },
-              ...modalTeam.members.map((m) => ({
-                id: m.id,
-                name: m.name,
-                gender: getPersonGender(m.name),
-                roleLabel: '队员',
-                roleKey: 'member' as const,
-                ctfRoles: m.ctfRoles,
-                university: m.university,
-                phone: maskPhone(m.phone),
-                email: maskEmail(m.email),
-                idCard: getMaskedIdCard(m.name + m.phone),
-              })),
+              ...insertCaptainAtOrderIndex(
+                {
+                  id: 'cap-row',
+                  name: modalTeam.captainName,
+                  gender: getPersonGender(modalTeam.captainName),
+                  roleLabel: '队长',
+                  roleKey: 'captain' as const,
+                  ctfRoles: modalTeam.captainCtfRoles,
+                  university: modalTeam.captainUniversity,
+                  phone: maskPhone(mCapContact.phone),
+                  email: maskEmail(mCapContact.email),
+                  idCard: getMaskedIdCard(modalTeam.captainName),
+                },
+                modalTeam.members.map((m) => ({
+                  id: m.id,
+                  name: m.name,
+                  gender: getPersonGender(m.name),
+                  roleLabel: '队员',
+                  roleKey: 'member' as const,
+                  ctfRoles: m.ctfRoles,
+                  university: m.university,
+                  phone: maskPhone(m.phone),
+                  email: maskEmail(m.email),
+                  idCard: getMaskedIdCard(m.name + m.phone),
+                })),
+                modalTeam.captainOrderIndex
+              ),
               ...modalTeam.advisors.map((a) => ({
                 id: a.id,
                 name: a.name,
