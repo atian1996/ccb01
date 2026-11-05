@@ -2187,12 +2187,6 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
                           分配管理员
                         </button>
                         <button
-                          onClick={() => setViewingInstitutionId(inst.id)}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          查看
-                        </button>
-                        <button
                           onClick={() => handleOpenEdit(inst)}
                           className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0284C7] text-xs font-bold transition-colors cursor-pointer"
                         >
@@ -3420,13 +3414,15 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
               >
                 {formPublishMode === 'scheduled' ? '确认定时发布' : '立即发布上线'}
               </button>
-              <button
-                type="button"
-                onClick={() => handleSaveNews(true)}
-                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
-              >
-                保存为未发布
-              </button>
+              {formPublishMode !== 'scheduled' && (
+                <button
+                  type="button"
+                  onClick={() => handleSaveNews(true)}
+                  className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  保存为未发布
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -4838,13 +4834,15 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
               >
                 {formPublishMode === 'scheduled' ? '确认定时发布' : '立即发布上线'}
               </button>
-              <button
-                type="button"
-                onClick={() => handleSaveNotice(true)}
-                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
-              >
-                保存为未发布
-              </button>
+              {formPublishMode !== 'scheduled' && (
+                <button
+                  type="button"
+                  onClick={() => handleSaveNotice(true)}
+                  className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  保存为未发布
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -4947,7 +4945,6 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
                 <th className="py-3.5 px-4">通知标题 / 提要</th>
                 <th className="py-3.5 px-3">公告分类</th>
                 <th className="py-3.5 px-3">发文机构</th>
-                <th className="py-3.5 px-3 text-center">随文附件</th>
                 <th className="py-3.5 px-3 text-center">发布状态</th>
                 <th className="py-3.5 px-3 text-center">是否置顶</th>
                 <th className="py-3.5 px-3">发布时间</th>
@@ -4970,15 +4967,6 @@ export const AdminNoticesManagement: React.FC<AdminNoticesManagementProps> = ({
                   </td>
                   <td className="py-3.5 px-3 text-slate-600 text-xs max-w-[180px] truncate">
                     {item.department}
-                  </td>
-                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                    {item.attachments && item.attachments.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <Download className="w-3 h-3" /> {item.attachments.length} 份
-                      </span>
-                    ) : (
-                      <span className="text-xs text-slate-400">无</span>
-                    )}
                   </td>
                   <td className="py-3.5 px-3 text-center whitespace-nowrap">
                     <span
@@ -5564,6 +5552,8 @@ interface AdminVerificationManagementProps {
   institutions: InstitutionRecord[];
   reviewerName: string;
   lockedUniversity?: string;
+  platformUsers?: PlatformDirectoryUser[];
+  onUpdatePlatformUsers?: React.Dispatch<React.SetStateAction<PlatformDirectoryUser[]>>;
   onApproveSyncUser?: (record: VerificationApplicationRecord) => void;
   onRejectSyncUser?: (record: VerificationApplicationRecord, reason: string) => void;
 }
@@ -5575,11 +5565,14 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
   institutions,
   reviewerName,
   lockedUniversity,
+  platformUsers = [],
+  onUpdatePlatformUsers,
   onApproveSyncUser,
   onRejectSyncUser,
 }) => {
   const isStudentMode = applicantType === 'student';
   const isUnivAdminMode = applicantType === 'univ_admin';
+  const isTeacherMode = applicantType === 'teacher';
 
   // 筛选条件
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -5601,6 +5594,30 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
   );
   const [rejectReasonInput, setRejectReasonInput] = useState('');
   const [rejectError, setRejectError] = useState<string | null>(null);
+
+  // 新增 / 编辑 学生或教师认证弹窗状态
+  const [certFormModalOpen, setCertFormModalOpen] = useState(false);
+  const [editingCertRecord, setEditingCertRecord] =
+    useState<VerificationApplicationRecord | null>(null);
+  const [selectedNormalUserId, setSelectedNormalUserId] = useState<string>('');
+  const [normalUserSearchKw, setNormalUserSearchKw] = useState<string>('');
+  const [normalUserDropdownOpen, setNormalUserDropdownOpen] = useState<boolean>(false);
+
+  const [formSchool, setFormSchool] = useState<string>('');
+  const [schoolSearchKw, setSchoolSearchKw] = useState<string>('');
+  const [schoolDropdownOpen, setSchoolDropdownOpen] = useState<boolean>(false);
+  const [formEducation, setFormEducation] = useState<string>('本科');
+  const [formMajor, setFormMajor] = useState<string>('');
+  const [formDept, setFormDept] = useState<string>('');
+  const [formStaffId, setFormStaffId] = useState<string>('');
+  const [formEnrollDate, setFormEnrollDate] = useState<string>('2024-09');
+  const [formGradDate, setFormGradDate] = useState<string>('2028-06');
+  const [formFiles, setFormFiles] = useState<VerificationAttachmentItem[]>([]);
+  const [certFormError, setCertFormError] = useState<string | null>(null);
+
+  // 删除确认弹窗状态
+  const [deletingCertRecord, setDeletingCertRecord] =
+    useState<VerificationApplicationRecord | null>(null);
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const triggerToast = (msg: string) => {
@@ -5786,6 +5803,309 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
     setRejectingRecord(null);
   };
 
+  // 可供新增学生/教师认证选择的平台普通用户列表（带搜索过滤）
+  const normalPlatformUsers = useMemo(() => {
+    return platformUsers.filter(
+      (u) =>
+        !u.isDeleted &&
+        (u.baseRole === '普通用户' || (!u.baseRole && !u.isAcademicOrTeacherVerified)) &&
+        !u.extendedRoles?.includes('秘书处')
+    );
+  }, [platformUsers]);
+
+  const filteredNormalUsers = useMemo(() => {
+    const kw = normalUserSearchKw.trim().toLowerCase();
+    if (!kw) return normalPlatformUsers;
+    return normalPlatformUsers.filter(
+      (u) =>
+        (u.username || '').toLowerCase().includes(kw) ||
+        (u.realName || '').toLowerCase().includes(kw) ||
+        (u.name || '').toLowerCase().includes(kw) ||
+        (u.phone || '').toLowerCase().includes(kw) ||
+        (u.email || '').toLowerCase().includes(kw)
+    );
+  }, [normalPlatformUsers, normalUserSearchKw]);
+
+  const selectedNormalUser = useMemo(
+    () => platformUsers.find((u) => u.id === selectedNormalUserId) || null,
+    [platformUsers, selectedNormalUserId]
+  );
+
+  // 弹窗内所属院校搜索下拉选项（仅启用状态的院校）
+  const enabledInstitutionOptions = useMemo(() => {
+    if (lockedUniversity) {
+      return institutions.filter((inst) => inst.name === lockedUniversity);
+    }
+    return institutions.filter((inst) => inst.platformStatus !== 'disabled');
+  }, [institutions, lockedUniversity]);
+
+  const filteredModalSchoolOptions = useMemo(() => {
+    const kw = schoolSearchKw.trim().toLowerCase();
+    if (!kw) return enabledInstitutionOptions;
+    return enabledInstitutionOptions.filter(
+      (inst) =>
+        inst.name.toLowerCase().includes(kw) ||
+        (inst.code || '').toLowerCase().includes(kw) ||
+        (inst.province || '').toLowerCase().includes(kw) ||
+        (inst.city || '').toLowerCase().includes(kw)
+    );
+  }, [enabledInstitutionOptions, schoolSearchKw]);
+
+  const handleOpenAddCertModal = () => {
+    setEditingCertRecord(null);
+    setSelectedNormalUserId('');
+    setNormalUserSearchKw('');
+    setNormalUserDropdownOpen(false);
+    setFormSchool(lockedUniversity || '');
+    setSchoolSearchKw(lockedUniversity || '');
+    setSchoolDropdownOpen(false);
+    setFormEducation(isTeacherMode ? '博士及以上' : '本科');
+    setFormMajor('');
+    setFormDept('');
+    setFormStaffId('');
+    setFormEnrollDate('2024-09');
+    setFormGradDate('2028-06');
+    setFormFiles([]);
+    setCertFormError(null);
+    setCertFormModalOpen(true);
+  };
+
+  const handleOpenEditCertModal = (rec: VerificationApplicationRecord) => {
+    setEditingCertRecord(rec);
+    const matchedUser = platformUsers.find(
+      (u) =>
+        (u.username || '').toLowerCase() === rec.username.toLowerCase() ||
+        (rec.phone && u.phone === rec.phone)
+    );
+    setSelectedNormalUserId(matchedUser?.id || '');
+    setNormalUserSearchKw('');
+    setNormalUserDropdownOpen(false);
+    setFormSchool(rec.university || lockedUniversity || '');
+    setSchoolSearchKw(rec.university || lockedUniversity || '');
+    setSchoolDropdownOpen(false);
+    const resolvedEdu = resolveRecordTrainingLevel(rec);
+    setFormEducation(
+      ['专科', '本科', '硕士', '博士及以上'].includes(resolvedEdu) ? resolvedEdu : '本科'
+    );
+    if (isStudentMode) {
+      setFormMajor(rec.majorOrDept || '');
+      setFormDept('');
+    } else {
+      setFormDept(rec.majorOrDept || '');
+      setFormMajor(rec.teacherMajor || '网络空间安全');
+    }
+    setFormStaffId(rec.studentOrStaffId || '');
+    setFormEnrollDate(rec.enrollmentDate || '2024-09');
+    setFormGradDate(rec.graduationDate || '2028-06');
+    setFormFiles(rec.attachments || []);
+    setCertFormError(null);
+    setCertFormModalOpen(true);
+  };
+
+  const handleUploadCertFormFiles = (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    setCertFormError(null);
+    const nextItems: VerificationAttachmentItem[] = [];
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const sizeKb = Math.max(1, Math.round(file.size / 1024));
+      if (isStudentMode && file.size > 5 * 1024 * 1024) {
+        setCertFormError(`文件“${file.name}”超过 5MB 大小限制`);
+        return;
+      }
+      const sizeStr =
+        sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(2)} MB` : `${sizeKb} KB`;
+      const isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+      const url = isImage
+        ? URL.createObjectURL(file)
+        : 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80';
+      nextItems.push({
+        id: `cert-att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name,
+        size: sizeStr,
+        url,
+      });
+    }
+    setFormFiles((prev) => [...prev, ...nextItems].slice(0, 10));
+  };
+
+  const handleSaveCertForm = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCertFormError(null);
+
+    if (!editingCertRecord && !selectedNormalUser) {
+      setCertFormError('请先在下拉框中查询并选择需要认证的平台普通用户');
+      return;
+    }
+    if (!formSchool.trim()) {
+      setCertFormError('请在“所属院校”下拉框中搜索并选择院校');
+      return;
+    }
+    if (!['专科', '本科', '硕士', '博士及以上'].includes(formEducation)) {
+      setCertFormError('请选择有效的学历层次（专科 / 本科 / 硕士 / 博士及以上）');
+      return;
+    }
+
+    if (isStudentMode) {
+      if (!formMajor.trim()) {
+        setCertFormError('请填写就读的专业名称');
+        return;
+      }
+      if (!/^\d{4}-\d{2}$/.test(formEnrollDate)) {
+        setCertFormError('请选择有效的入学时间（格式 YYYY-MM）');
+        return;
+      }
+      if (!/^\d{4}-\d{2}$/.test(formGradDate)) {
+        setCertFormError('请选择有效的毕业时间（预计）（格式 YYYY-MM）');
+        return;
+      }
+      if (formGradDate <= formEnrollDate) {
+        setCertFormError('毕业时间（预计）必须晚于入学时间，请核对后重新选择');
+        return;
+      }
+    } else if (isTeacherMode) {
+      if (!formDept.trim()) {
+        setCertFormError('请填写所属院系/部门（如：计算机科学与技术学院）');
+        return;
+      }
+      if (!formMajor.trim()) {
+        setCertFormError('请填写专业名称（如：网络空间安全）');
+        return;
+      }
+      if (!formStaffId.trim()) {
+        setCertFormError('请填写教工号');
+        return;
+      }
+    }
+
+    const matchedInst = institutions.find((inst) => inst.name === formSchool);
+    const instCode = matchedInst?.code || '4111010006';
+    const nowTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const firstFile = formFiles[0];
+
+    if (editingCertRecord) {
+      const updatedRec: VerificationApplicationRecord = {
+        ...editingCertRecord,
+        university: formSchool,
+        institutionCode: instCode,
+        majorOrDept: isStudentMode ? formMajor.trim() : formDept.trim(),
+        teacherMajor: isTeacherMode ? formMajor.trim() : editingCertRecord.teacherMajor,
+        educationLevel: formEducation,
+        levelOrTitle: formEducation,
+        studentOrStaffId: isTeacherMode
+          ? formStaffId.trim()
+          : editingCertRecord.studentOrStaffId,
+        enrollmentDate: isStudentMode ? formEnrollDate : editingCertRecord.enrollmentDate,
+        graduationDate: isStudentMode ? formGradDate : editingCertRecord.graduationDate,
+        attachments: formFiles,
+        materialFileName: firstFile?.name || editingCertRecord.materialFileName,
+        materialPreviewUrl: firstFile?.url || editingCertRecord.materialPreviewUrl,
+        applicantNote: isStudentMode
+          ? `学历：${formEducation}，专业：${formMajor.trim()}，就读周期：${formEnrollDate} 至 ${formGradDate}`
+          : `院系：${formDept.trim()}，专业：${formMajor.trim()}，学历层次：${formEducation}`,
+      };
+
+      onChangeRecords((prev) =>
+        prev.map((item) => (item.id === editingCertRecord.id ? updatedRec : item))
+      );
+      if (inspectingRecord?.id === editingCertRecord.id) {
+        setInspectingRecord(updatedRec);
+      }
+      if (updatedRec.reviewStatus === 'approved' && onApproveSyncUser) {
+        onApproveSyncUser(updatedRec);
+      }
+      triggerToast(
+        `已保存【${updatedRec.realName}（${updatedRec.university}）】的${
+          isStudentMode ? '学生认证' : '教师认证'
+        }修改！`
+      );
+    } else if (selectedNormalUser) {
+      const resolvedUsername = selectedNormalUser.username || selectedNormalUser.id;
+      const resolvedRealName =
+        selectedNormalUser.realName && selectedNormalUser.realName.trim() !== '-'
+          ? selectedNormalUser.realName.trim()
+          : selectedNormalUser.name.replace(/（.*?）/g, '').trim() || resolvedUsername;
+      const newRec: VerificationApplicationRecord = {
+        id: `ver-${applicantType}-${Date.now()}`,
+        applicantType,
+        username: resolvedUsername,
+        realName: resolvedRealName,
+        idCard: selectedNormalUser.idNumber || '110108200305162819',
+        phone: selectedNormalUser.phone || '13800138000',
+        email: selectedNormalUser.email || `${resolvedUsername}@edu.cn`,
+        university: formSchool,
+        institutionCode: instCode,
+        majorOrDept: isStudentMode ? formMajor.trim() : formDept.trim(),
+        teacherMajor: isTeacherMode ? formMajor.trim() : undefined,
+        educationLevel: formEducation,
+        levelOrTitle: formEducation,
+        studentOrStaffId: isTeacherMode
+          ? formStaffId.trim()
+          : `STU${String(Date.now()).slice(-6)}`,
+        enrollmentDate: isStudentMode ? formEnrollDate : undefined,
+        graduationDate: isStudentMode ? formGradDate : undefined,
+        submitChannel: isStudentMode
+          ? '学生身份认证 · 后台管理员直接录入'
+          : '指导教师资格认证 · 后台管理员直接录入',
+        materialFileName: firstFile?.name,
+        materialPreviewUrl: firstFile?.url,
+        attachments: formFiles,
+        applicantNote: isStudentMode
+          ? `学历：${formEducation}，专业：${formMajor.trim()}，就读周期：${formEnrollDate} 至 ${formGradDate}`
+          : `院系：${formDept.trim()}，专业：${formMajor.trim()}，学历层次：${formEducation}`,
+        submittedAt: nowTime,
+        reviewStatus: 'approved',
+        reviewedAt: nowTime,
+        reviewer: reviewerName,
+      };
+
+      onChangeRecords((prev) => [newRec, ...prev]);
+      if (onApproveSyncUser) {
+        onApproveSyncUser(newRec);
+      }
+      triggerToast(
+        `已成功新增【${newRec.realName}（${newRec.university}）】的${
+          isStudentMode ? '学生认证' : '教师认证'
+        }，状态已默认设为“已通过”并同步更新用户身份！`
+      );
+    }
+
+    setCertFormModalOpen(false);
+  };
+
+  const handleConfirmDeleteCertRecord = () => {
+    if (!deletingCertRecord) return;
+    const target = deletingCertRecord;
+    onChangeRecords((prev) => prev.filter((item) => item.id !== target.id));
+    if (inspectingRecord?.id === target.id) {
+      setInspectingRecord(null);
+    }
+    if (onUpdatePlatformUsers) {
+      onUpdatePlatformUsers((prev) =>
+        prev.map((u) => {
+          if (
+            (u.username || '').toLowerCase() === target.username.toLowerCase() ||
+            (target.phone && u.phone === target.phone)
+          ) {
+            return {
+              ...u,
+              baseRole: '普通用户',
+              isAcademicOrTeacherVerified: false,
+            };
+          }
+          return u;
+        })
+      );
+    }
+    setDeletingCertRecord(null);
+    triggerToast(
+      `已删除【${target.realName}（${target.university}）】的${
+        isStudentMode ? '学生认证' : '教师认证'
+      }记录！`
+    );
+  };
+
   const inspectingAttachments: VerificationAttachmentItem[] = useMemo(() => {
     if (!inspectingRecord) return [];
     if (inspectingRecord.attachments && inspectingRecord.attachments.length > 0) {
@@ -5816,23 +6136,24 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
         </div>
       )}
 
-      {/* 搜索筛选栏（5 列网格） */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1">
-            申请人检索（姓名/用户名/手机号）
-          </label>
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="搜索姓名、用户名、手机号..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
-            />
+      {/* 搜索筛选栏 + 新增学生/教师认证按钮 */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1">
+              申请人检索（姓名/用户名/手机号）
+            </label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="搜索姓名、用户名、手机号..."
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
+              />
+            </div>
           </div>
-        </div>
 
         <div className="relative">
           <label className="block text-xs font-bold text-slate-600 mb-1">
@@ -5938,6 +6259,23 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#0284C7]"
           />
         </div>
+        </div>
+
+        {(isStudentMode || isTeacherMode) && (
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+            <div className="text-xs text-slate-500">
+              支持为平台内的普通用户直接新增{isStudentMode ? '学生认证' : '教师认证'}记录（新增后默认为已通过审核状态）
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenAddCertModal}
+              className="px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{isStudentMode ? '新增学生认证' : '新增教师认证'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 数据列表表格 */}
@@ -6027,7 +6365,7 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
                           </span>
                         </td>
 
-                        {/* 7. 操作：【通过】/【驳回】 + 查看详情 */}
+                        {/* 7. 操作：【通过】/【驳回】 + 查看详情 + 编辑 + 删除 */}
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1.5">
                             {item.reviewStatus !== 'approved' && (
@@ -6054,6 +6392,20 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
                               className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
                             >
                               查看详情
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditCertModal(item)}
+                              className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-[#0284C7] text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingCertRecord(item)}
+                              className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              删除
                             </button>
                           </div>
                         </td>
@@ -6292,6 +6644,20 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
                               className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
                             >
                               查看详情
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditCertModal(item)}
+                              className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-[#0284C7] text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingCertRecord(item)}
+                              className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              删除
                             </button>
                             {item.reviewStatus !== 'approved' && (
                               <button
@@ -6802,6 +7168,488 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* 弹窗 3：新增 / 编辑 学生认证或教师认证弹窗 */}
+      {certFormModalOpen && (isStudentMode || isTeacherMode) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl my-8">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between">
+              <span className="font-bold text-base">
+                {editingCertRecord
+                  ? `编辑${isStudentMode ? '学生认证' : '教师认证'} — ${editingCertRecord.realName}`
+                  : `新增${isStudentMode ? '学生认证' : '教师认证'}（默认审核通过）`}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCertFormModalOpen(false)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCertForm} className="p-6 space-y-4">
+              {certFormError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span>{certFormError}</span>
+                </div>
+              )}
+
+              {/* 第一步：新增时先通过带查询的下拉框选择平台内的普通用户；编辑时只读展示当前申请人 */}
+              {!editingCertRecord ? (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    选择平台普通用户 <span className="text-red-500">*</span>
+                    <span className="text-slate-400 font-normal ml-1">
+                      （支持输入姓名/用户名/手机号查询）
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={
+                        selectedNormalUser
+                          ? `${
+                              selectedNormalUser.realName &&
+                              selectedNormalUser.realName !== '-'
+                                ? selectedNormalUser.realName
+                                : selectedNormalUser.name
+                            } (@${selectedNormalUser.username}${
+                              selectedNormalUser.phone ? ` · ${selectedNormalUser.phone}` : ''
+                            })`
+                          : normalUserSearchKw
+                      }
+                      onFocus={() => {
+                        if (selectedNormalUser) {
+                          setSelectedNormalUserId('');
+                        }
+                        setNormalUserDropdownOpen(true);
+                      }}
+                      onBlur={() => setTimeout(() => setNormalUserDropdownOpen(false), 180)}
+                      onChange={(e) => {
+                        setSelectedNormalUserId('');
+                        setNormalUserSearchKw(e.target.value);
+                        setNormalUserDropdownOpen(true);
+                      }}
+                      placeholder="请搜索并选择平台内的普通用户..."
+                      className="w-full pl-9 pr-8 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-xs text-slate-900 bg-white focus:outline-none"
+                    />
+                    {(selectedNormalUser || normalUserSearchKw) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedNormalUserId('');
+                          setNormalUserSearchKw('');
+                          setNormalUserDropdownOpen(true);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title="重新选择用户"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {normalUserDropdownOpen && (
+                      <div className="absolute z-40 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl bg-white border border-slate-200 shadow-xl divide-y divide-slate-100 text-xs">
+                        {filteredNormalUsers.length === 0 ? (
+                          <div className="p-3.5 text-center text-slate-400">
+                            未找到匹配的普通用户（可在【用户管理】中新增普通用户）
+                          </div>
+                        ) : (
+                          filteredNormalUsers.map((u) => {
+                            const dispName =
+                              u.realName && u.realName.trim() && u.realName !== '-'
+                                ? u.realName
+                                : u.name;
+                            return (
+                              <button
+                                key={u.id}
+                                type="button"
+                                onMouseDown={() => {
+                                  setSelectedNormalUserId(u.id);
+                                  setNormalUserSearchKw('');
+                                  setNormalUserDropdownOpen(false);
+                                }}
+                                className="w-full px-3.5 py-2.5 text-left hover:bg-sky-50 flex items-center justify-between gap-2 cursor-pointer"
+                              >
+                                <div className="min-w-0">
+                                  <span className="font-bold text-slate-900">{dispName}</span>
+                                  <span className="text-slate-500 font-mono ml-1.5">
+                                    @{u.username}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="font-mono text-slate-500">
+                                    {u.phone || '未绑手机'}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">
+                                    普通用户
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedNormalUser && (
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-slate-500">申请人姓名：</span>
+                        <span className="font-bold text-slate-900">
+                          {selectedNormalUser.realName &&
+                          selectedNormalUser.realName !== '-'
+                            ? selectedNormalUser.realName
+                            : selectedNormalUser.name}
+                        </span>
+                        <span className="text-slate-400 ml-2 font-mono">
+                          ({selectedNormalUser.username})
+                        </span>
+                      </div>
+                      <div className="font-mono text-slate-500">
+                        {(selectedNormalUser.idNumber || '110108200305162819').replace(
+                          /^(\d{6})\d{8}(\w{4})$/,
+                          '$1********$2'
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-slate-500">申请人姓名：</span>
+                    <span className="font-bold text-slate-900">{editingCertRecord.realName}</span>
+                    <span className="text-slate-400 ml-2 font-mono">
+                      ({editingCertRecord.username})
+                    </span>
+                  </div>
+                  <div className="font-mono text-slate-500">
+                    {(editingCertRecord.idCard || '110108200305162819').replace(
+                      /^(\d{6})\d{8}(\w{4})$/,
+                      '$1********$2'
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 1. 所属院校（搜索下拉框，必填） */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  所属院校 <span className="text-red-500">*</span>
+                </label>
+                {lockedUniversity ? (
+                  <div className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-slate-300 text-xs font-bold text-slate-800 flex items-center justify-between">
+                    <span>{lockedUniversity}</span>
+                    <span className="text-[11px] font-normal text-slate-500">本校锁定</span>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={formSchool || schoolSearchKw}
+                      onFocus={() => {
+                        if (formSchool) {
+                          setSchoolSearchKw(formSchool);
+                        }
+                        setSchoolDropdownOpen(true);
+                      }}
+                      onBlur={() => setTimeout(() => setSchoolDropdownOpen(false), 180)}
+                      onChange={(e) => {
+                        setFormSchool('');
+                        setSchoolSearchKw(e.target.value);
+                        setSchoolDropdownOpen(true);
+                      }}
+                      placeholder="输入高校名称或代码搜索并点选院校..."
+                      className="w-full pl-9 pr-8 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm bg-white text-slate-900 focus:outline-none"
+                    />
+                    {(formSchool || schoolSearchKw) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormSchool('');
+                          setSchoolSearchKw('');
+                          setSchoolDropdownOpen(true);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {schoolDropdownOpen && (
+                      <div className="absolute z-40 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl bg-white border border-slate-200 shadow-xl divide-y divide-slate-100 text-xs">
+                        {filteredModalSchoolOptions.length === 0 ? (
+                          <div className="p-3 text-center text-slate-400">
+                            未找到匹配的院校，请核对关键字
+                          </div>
+                        ) : (
+                          filteredModalSchoolOptions.map((inst) => (
+                            <button
+                              key={inst.id}
+                              type="button"
+                              onMouseDown={() => {
+                                setFormSchool(inst.name);
+                                setSchoolSearchKw(inst.name);
+                                setSchoolDropdownOpen(false);
+                              }}
+                              className="w-full px-3.5 py-2 text-left hover:bg-sky-50 flex items-center justify-between cursor-pointer"
+                            >
+                              <span className="font-bold text-slate-900">{inst.name}</span>
+                              <span className="text-[11px] font-mono text-slate-400">
+                                {inst.code ? `${inst.code} · ` : ''}
+                                {inst.province} {inst.city}
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 教师认证专属字段：院系/部门 */}
+              {isTeacherMode && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    院系/部门 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formDept}
+                    onChange={(e) => setFormDept(e.target.value)}
+                    placeholder="如：计算机科学与技术学院"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* 2. 学历层次（下拉单选，必填：专科、本科、硕士、博士及以上） */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  学历层次 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={formEducation}
+                  onChange={(e) => setFormEducation(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm bg-white text-slate-900 focus:outline-none"
+                >
+                  <option value="专科">专科</option>
+                  <option value="本科">本科</option>
+                  <option value="硕士">硕士</option>
+                  <option value="博士及以上">博士及以上</option>
+                </select>
+              </div>
+
+              {/* 3. 专业（输入框，必填） */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  专业 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formMajor}
+                  onChange={(e) => setFormMajor(e.target.value)}
+                  placeholder="请输入专业名称，例如：网络空间安全"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm focus:outline-none"
+                />
+              </div>
+
+              {/* 教师认证专属字段：教工号 */}
+              {isTeacherMode && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    教工号 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formStaffId}
+                    onChange={(e) => setFormStaffId(e.target.value)}
+                    placeholder="请输入学校教工号"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm font-mono focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* 学生认证专属字段：4. 入学时间 & 5. 毕业时间（预计） */}
+              {isStudentMode && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      入学时间 <span className="text-red-500">*</span>
+                      <span className="text-slate-400 font-normal ml-1">(YYYY-MM)</span>
+                    </label>
+                    <input
+                      type="month"
+                      required
+                      value={formEnrollDate}
+                      onChange={(e) => setFormEnrollDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm font-mono focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      毕业时间（预计） <span className="text-red-500">*</span>
+                      <span className="text-slate-400 font-normal ml-1">(晚于入学时间)</span>
+                    </label>
+                    <input
+                      type="month"
+                      required
+                      min={formEnrollDate || undefined}
+                      value={formGradDate}
+                      onChange={(e) => setFormGradDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm font-mono focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 身份辅助证明 / 证明材料上传 */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {isStudentMode ? '身份辅助证明（选填）' : '证明材料（选填）'}
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    {isStudentMode
+                      ? '非必填 · 格式 jpg/png/pdf · 5MB 以内'
+                      : '支持上传教师资格证或工作证/工牌等证明材料'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {isStudentMode
+                    ? '支持上传学生证内页或其他证明材料'
+                    : '支持上传最多不超过 10 个附件（jpg/png/pdf 等常见格式）'}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <label className="px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
+                    <span>
+                      {isStudentMode ? '上传辅助证明材料（选填）' : '上传证明附件（可多选）'}
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        handleUploadCertFormFiles(e.target.files);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  {formFiles.length > 0 && (
+                    <span className="text-[11px] font-mono text-slate-500">
+                      已选 {formFiles.length} 份文件
+                    </span>
+                  )}
+                </div>
+
+                {formFiles.length > 0 && (
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto pt-1">
+                    {formFiles.map((f, idx) => (
+                      <div
+                        key={f.id}
+                        className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="text-[11px] font-mono text-[#0284C7] font-bold">
+                            #{idx + 1}
+                          </span>
+                          <FileText className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                          <span className="text-slate-800 font-medium truncate">{f.name}</span>
+                          <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                            ({f.size})
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormFiles((prev) => prev.filter((item) => item.id !== f.id))
+                          }
+                          className="text-slate-400 hover:text-red-600 cursor-pointer p-0.5"
+                          title="移除该附件"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCertFormModalOpen(false)}
+                  className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer shadow-xs"
+                >
+                  {editingCertRecord ? '确认保存' : '确认新增'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 弹窗 4：删除学生/教师认证记录确认弹窗 */}
+      {deletingCertRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-slate-900">
+                确认删除{isStudentMode ? '学生认证' : '教师认证'}记录
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDeletingCertRecord(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              确定要删除申请人{' '}
+              <span className="font-bold text-slate-900">{deletingCertRecord.realName}</span>（
+              {deletingCertRecord.university}）的{isStudentMode ? '学生认证' : '教师认证'}记录吗？删除后该用户的身份将恢复为普通用户。
+            </p>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingCertRecord(null)}
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCertRecord}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold cursor-pointer shadow-xs"
+              >
+                确认删除
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -347,23 +347,48 @@ export default function App() {
       }
       return;
     }
+    const nextRealNameStatus = matched.isRealNameVerified ? 'verified' : 'unverified';
     const nextRealName =
-      matched.realName && matched.realName !== '-' ? matched.realName : currentUser.name;
+      matched.isRealNameVerified && matched.realName && matched.realName !== '-'
+        ? matched.realName
+        : '';
+    const nextIdCard = matched.isRealNameVerified ? matched.idNumber || '' : '';
+    const nextVerified = Boolean(
+      matched.isRealNameVerified && matched.isAcademicOrTeacherVerified
+    );
     if (
       matched.phone !== currentUser.phone ||
       matched.email !== currentUser.email ||
       (matched.university && matched.university !== currentUser.university) ||
-      (matched.isRealNameVerified && nextRealName !== currentUser.name)
+      nextRealNameStatus !== currentUser.realNameStatus ||
+      nextRealName !== currentUser.name ||
+      nextIdCard !== currentUser.idCard ||
+      nextVerified !== currentUser.isVerified
     ) {
       setCurrentUser((prev) => ({
         ...prev,
-        name: matched.isRealNameVerified ? nextRealName : prev.name,
+        name: nextRealName,
+        idCard: nextIdCard,
+        realNameStatus: nextRealNameStatus,
+        isVerified: nextVerified,
         phone: matched.phone,
         email: matched.email,
         university: matched.university || prev.university,
       }));
     }
-  }, [platformUsers, isLoggedIn, currentUser.username, currentUser.phone, currentUser.email, currentUser.university, currentUser.name, currentView]);
+  }, [
+    platformUsers,
+    isLoggedIn,
+    currentUser.username,
+    currentUser.phone,
+    currentUser.email,
+    currentUser.university,
+    currentUser.name,
+    currentUser.idCard,
+    currentUser.realNameStatus,
+    currentUser.isVerified,
+    currentView,
+  ]);
 
   // 指标2：历史密码记录库（用于找回密码时校验新密码不能与原密码及最近N次历史密码相同）
   const [passwordHistory, setPasswordHistory] = useState<string[]>([
@@ -2110,8 +2135,8 @@ export default function App() {
             {/* 模块二：核心双栏（赛事通道 + 通知公告） */}
             <section id="tracks-notice-section" className="scroll-mt-20">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* 赛事通道（白色圆角卡片容器，占 12 列） */}
-                <div className="lg:col-span-12 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col">
+                {/* 左侧：赛事通道（白色圆角卡片容器，占 7 列） */}
+                <div className="lg:col-span-7 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col">
                   {/* 卡片头部（蓝标 + 标题 + 底部短横线装饰 + 右侧更多链接） */}
                   <div className="relative flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
                     <div className="flex items-center gap-2">
@@ -2167,7 +2192,7 @@ export default function App() {
                             className="group py-4 first:pt-1 last:pb-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 cursor-pointer"
                           >
                             {/* 左侧缩略海报图 */}
-                            <div className="w-full sm:w-[240px] h-[130px] shrink-0 overflow-hidden rounded-lg group-hover:shadow-sm transition-shadow">
+                            <div className="w-full sm:w-[220px] h-[124px] shrink-0 overflow-hidden rounded-lg group-hover:shadow-sm transition-shadow">
                               <TrackCoverIllustration
                                 type={matchedTrack?.visualType || comp.coverTheme}
                                 status={trackVisualStatus}
@@ -2207,6 +2232,81 @@ export default function App() {
                           </div>
                         );
                       })}
+                  </div>
+                </div>
+
+                {/* 右侧：通知公告（白色圆角卡片容器，占 5 列，实时联动后台已发布通知公告） */}
+                <div className="lg:col-span-5 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col">
+                  {/* 卡片头部 */}
+                  <div className="relative flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <Volume2 className="w-5 h-5 text-[#1664FF]" />
+                      <h2 className="text-lg font-bold text-slate-900 tracking-tight">通知公告</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInitialSelectedNoticeId(null);
+                        setCurrentView('notices');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                    >
+                      <span>更多公告</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                  </div>
+
+                  {/* 通知公告列表（置顶优先，点击进入通知公告详情二级页） */}
+                  <div className="flex-1 divide-y divide-slate-100 flex flex-col justify-between">
+                    {publishedNotices.slice(0, 6).map((notice, index) => (
+                      <div
+                        key={notice.id}
+                        onClick={() => {
+                          setInitialSelectedNoticeId(notice.id);
+                          setCurrentView('notice-detail');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="group py-3 first:pt-1 last:pb-1 flex items-start justify-between gap-3 cursor-pointer"
+                      >
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          {notice.isPinned ? (
+                            <span className="mt-0.5 px-1.5 py-0.5 rounded-xs bg-red-50 text-[#F53F3F] border border-red-200/80 text-[11px] font-bold leading-none shrink-0">
+                              置顶
+                            </span>
+                          ) : (
+                            <span className="mt-0.5 px-1.5 py-0.5 rounded-xs bg-blue-50 text-[#1664FF] border border-blue-200/60 text-[11px] font-semibold leading-none shrink-0">
+                              {notice.category || '通知'}
+                            </span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <h3
+                              className={`text-sm leading-snug line-clamp-1 transition-colors ${
+                                index === 0 || notice.isPinned
+                                  ? 'font-bold text-slate-900 group-hover:text-[#1664FF]'
+                                  : 'font-medium text-slate-700 group-hover:text-[#1664FF]'
+                              }`}
+                              title={notice.title}
+                            >
+                              {notice.title}
+                            </h3>
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
+                              <span className="truncate">{notice.department}</span>
+                              {notice.attachments && notice.attachments.length > 0 && (
+                                <span className="text-[#1664FF] shrink-0">
+                                  · 含附件
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span className="text-xs text-slate-400 group-hover:text-[#1664FF] font-mono-num shrink-0 pt-0.5 transition-colors">
+                          {notice.fullDate || notice.date}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

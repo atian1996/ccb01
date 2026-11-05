@@ -212,10 +212,13 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   const [formEmail, setFormEmail] = useState('');
   const [formIdType, setFormIdType] = useState<UserIdCardType>('身份证');
   const [formIdNumber, setFormIdNumber] = useState('');
+  const [formHasBoundPhone, setFormHasBoundPhone] = useState<boolean>(true);
+  const [formHasBoundEmail, setFormHasBoundEmail] = useState<boolean>(true);
+  const [formIsRealNameVerified, setFormIsRealNameVerified] = useState<boolean>(true);
   // 编辑状态下证件号默认脱敏显示，点击后可修改
   const [isEditingIdNumberUnlocked, setIsEditingIdNumberUnlocked] = useState(true);
 
-  const [formBaseRole, setFormBaseRole] = useState<UserBaseRole>('学生');
+  const [formBaseRole, setFormBaseRole] = useState<UserBaseRole>('普通用户');
   const [formExtendedRoles, setFormExtendedRoles] = useState<UserExtendedRole[]>([]);
   const [formInstitutionId, setFormInstitutionId] = useState<string>('');
   const [institutionSearchKeyword, setInstitutionSearchKeyword] = useState('');
@@ -519,13 +522,16 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
     setFormUsername('');
     setFormPassword('');
     setShowFormPassword(false);
-    setFormRealName('');
+    setFormHasBoundPhone(true);
     setFormPhone('');
+    setFormHasBoundEmail(true);
     setFormEmail('');
+    setFormIsRealNameVerified(true);
+    setFormRealName('');
     setFormIdType('身份证');
     setFormIdNumber('');
     setIsEditingIdNumberUnlocked(true);
-    setFormBaseRole('学生');
+    setFormBaseRole('普通用户');
     setFormExtendedRoles([]);
     setFormInstitutionId('');
     setInstitutionSearchKeyword('');
@@ -540,19 +546,32 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   const handleOpenEditUserDrawer = (user: PlatformDirectoryUser) => {
     const { baseRole, extendedRoles } = getUserNormalizedRoles(user);
     const effectiveStatus = getEffectiveUserStatus(user);
+    const hasPhone = Boolean(user.phone && user.phone.trim());
+    const hasEmail = Boolean(user.email && user.email.trim());
+    const hasRealName = Boolean(
+      user.isRealNameVerified &&
+        user.realName &&
+        user.realName.trim() &&
+        user.realName.trim() !== '-'
+    );
 
     setEditingUser(user);
     setFormAvatar(user.avatar || '');
     setFormUsername(user.username || '');
     setFormPassword('');
     setShowFormPassword(false);
-    setFormRealName(user.realName || user.name.replace(/（.*?）/g, '').trim());
-    setFormPhone(user.phone || '');
-    setFormEmail(user.email || '');
-    setFormIdType(user.idType || '身份证');
-    setFormIdNumber(user.idNumber || '');
+    setFormHasBoundPhone(hasPhone);
+    setFormPhone(hasPhone ? user.phone || '' : '');
+    setFormHasBoundEmail(hasEmail);
+    setFormEmail(hasEmail ? user.email || '' : '');
+    setFormIsRealNameVerified(hasRealName);
+    setFormRealName(
+      hasRealName ? user.realName || user.name.replace(/（.*?）/g, '').trim() : ''
+    );
+    setFormIdType('身份证');
+    setFormIdNumber(hasRealName ? user.idNumber || '' : '');
     // 编辑状态下证件号默认脱敏显示，点击可修改
-    setIsEditingIdNumberUnlocked(false);
+    setIsEditingIdNumberUnlocked(!hasRealName);
 
     setFormBaseRole(baseRole);
     setFormExtendedRoles(extendedRoles);
@@ -641,10 +660,10 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
     setFormErrorMsg(null);
 
     const trimmedUsername = formUsername.trim();
-    const trimmedRealName = formRealName.trim();
-    const trimmedPhone = formPhone.trim();
-    const trimmedEmail = formEmail.trim();
-    const trimmedIdNumber = formIdNumber.trim().toUpperCase();
+    const trimmedRealName = formIsRealNameVerified ? formRealName.trim() : '';
+    const trimmedPhone = formHasBoundPhone ? formPhone.trim() : '';
+    const trimmedEmail = formHasBoundEmail ? formEmail.trim() : '';
+    const trimmedIdNumber = formIsRealNameVerified ? formIdNumber.trim().toUpperCase() : '';
 
     // 1. 必填与格式校验
     if (!trimmedUsername) {
@@ -663,37 +682,35 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
       setFormErrorMsg('密码长度需在 6-24 位之间');
       return;
     }
-    if (!trimmedRealName) {
-      setFormErrorMsg('请输入真实姓名');
-      return;
+    if (formHasBoundPhone) {
+      if (!/^1[3-9]\d{9}$/.test(trimmedPhone)) {
+        setFormErrorMsg('手机号格式不正确（请输入有效的11位中国大陆手机号）');
+        return;
+      }
     }
-    if (!/^1[3-9]\d{9}$/.test(trimmedPhone)) {
-      setFormErrorMsg('手机号格式不正确（请输入有效的11位中国大陆手机号）');
-      return;
+    if (formHasBoundEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setFormErrorMsg('邮箱格式不正确');
+        return;
+      }
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setFormErrorMsg('邮箱格式不正确');
-      return;
-    }
-    if (!trimmedIdNumber) {
-      setFormErrorMsg('请输入证件号');
-      return;
-    }
-    if (formIdType === '身份证') {
+    if (formIsRealNameVerified) {
+      if (!trimmedRealName) {
+        setFormErrorMsg('请输入真实姓名');
+        return;
+      }
+      if (!trimmedIdNumber) {
+        setFormErrorMsg('请输入身份证号');
+        return;
+      }
       const idCheck = validateChineseIdCard18(trimmedIdNumber);
       if (!idCheck.valid) {
         setFormErrorMsg(idCheck.message || '身份证号格式不正确');
         return;
       }
-    } else {
-      const passCheck = validatePassportNumber(trimmedIdNumber);
-      if (!passCheck.valid) {
-        setFormErrorMsg(passCheck.message || '护照号格式不正确');
-        return;
-      }
     }
 
-    // 2. 全局唯一性校验（用户名、手机号、邮箱、证件号在系统中必须全局唯一）
+    // 2. 全局唯一性校验（用户名、已绑定的手机号、已绑定的邮箱、已认证的身份证号在系统中必须全局唯一）
     const otherUsers = activeUsers.filter((u) => (editingUser ? u.id !== editingUser.id : true));
 
     if (
@@ -704,58 +721,42 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
       setFormErrorMsg(`用户名「${trimmedUsername}」在系统中已存在，请保持全局唯一`);
       return;
     }
-    if (otherUsers.some((u) => u.phone.trim() === trimmedPhone)) {
+    if (
+      formHasBoundPhone &&
+      trimmedPhone &&
+      otherUsers.some((u) => (u.phone || '').trim() === trimmedPhone)
+    ) {
       setFormErrorMsg(`手机号「${trimmedPhone}」已被其他账号绑定，请保持全局唯一`);
       return;
     }
     if (
+      formHasBoundEmail &&
+      trimmedEmail &&
       otherUsers.some(
-        (u) => u.email.trim().toLowerCase() === trimmedEmail.toLowerCase()
+        (u) => (u.email || '').trim().toLowerCase() === trimmedEmail.toLowerCase()
       )
     ) {
       setFormErrorMsg(`邮箱「${trimmedEmail}」已被其他账号绑定，请保持全局唯一`);
       return;
     }
     if (
+      formIsRealNameVerified &&
+      trimmedIdNumber &&
       otherUsers.some(
         (u) => (u.idNumber || '').trim().toUpperCase() === trimmedIdNumber
       )
     ) {
-      setFormErrorMsg(`证件号「${maskIdCardNumber(trimmedIdNumber)}」在系统中已存在，严禁重复注册`);
+      setFormErrorMsg(`身份证号「${maskIdCardNumber(trimmedIdNumber)}」在系统中已存在，严禁重复注册`);
       return;
     }
 
-    // 3. 角色与高校管理员联动校验
-    const hasSchoolAdmin = formExtendedRoles.includes('高校管理员');
-    if (hasSchoolAdmin && !formInstitutionId) {
-      setFormErrorMsg('勾选“高校管理员”时，必须选择绑定的【所属院校】');
+    // 3. 防自禁用保护
+    if (editingUser && isSelfAccount(editingUser) && formStatus === '停用') {
+      setFormErrorMsg('不能删除或禁用当前登录账号！');
       return;
     }
 
-    // 4. 编辑状态下若取消了高校管理员，再次确认无未完成高校审核任务
-    if (editingUser) {
-      const hadSchoolAdminBefore =
-        editingUser.extendedRoles?.includes('高校管理员') ||
-        editingUser.tags?.includes('高校管理员');
-      if (hadSchoolAdminBefore && !hasSchoolAdmin) {
-        const pendingCount = getPendingUniversityReviewCount(
-          editingUser.managedInstitutionId,
-          editingUser.university
-        );
-        if (pendingCount > 0) {
-          setFormErrorMsg('该用户尚有未完成的高校审核任务，请先移交');
-          return;
-        }
-      }
-
-      // 防自禁用保护
-      if (isSelfAccount(editingUser) && formStatus === '停用') {
-        setFormErrorMsg('不能删除或禁用当前登录账号！');
-        return;
-      }
-    }
-
-    // 5. 计算过期时间与过期自动转停用
+    // 4. 计算过期时间与过期自动转停用
     let finalExpireTime: string | null = null;
     if (formExpirePreset === 'one_year') {
       finalExpireTime = formExpireTime.trim() || computeOneYearLaterString();
@@ -769,15 +770,8 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
 
     const isAlreadyExpired = isUserAccountExpired(finalExpireTime);
     const finalStatus: UserAccountStatus = isAlreadyExpired ? '停用' : formStatus;
-
-    // 同步 tags 数组（兼容院校管理与报名管理权限判断）
-    const syncedTags: string[] = [...formExtendedRoles];
-    if (formExtendedRoles.includes('秘书处') && !syncedTags.includes('秘书处管理员')) {
-      syncedTags.push('秘书处管理员');
-    }
-
-    const boundInst = institutions.find((i) => i.id === formInstitutionId);
     const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const displayLabelName = formIsRealNameVerified ? trimmedRealName : trimmedUsername;
 
     if (editingUser) {
       onUpdateUsers((prev) =>
@@ -787,22 +781,13 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
             ...u,
             avatar: formAvatar || undefined,
             password: formPassword.trim() ? formPassword.trim() : u.password,
-            realName: trimmedRealName,
-            name: trimmedRealName,
-            phone: trimmedPhone,
-            email: trimmedEmail,
-            idType: formIdType,
-            idNumber: trimmedIdNumber,
-            baseRole: formBaseRole,
-            extendedRoles: formExtendedRoles,
-            tags: syncedTags,
-            managedInstitutionId: hasSchoolAdmin ? formInstitutionId : undefined,
-            assignedViaInstitutionModule: hasSchoolAdmin
-              ? u.assignedViaInstitutionModule
-              : false,
-            university: boundInst ? boundInst.name : u.university || '未绑定院校',
-            identityType: formBaseRole === '教师' ? 'teacher' : 'student',
-            isRealNameVerified: Boolean(trimmedRealName && trimmedIdNumber),
+            realName: formIsRealNameVerified ? trimmedRealName : '',
+            name: formIsRealNameVerified ? trimmedRealName : trimmedUsername,
+            phone: formHasBoundPhone ? trimmedPhone : '',
+            email: formHasBoundEmail ? trimmedEmail : '',
+            idType: '身份证',
+            idNumber: formIsRealNameVerified ? trimmedIdNumber : '',
+            isRealNameVerified: formIsRealNameVerified,
             expireTime: finalExpireTime,
             status: finalStatus,
           };
@@ -816,13 +801,15 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
         device: '后台管理系统',
         action: '用户管理-编辑用户',
         result: '成功',
-        detail: `编辑用户「${trimmedUsername} (${trimmedRealName})」，基础身份：${formBaseRole}，扩展身份：${
-          formExtendedRoles.join('、') || '无'
+        detail: `编辑用户「${trimmedUsername} (${displayLabelName})」，手机绑定：${
+          formHasBoundPhone ? '是' : '否'
+        }，邮箱绑定：${formHasBoundEmail ? '是' : '否'}，实名认证：${
+          formIsRealNameVerified ? '是' : '否'
         }，状态：${finalStatus}`,
       });
 
       showFeedback(
-        `已保存用户「${trimmedUsername}（${trimmedRealName}）」的配置修改${
+        `已保存用户「${trimmedUsername}（${displayLabelName}）」的配置修改${
           isAlreadyExpired ? '（检测到过期时间早于当前时间，状态已自动转为停用）' : ''
         }`,
         'success'
@@ -833,54 +820,28 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
         username: trimmedUsername,
         password: formPassword.trim(),
         avatar: formAvatar || undefined,
-        name: trimmedRealName,
-        realName: trimmedRealName,
-        phone: trimmedPhone,
-        email: trimmedEmail,
-        idType: formIdType,
-        idNumber: trimmedIdNumber,
-        baseRole: formBaseRole,
-        extendedRoles: formExtendedRoles,
+        name: displayLabelName,
+        realName: formIsRealNameVerified ? trimmedRealName : '',
+        phone: formHasBoundPhone ? trimmedPhone : '',
+        email: formHasBoundEmail ? trimmedEmail : '',
+        idType: '身份证',
+        idNumber: formIsRealNameVerified ? trimmedIdNumber : '',
+        baseRole: '普通用户',
+        extendedRoles: [],
         assignedViaInstitutionModule: false,
         expireTime: finalExpireTime,
         status: finalStatus,
         isDeleted: false,
         createdAt: nowStr,
-        university: boundInst ? boundInst.name : '未绑定院校',
-        identityType: formBaseRole === '教师' ? 'teacher' : 'student',
-        isRealNameVerified: true,
-        isAcademicOrTeacherVerified: formBaseRole !== '普通用户',
-        tagHint: `${formBaseRole}${
-          formExtendedRoles.length > 0 ? ` · ${formExtendedRoles.join('/')}` : ''
-        }`,
-        tags: syncedTags,
-        managedInstitutionId: hasSchoolAdmin ? formInstitutionId : undefined,
+        university: '未绑定院校',
+        identityType: 'student',
+        isRealNameVerified: formIsRealNameVerified,
+        isAcademicOrTeacherVerified: false,
+        tagHint: '普通用户',
+        tags: [],
       };
 
       onUpdateUsers((prev) => [newUser, ...prev]);
-
-      // 若勾选了高校管理员并绑定了院校，同步写入院校审计日志
-      if (hasSchoolAdmin && boundInst) {
-        onUpdateInstitutions((prev) =>
-          prev.map((inst) =>
-            inst.id === boundInst.id
-              ? {
-                  ...inst,
-                  auditLogs: [
-                    {
-                      id: `log-user-add-${Date.now()}`,
-                      time: nowStr,
-                      operator: currentAdminDisplayName,
-                      action: '分配高校管理员',
-                      detail: `在【用户管理】新增用户「${trimmedRealName} (${trimmedPhone})」并分配为本校高校管理员`,
-                    },
-                    ...inst.auditLogs,
-                  ],
-                }
-              : inst
-          )
-        );
-      }
 
       onAddAuditLog({
         operator: currentAdminDisplayName,
@@ -889,12 +850,14 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
         device: '后台管理系统',
         action: '用户管理-新增用户',
         result: '成功',
-        detail: `新增用户「${trimmedUsername} (${trimmedRealName})」，基础身份：${formBaseRole}，扩展身份：${
-          formExtendedRoles.join('、') || '无'
+        detail: `新增用户「${trimmedUsername} (${displayLabelName})」，角色：普通用户，手机绑定：${
+          formHasBoundPhone ? '是' : '否'
+        }，邮箱绑定：${formHasBoundEmail ? '是' : '否'}，实名认证：${
+          formIsRealNameVerified ? '是' : '否'
         }`,
       });
 
-      showFeedback(`已成功新增用户「${trimmedUsername}（${trimmedRealName}）」`, 'success');
+      showFeedback(`已成功新增用户「${trimmedUsername}（${displayLabelName}）」`, 'success');
     }
 
     setUserFormDrawerOpen(false);
@@ -1845,7 +1808,8 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                           )}
                         </div>
                         <div className="text-[11px] text-slate-400 font-mono-num mt-0.5">
-                          {maskPhoneNumber(user.phone)} · {user.email}
+                          {user.phone ? maskPhoneNumber(user.phone) : '未绑定手机'} ·{' '}
+                          {user.email || '未绑定邮箱'}
                         </div>
                       </td>
 
@@ -1875,11 +1839,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                               className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200"
                             >
                               <span>{extRole}</span>
-                              {extRole === '高校管理员' && (boundInst?.name || user.university) && (
-                                <span className="text-[10px] font-normal text-orange-600/90">
-                                  ({boundInst?.name || user.university})
-                                </span>
-                              )}
                             </span>
                           ))}
                         </div>
@@ -2262,275 +2221,245 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                   </div>
                 </div>
 
-                {/* 真实姓名 & 手机号 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      真实姓名 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formRealName}
-                      onChange={(e) => setFormRealName(e.target.value)}
-                      placeholder="请输入真实姓名"
-                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#0284C7] focus:outline-none text-slate-900"
-                    />
+                {/* 用户角色（只读） */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                  <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <span>用户角色</span>
+                    <span className="text-[11px] font-normal text-slate-400">（只读）</span>
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      手机号 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      placeholder="请输入11位手机号（全局唯一）"
-                      className="w-full px-3.5 py-2 text-xs font-mono-num rounded-xl border border-slate-300 focus:border-[#0284C7] focus:outline-none text-slate-900"
-                    />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      {editingUser ? formBaseRole : '普通用户'}
+                    </span>
+                    {editingUser &&
+                      formExtendedRoles.map((extRole) => (
+                        <span
+                          key={extRole}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200"
+                        >
+                          {extRole}
+                        </span>
+                      ))}
                   </div>
                 </div>
 
-                {/* 邮箱 */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    邮箱 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
-                    placeholder="请输入电子邮箱（如 name@university.edu.cn，全局唯一）"
-                    className="w-full px-3.5 py-2 text-xs font-mono-num rounded-xl border border-slate-300 focus:border-[#0284C7] focus:outline-none text-slate-900"
-                  />
-                </div>
-
-                {/* 证件类型 & 证件号（编辑状态下默认脱敏显示，点击可修改） */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                  <div className="sm:col-span-4">
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      证件类型 <span className="text-red-500">*</span>
+                {/* 是否已绑定手机号 + 手机号 */}
+                <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <label className="text-xs font-bold text-slate-700">
+                      是否已绑定手机号 <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      value={formIdType}
-                      onChange={(e) => setFormIdType(e.target.value as UserIdCardType)}
-                      className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white focus:border-[#0284C7] focus:outline-none cursor-pointer"
-                    >
-                      <option value="身份证">身份证</option>
-                      <option value="护照">护照</option>
-                    </select>
+                    <div className="flex items-center gap-5 text-xs font-bold text-slate-700">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="hasBoundPhone"
+                          checked={formHasBoundPhone === true}
+                          onChange={() => setFormHasBoundPhone(true)}
+                          className="accent-[#0284C7]"
+                        />
+                        <span>是</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="hasBoundPhone"
+                          checked={formHasBoundPhone === false}
+                          onChange={() => {
+                            setFormHasBoundPhone(false);
+                            setFormPhone('');
+                          }}
+                          className="accent-[#0284C7]"
+                        />
+                        <span>否</span>
+                      </label>
+                    </div>
                   </div>
 
-                  <div className="sm:col-span-8">
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      证件号 <span className="text-red-500">*</span>
+                  {formHasBoundPhone ? (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        手机号 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formPhone}
+                        onChange={(e) => setFormPhone(e.target.value)}
+                        placeholder="请输入11位手机号（全局唯一）"
+                        className="w-full px-3.5 py-2 text-xs font-mono-num rounded-xl border border-slate-300 bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-slate-500">
+                      未绑定手机号，用户登录后需自行前往前台【个人中心 &rarr; 个人信息】完成手机号绑定。
+                    </div>
+                  )}
+                </div>
+
+                {/* 是否已绑定邮箱 + 邮箱 */}
+                <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <label className="text-xs font-bold text-slate-700">
+                      是否已绑定邮箱 <span className="text-red-500">*</span>
                     </label>
-                    {editingUser && !isEditingIdNumberUnlocked ? (
-                      <div
-                        onClick={() => setIsEditingIdNumberUnlocked(true)}
-                        title="点击解锁修改证件号"
-                        className="w-full px-3.5 py-2 text-xs font-mono-num rounded-xl border border-slate-300 bg-slate-50 hover:bg-sky-50/50 hover:border-[#0284C7] flex items-center justify-between cursor-pointer transition-colors"
-                      >
-                        <span className="text-slate-700 font-semibold">
-                          {maskIdCardNumber(formIdNumber)}
-                        </span>
-                        <span className="text-[11px] text-[#0284C7] font-bold flex items-center gap-1">
-                          <Edit3 className="w-3 h-3" />
-                          点击修改
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-5 text-xs font-bold text-slate-700">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="hasBoundEmail"
+                          checked={formHasBoundEmail === true}
+                          onChange={() => setFormHasBoundEmail(true)}
+                          className="accent-[#0284C7]"
+                        />
+                        <span>是</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="hasBoundEmail"
+                          checked={formHasBoundEmail === false}
+                          onChange={() => {
+                            setFormHasBoundEmail(false);
+                            setFormEmail('');
+                          }}
+                          className="accent-[#0284C7]"
+                        />
+                        <span>否</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {formHasBoundEmail ? (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        邮箱 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={formEmail}
+                        onChange={(e) => setFormEmail(e.target.value)}
+                        placeholder="请输入电子邮箱（如 name@university.edu.cn，全局唯一）"
+                        className="w-full px-3.5 py-2 text-xs font-mono-num rounded-xl border border-slate-300 bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-slate-500">
+                      未绑定邮箱，用户登录后需自行前往前台【个人中心 &rarr; 个人信息】完成邮箱绑定。
+                    </div>
+                  )}
+                </div>
+
+                {/* 是否已实名认证 + 真实姓名 & 身份证号（同一排） */}
+                <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <label className="text-xs font-bold text-slate-700">
+                      是否已实名认证 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-5 text-xs font-bold text-slate-700">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="isRealNameVerified"
+                          checked={formIsRealNameVerified === true}
+                          onChange={() => {
+                            setFormIsRealNameVerified(true);
+                            if (!formIdNumber) setIsEditingIdNumberUnlocked(true);
+                          }}
+                          className="accent-[#0284C7]"
+                        />
+                        <span>是</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="isRealNameVerified"
+                          checked={formIsRealNameVerified === false}
+                          onChange={() => {
+                            setFormIsRealNameVerified(false);
+                            setFormRealName('');
+                            setFormIdNumber('');
+                          }}
+                          className="accent-[#0284C7]"
+                        />
+                        <span>否</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {formIsRealNameVerified ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          真实姓名 <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="text"
                           required
-                          value={formIdNumber}
-                          onChange={(e) => setFormIdNumber(e.target.value)}
-                          placeholder={
-                            formIdType === '身份证'
-                              ? '请输入18位有效二代身份证号（全局唯一）'
-                              : '请输入护照号码（全局唯一）'
-                          }
-                          className="w-full px-3.5 py-2 text-xs font-mono-num rounded-xl border border-slate-300 focus:border-[#0284C7] focus:outline-none text-slate-900"
+                          value={formRealName}
+                          onChange={(e) => setFormRealName(e.target.value)}
+                          placeholder="请输入真实姓名"
+                          className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
                         />
-                        {editingUser && (
-                          <button
-                            type="button"
-                            onClick={() => setIsEditingIdNumberUnlocked(false)}
-                            className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[11px] font-semibold text-slate-600 shrink-0 cursor-pointer"
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          身份证号 <span className="text-red-500">*</span>
+                        </label>
+                        {editingUser && !isEditingIdNumberUnlocked && formIdNumber ? (
+                          <div
+                            onClick={() => setIsEditingIdNumberUnlocked(true)}
+                            title="点击解锁修改身份证号"
+                            className="w-full px-3.5 py-2 text-xs font-mono-num rounded-xl border border-slate-300 bg-white hover:bg-sky-50/50 hover:border-[#0284C7] flex items-center justify-between cursor-pointer transition-colors"
                           >
-                            脱敏隐藏
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. 角色与权限 */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <span className="w-1.5 h-4 rounded-full bg-[#0284C7]" />
-                  <h4 className="text-sm font-extrabold text-slate-900">
-                    2. 角色与权限（基础身份互斥 · 扩展身份可叠加）
-                  </h4>
-                </div>
-
-                {/* 基础身份：必选下拉框（普通用户 / 学生 / 教师） */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    基础身份（三选一互斥） <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formBaseRole}
-                    onChange={(e) => setFormBaseRole(e.target.value as UserBaseRole)}
-                    className="w-full px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white focus:border-[#0284C7] focus:outline-none text-slate-900 cursor-pointer"
-                  >
-                    <option value="普通用户">普通用户</option>
-                    <option value="学生">学生</option>
-                    <option value="教师">教师</option>
-                  </select>
-                </div>
-
-                {/* 扩展身份：多选框 Checkbox（专家 / 高校管理员 / 秘书处） */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2">
-                    扩展身份（可多选叠加）
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {EXTENDED_ROLE_OPTIONS.map((role) => {
-                      const checked = formExtendedRoles.includes(role);
-                      return (
-                        <button
-                          key={role}
-                          type="button"
-                          onClick={() => handleToggleExtendedRoleInForm(role)}
-                          className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-                            checked
-                              ? 'bg-orange-50 border-orange-400 text-orange-800 shadow-2xs'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <span>{role}</span>
-                          {checked ? (
-                            <CheckSquare className="w-4 h-4 text-orange-600" />
-                          ) : (
-                            <Square className="w-4 h-4 text-slate-400" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 联动字段：勾选“高校管理员”时，动态展示必填项【所属院校】 */}
-                {formExtendedRoles.includes('高校管理员') && (
-                  <div className="p-4 rounded-xl bg-orange-50/60 border border-orange-200 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-extrabold text-orange-950 flex items-center gap-1.5">
-                        <Building2 className="w-4 h-4 text-orange-600" />
-                        <span>
-                          所属院校 <span className="text-red-500">*</span>
-                        </span>
-                      </label>
-                      {isInstitutionReadOnlyEcho && (
-                        <span className="text-[11px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded">
-                          已在【院校管理】模块分配 · 只读回显
-                        </span>
-                      )}
-                    </div>
-
-                    {isInstitutionReadOnlyEcho && selectedFormInstitution ? (
-                      <div className="px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-between text-xs text-slate-700">
-                        <div className="flex items-center gap-2">
-                          <Lock className="w-3.5 h-3.5 text-slate-500" />
-                          <span className="font-bold text-slate-900">
-                            {selectedFormInstitution.name}
-                          </span>
-                          <span className="font-mono-num text-[11px] text-slate-500">
-                            （标识码：{selectedFormInstitution.code}）
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-slate-500">只读回显</span>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <div
-                          onClick={() => setInstitutionDropdownOpen((v) => !v)}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-orange-300 focus-within:border-[#0284C7] flex items-center justify-between text-xs cursor-pointer"
-                        >
-                          {selectedFormInstitution ? (
-                            <span className="font-bold text-slate-900">
-                              {selectedFormInstitution.name}（教育部标识码：{selectedFormInstitution.code}）
+                            <span className="text-slate-700 font-semibold">
+                              {maskIdCardNumber(formIdNumber)}
                             </span>
-                          ) : (
-                            <span className="text-slate-400">
-                              请搜索并选择该高校管理员绑定的所属院校...
+                            <span className="text-[11px] text-[#0284C7] font-bold flex items-center gap-1">
+                              <Edit3 className="w-3 h-3" />
+                              点击修改
                             </span>
-                          )}
-                          <ChevronDown className="w-4 h-4 text-slate-400" />
-                        </div>
-
-                        {institutionDropdownOpen && (
-                          <div className="mt-1.5 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden z-30">
-                            <div className="p-2 border-b border-slate-100 bg-slate-50">
-                              <div className="relative">
-                                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                                <input
-                                  type="text"
-                                  value={institutionSearchKeyword}
-                                  onChange={(e) => setInstitutionSearchKeyword(e.target.value)}
-                                  placeholder="输入院校名称、标识码或省份搜索..."
-                                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-[#0284C7]"
-                                />
-                              </div>
-                            </div>
-                            <div className="max-h-48 overflow-y-auto divide-y divide-slate-50">
-                              {filteredInstitutionOptions.length === 0 ? (
-                                <div className="py-4 text-center text-xs text-slate-400">
-                                  未找到匹配的高校
-                                </div>
-                              ) : (
-                                filteredInstitutionOptions.map((inst) => (
-                                  <button
-                                    key={inst.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setFormInstitutionId(inst.id);
-                                      setInstitutionDropdownOpen(false);
-                                    }}
-                                    className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between hover:bg-sky-50 cursor-pointer ${
-                                      formInstitutionId === inst.id
-                                        ? 'bg-sky-50 font-bold text-[#0284C7]'
-                                        : 'text-slate-700'
-                                    }`}
-                                  >
-                                    <span>{inst.name}</span>
-                                    <span className="font-mono-num text-[11px] text-slate-400">
-                                      {inst.code ? `${inst.code} · ` : ''}{inst.province} {inst.city}
-                                    </span>
-                                  </button>
-                                ))
-                              )}
-                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              required
+                              maxLength={18}
+                              value={formIdNumber}
+                              onChange={(e) => setFormIdNumber(e.target.value)}
+                              placeholder="请输入18位二代居民身份证号"
+                              className="w-full px-3.5 py-2 text-xs font-mono-num rounded-xl border border-slate-300 bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
+                            />
+                            {editingUser && formIdNumber && (
+                              <button
+                                type="button"
+                                onClick={() => setIsEditingIdNumberUnlocked(false)}
+                                className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[11px] font-semibold text-slate-600 shrink-0 cursor-pointer"
+                              >
+                                脱敏隐藏
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-slate-500">
+                      未完成实名认证，用户登录后需自行前往前台【个人中心 &rarr; 用户认证】完成实名认证。
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* 3. 账号状态与过期时间 */}
+              {/* 2. 账号状态与过期时间 */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                   <span className="w-1.5 h-4 rounded-full bg-[#0284C7]" />
                   <h4 className="text-sm font-extrabold text-slate-900">
-                    3. 账号状态与过期机制
+                    2. 账号状态与过期机制
                   </h4>
                 </div>
 
@@ -2910,7 +2839,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                       </h4>
                       <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-600">公安实名认证状态：</span>
+                          <span className="text-slate-600">实名认证状态：</span>
                           <span
                             className={`font-bold ${
                               detailTargetUser.isRealNameVerified
@@ -2922,7 +2851,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-600">教育部学籍/教工认证状态：</span>
+                          <span className="text-slate-600">学生/教师认证状态：</span>
                           <span
                             className={`font-bold ${
                               detailTargetUser.isAcademicOrTeacherVerified

@@ -2159,6 +2159,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   ? currentSchoolInstitution?.name || '北京航空航天大学'
                   : undefined
               }
+              platformUsers={platformUsers}
+              onUpdatePlatformUsers={onUpdatePlatformUsers}
               onApproveSyncUser={onApproveVerificationSync}
               onRejectSyncUser={onRejectVerificationSync}
             />
@@ -2174,6 +2176,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   ? currentSchoolInstitution?.name || '北京航空航天大学'
                   : undefined
               }
+              platformUsers={platformUsers}
+              onUpdatePlatformUsers={onUpdatePlatformUsers}
               onApproveSyncUser={onApproveVerificationSync}
               onRejectSyncUser={onRejectVerificationSync}
             />
