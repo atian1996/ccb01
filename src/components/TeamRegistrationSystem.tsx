@@ -4845,12 +4845,11 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
   // 页面4：队员/老师当前打开的【受邀队伍详情页】ID
   const [viewingParticipatedId, setViewingParticipatedId] = useState<string | null>(null);
 
-  // 队长管理页内部状态（移除已同意成员警告弹窗、强制提交审核二次确认弹窗、添加新成员输入框、高校/秘书处驳回输入等）
+  // 队长管理页内部状态（移除已同意成员警告弹窗、添加新成员输入框、高校/秘书处驳回输入等）
   const [removeAcceptedConfirmModal, setRemoveAcceptedConfirmModal] = useState<{
     teamId: string;
     person: InvitedTeamPerson;
   } | null>(null);
-  const [forceSubmitConfirmModal, setForceSubmitConfirmModal] = useState<string | null>(null);
   const [schoolRejectModalOpen, setSchoolRejectModalOpen] = useState<string | null>(null);
   const [schoolRejectReasonInput, setSchoolRejectReasonInput] = useState(
     '经本校竞赛管理员核查：指导教师或团队成员信息需进一步补充核实，请调整后重新提交高校审核。'
@@ -4871,7 +4870,6 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
   // 队长点击提交审核时的“角色分配较单一”黄字弱提示弹窗
   const [singleRoleManageWarnModal, setSingleRoleManageWarnModal] = useState<{
     team: CaptainTeamRecord;
-    isForced: boolean;
     roleName: CtfRoleType;
   } | null>(null);
 
@@ -5214,33 +5212,117 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
     });
   };
 
-  // 5. 队长提交审核 / 重新提交审核（无论是首次提交、被高校审核驳回还是被秘书处审核驳回，重新修改提交后均统一进入【高校审核 -> 秘书处审核】两级流程）
+  // 5. 队长提交审核 / 重新提交审核（校验队员人数、教师人数是否符合报名要求，并校验所有已邀请人员是否均为“已同意”状态）
   const handleFormalSubmitForReview = (
     team: CaptainTeamRecord,
-    isForced = false,
     skipRoleWarn = false
   ) => {
-    const acceptedMembers = team.members.filter((m) => m.confirmStatus === 'accepted');
-    if (acceptedMembers.length === 0) {
-      setForceSubmitConfirmModal(null);
+    if (!team.teamName.trim()) {
       setManageFeedback({
         type: 'error',
-        text: '提交审核失败：队伍中至少需要有 1 名【已同意】的团队成员方可提交审核！',
+        text: '提交审核失败：请填写队伍名称（20字以内）！',
+      });
+      return;
+    }
+    if (!team.teamIntro || !team.teamIntro.trim()) {
+      setManageFeedback({
+        type: 'error',
+        text: '提交审核失败：请填写队伍介绍（100字以内）！',
+      });
+      return;
+    }
+
+    const regConfig = registrationConfigs.find(
+      (rc) => rc.eventId === team.competitionId
+    );
+    const includeAdvisor = regConfig?.includeAdvisor ?? true;
+    const minAdvisors = regConfig?.minAdvisors ?? 0;
+    const maxAdvisors = regConfig?.maxAdvisors ?? 2;
+    const minTeamSize = regConfig?.minTeamSize ?? 2;
+    const maxTeamSize = regConfig?.maxTeamSize ?? 4;
+
+    // 1. 校验队员人数（含队长本人）是否符合报名要求
+    const totalPersonCount = 1 + team.members.length;
+    if (totalPersonCount < minTeamSize) {
+      setManageFeedback({
+        type: 'error',
+        text: `提交审核失败：本赛事要求队伍总人数为 ${minTeamSize}~${maxTeamSize} 人（含队长，至少需 ${Math.max(
+          0,
+          minTeamSize - 1
+        )} 名队员），当前共 ${totalPersonCount} 人（已邀请队员 ${
+          team.members.length
+        } 人），人数不足，请继续邀请队员！`,
+      });
+      return;
+    }
+    if (totalPersonCount > maxTeamSize) {
+      setManageFeedback({
+        type: 'error',
+        text: `提交审核失败：本赛事要求队伍总人数最多 ${maxTeamSize} 人（含队长），当前共 ${totalPersonCount} 人，超出报名人数上限，请先移除多余队员！`,
+      });
+      return;
+    }
+
+    // 2. 校验指导教师人数是否符合报名要求
+    if (!includeAdvisor && team.advisors.length > 0) {
+      setManageFeedback({
+        type: 'error',
+        text: '提交审核失败：本赛事无需指导教师，请先移除已添加的指导教师！',
+      });
+      return;
+    }
+    if (includeAdvisor && minAdvisors > 0 && team.advisors.length < minAdvisors) {
+      setManageFeedback({
+        type: 'error',
+        text: `提交审核失败：本赛事要求至少邀请 ${minAdvisors} 名指导教师，当前已邀请 ${team.advisors.length} 名，请先添加指导教师！`,
+      });
+      return;
+    }
+    if (includeAdvisor && team.advisors.length > maxAdvisors) {
+      setManageFeedback({
+        type: 'error',
+        text: `提交审核失败：本赛事要求指导教师人数上限为 ${maxAdvisors} 名，当前已邀请 ${team.advisors.length} 名，请先移除多余指导教师！`,
+      });
+      return;
+    }
+
+    // 3. 校验已邀请的所有队员和指导教师是否均为“已同意”状态
+    const unacceptedMembers = team.members.filter((m) => m.confirmStatus !== 'accepted');
+    const unacceptedAdvisors = team.advisors.filter((a) => a.confirmStatus !== 'accepted');
+    if (unacceptedMembers.length > 0 || unacceptedAdvisors.length > 0) {
+      const detailParts: string[] = [];
+      if (unacceptedMembers.length > 0) {
+        detailParts.push(
+          `队员：${unacceptedMembers
+            .map((m) => `${m.name}（${m.confirmStatus === 'rejected' ? '已拒绝' : '待确认'}）`)
+            .join('、')}`
+        );
+      }
+      if (unacceptedAdvisors.length > 0) {
+        detailParts.push(
+          `指导教师：${unacceptedAdvisors
+            .map((a) => `${a.name}（${a.confirmStatus === 'rejected' ? '已拒绝' : '待确认'}）`)
+            .join('、')}`
+        );
+      }
+      setManageFeedback({
+        type: 'error',
+        text: `提交审核失败：所有已邀请的队员和指导教师必须全部为“已同意”状态方可提交！当前未同意人员 —— ${detailParts.join(
+          '；'
+        )}。请等待对方同意，或移除未同意人员并补充符合人数要求的成员后再提交。`,
       });
       return;
     }
 
     // 防呆弱提示：如果6个角色只覆盖了1个角色（比如全队都是Web手），弹出黄字弱提示确认
-    if (!skipRoleWarn) {
+    if (!skipRoleWarn && team.members.length > 0) {
       const warnCheck = checkSingleCtfRoleWarning(
         team.captainCtfRoles,
-        acceptedMembers.map((m) => m.ctfRoles)
+        team.members.map((m) => m.ctfRoles)
       );
       if (warnCheck.isSingleRole && warnCheck.roleName) {
-        setForceSubmitConfirmModal(null);
         setSingleRoleManageWarnModal({
           team,
-          isForced,
           roleName: warnCheck.roleName,
         });
         return;
@@ -5259,24 +5341,14 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
       schoolRank: undefined,
       secretariatAuditStatus: 'none',
       secretariatRejectReason: undefined,
-      // 若为强制提交，自动作废并清理未确认(pending)与已拒绝(rejected)的人员
-      members: isForced
-        ? prev.members.filter((m) => m.confirmStatus === 'accepted')
-        : prev.members,
-      advisors: isForced
-        ? prev.advisors.filter((a) => a.confirmStatus === 'accepted')
-        : prev.advisors,
       updatedAt: '2026-10-28 11:00',
     }));
 
-    setForceSubmitConfirmModal(null);
     setSingleRoleManageWarnModal(null);
     setManageFeedback({
       type: 'success',
       text: isResubmittingAfterReject
         ? '修改已保存并重新提交高校审核！队伍已进入第一段【高校资格审核（待审核）】阶段。'
-        : isForced
-        ? '已作废未确认成员并提交至【高校资格审核】！当前报名状态为“已提交（等待高校审核）”。'
         : '已正式提交至【高校资格审核】！当前报名状态为“已提交（等待高校审核）”。',
     });
   };
@@ -5299,12 +5371,25 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
     const team = activeManagingTeam;
     const auditStages = resolveTeamAuditStages(team);
     const isLocked = !auditStages.canEditTeam;
+    const teamRegConfig = registrationConfigs.find(
+      (rc) => rc.eventId === team.competitionId
+    );
+    const cfgIncludeAdvisor = teamRegConfig?.includeAdvisor ?? true;
+    const cfgMinAdvisors = teamRegConfig?.minAdvisors ?? 0;
+    const cfgMaxAdvisors = teamRegConfig?.maxAdvisors ?? 2;
+    const cfgMinTeamSize = teamRegConfig?.minTeamSize ?? 2;
+    const cfgMaxTeamSize = teamRegConfig?.maxTeamSize ?? 4;
     const allInvited = [...team.members, ...team.advisors];
-    const hasPending = allInvited.some((p) => p.confirmStatus === 'pending');
-    const hasRejected = allInvited.some((p) => p.confirmStatus === 'rejected');
+    const totalPersonCount = 1 + team.members.length;
+    const isCountValid =
+      totalPersonCount >= cfgMinTeamSize &&
+      totalPersonCount <= cfgMaxTeamSize &&
+      (!cfgIncludeAdvisor
+        ? team.advisors.length === 0
+        : team.advisors.length >= cfgMinAdvisors &&
+          team.advisors.length <= cfgMaxAdvisors);
     const allAccepted =
-      team.members.length > 0 &&
-      allInvited.every((p) => p.confirmStatus === 'accepted');
+      isCountValid && allInvited.every((p) => p.confirmStatus === 'accepted');
     const progress = computeTeamConfirmProgress(team);
     const isCustomLogo =
       Boolean(team.teamLogo) &&
@@ -5850,8 +5935,11 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-bold text-slate-900">
-                  团队成员（共 {team.members.length} 人）
+                  团队成员（共 {team.members.length} 人，含队长共 {1 + team.members.length} 人）
                 </h3>
+                <span className="text-xs text-slate-500">
+                  赛事报名要求：队伍总人数 {cfgMinTeamSize}~{cfgMaxTeamSize} 人（含队长）
+                </span>
               </div>
 
               <div className="space-y-2.5">
@@ -6037,10 +6125,18 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
 
             {/* 3. 指导教师列表与状态操作（指导教师不参与CTF角色分配，角色显示为“-”） */}
             <div className="space-y-3 pt-2 border-t border-slate-100">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-bold text-slate-900">
                   指导教师（共 {team.advisors.length} 人）
                 </h3>
+                <span className="text-xs text-slate-500">
+                  赛事报名要求：
+                  {cfgIncludeAdvisor
+                    ? cfgMinAdvisors > 0
+                      ? `需邀请 ${cfgMinAdvisors}~${cfgMaxAdvisors} 名指导教师`
+                      : `可邀请 0~${cfgMaxAdvisors} 名指导教师`
+                    : '本赛事无需指导教师'}
+                </span>
               </div>
 
               <div className="space-y-2.5">
@@ -6182,53 +6278,52 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               )}
             </div>
 
-            {/* 4. 底部：队长“提交/重新提交”核心操作栏 */}
+            {/* 4. 底部：队长“正式提交高校审核”核心操作栏 */}
             {!isLocked && (
-              <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="text-xs text-slate-500 space-y-1">
-                  {allAccepted ? (
-                    <div className="text-emerald-700 font-bold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>
-                        {auditStages.isRejectedBySecretariat || auditStages.isRejectedBySchool
-                          ? '当前全员均已同意！修改完成后请点击右侧【重新提交审核】（将重新进入高校审核、秘书处审核两个流程）。'
-                          : '当前全员均已同意加入！您可以直接点击右侧绿色的【正式提交高校审核】。'}
-                      </span>
+              <div className="pt-6 border-t border-slate-200 space-y-3">
+                {manageFeedback && manageFeedback.type === 'error' && (
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs sm:text-sm font-semibold text-red-700 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                      <span>{manageFeedback.text}</span>
                     </div>
-                  ) : (
-                    <div>
-                      当前尚有成员处于“待确认”或“已拒绝”状态。您可以移除已拒绝成员、催办待确认成员，或点击【强制提交审核】。
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center justify-end gap-3 shrink-0">
-                  {!allAccepted && (hasPending || hasRejected) && (
                     <button
                       type="button"
-                      onClick={() => setForceSubmitConfirmModal(team.id)}
-                      className="px-5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs sm:text-sm font-bold cursor-pointer"
+                      onClick={() => setManageFeedback(null)}
+                      className="text-red-400 hover:text-red-700 cursor-pointer shrink-0"
                     >
-                      {auditStages.isRejectedBySecretariat || auditStages.isRejectedBySchool
-                        ? '强制重新提交审核（重进高校审核）'
-                        : '强制提交审核'}
+                      <X className="w-4 h-4" />
                     </button>
-                  )}
+                  </div>
+                )}
 
-                  {allAccepted && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="text-xs text-slate-500 space-y-1">
+                    {allAccepted ? (
+                      <div className="text-emerald-700 font-bold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>
+                          当前队员与指导教师人数符合报名要求且全员均已同意加入！您可以直接点击右侧【正式提交高校审核】。
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        点击【正式提交高校审核】时，系统将严格校验队员与指导教师人数是否符合报名要求（队伍总人数 {cfgMinTeamSize}~{cfgMaxTeamSize} 人，指导教师{' '}
+                        {cfgIncludeAdvisor ? `${cfgMinAdvisors}~${cfgMaxAdvisors} 人` : '0 人'}），且所有已邀请人员均须为“已同意”状态，否则无法提交。
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-3 shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleFormalSubmitForReview(team, false)}
+                      onClick={() => handleFormalSubmitForReview(team)}
                       className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>
-                        {auditStages.isRejectedBySecretariat || auditStages.isRejectedBySchool
-                          ? '重新提交审核（进入高校审核）'
-                          : '正式提交高校审核'}
-                      </span>
+                      <span>正式提交高校审核</span>
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
@@ -6280,47 +6375,6 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
           </div>
         )}
 
-        {/* 弹窗2：情形A【强制提交审核】二次确认弹窗 */}
-        {forceSubmitConfirmModal && (
-          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
-              <div className="px-6 py-4 bg-amber-600 text-white font-bold text-sm flex items-center justify-between">
-                <span>强制提交审核确认</span>
-                <button
-                  type="button"
-                  onClick={() => setForceSubmitConfirmModal(null)}
-                  className="text-white/80 hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <p className="text-sm font-semibold text-slate-900 leading-relaxed">
-                  尚有成员未确认，未确认成员将作废，是否继续提交？
-                </p>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  继续提交后，系统将自动清理队伍中“待确认”与“已拒绝”的成员，仅保留当前“已同意”的成员名单进入审核流程。
-                </p>
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setForceSubmitConfirmModal(null)}
-                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-                  >
-                    再等等看
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFormalSubmitForReview(team, true)}
-                    className="px-5 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer"
-                  >
-                    确认强制提交
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* 弹窗3：模拟高校管理员驳回弹窗 */}
         {schoolRejectModalOpen && (
@@ -6479,7 +6533,6 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                     onClick={() =>
                       handleFormalSubmitForReview(
                         singleRoleManageWarnModal.team,
-                        singleRoleManageWarnModal.isForced,
                         true
                       )
                     }

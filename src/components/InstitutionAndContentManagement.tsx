@@ -72,6 +72,8 @@ export interface InstitutionAuditLog {
   time: string;
   operator: string;
   action:
+    | '新增院校'
+    | '编辑院校信息'
     | '启用院校'
     | '停用院校'
     | '批量导入更新'
@@ -91,17 +93,20 @@ export interface InstitutionEventStat {
   approvedTeamsCount: number;
 }
 
+export type InstitutionTypeOption = '普通高等学校' | '成人高等学校' | '港澳台高校';
+export type InstitutionLevelOption = '本科' | '专科' | '其他' | '';
+
 export interface InstitutionRecord {
   id: string;
-  code: string; // 10位教育部全国唯一识别码
-  name: string; // 官方全称
+  code: string; // 10位教育部全国唯一识别码（港澳台高校可为空）
+  name: string; // 学校名称
   department: string; // 主管部门
-  location: string; // 所在地（省份+城市）
-  level: '本科' | '专科'; // 办学层次
-  type: '普通本科' | '职业本科' | '高职专科' | '成人高校' | ''; // 办学类型（扩展）
-  remark: string; // 备注（如“民办”“中外合作办学”等）
+  province: string; // 所在省份
+  city: string; // 所在城市
+  type: InstitutionTypeOption; // 办学类型：普通高等学校 / 成人高等学校 / 港澳台高校
+  level: InstitutionLevelOption; // 办学层次：本科 / 专科 / 其他（港澳台高校可为空）
+  remark: string; // 备注（选填）
   platformStatus: 'enabled' | 'disabled'; // 平台状态：启用 / 停用
-  supportAutoVerify: boolean; // 是否支持学籍自动核验
   verifiedStudentsCount: number; // 平台已验证学生数（统计字段）
   verifiedTeachersCount: number; // 平台已验证教师数（统计字段）
   associatedTeamsCount: number; // 关联报名队伍数（统计字段）
@@ -116,12 +121,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4111010001',
     name: '北京大学',
     department: '教育部',
-    location: '北京市',
+    province: '北京市',
+    city: '北京市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '双一流 / 985 / 211',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 342,
     verifiedTeachersCount: 28,
     associatedTeamsCount: 86,
@@ -132,8 +137,7 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
       { eventId: 'comp-3', eventName: '2026国家关键信息基础设施云原生防御挑战赛', verifiedStudentParticipants: 45, verifiedTeacherAdvisors: 4, registeredTeamsCount: 12, approvedTeamsCount: 12 }
     ],
     auditLogs: [
-      { id: 'log-101', time: '2026-04-01 09:00:12', operator: '系统管理员 (admin)', action: '批量导入更新', detail: '教育部2026年全国普通高等学校名单基准库同步，核验标识码 4111010001' },
-      { id: 'log-102', time: '2026-04-05 14:22:08', operator: '平台运营专员 (ops_wang)', action: '修改核验配置', detail: '开启学信网+教育网CARSI联邦自动学籍核验通道' }
+      { id: 'log-101', time: '2026-04-01 09:00:12', operator: '系统管理员 (admin)', action: '批量导入更新', detail: '教育部2026年全国普通高等学校名单基准库同步，核验标识码 4111010001' }
     ]
   },
   {
@@ -141,12 +145,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4111010003',
     name: '清华大学',
     department: '教育部',
-    location: '北京市',
+    province: '北京市',
+    city: '北京市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '双一流 / 985 / 211',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 418,
     verifiedTeachersCount: 35,
     associatedTeamsCount: 104,
@@ -165,12 +169,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4111010006',
     name: '北京航空航天大学',
     department: '工业和信息化部',
-    location: '北京市',
+    province: '北京市',
+    city: '北京市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '工信部直属 / 一流网安学院示范高校',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 296,
     verifiedTeachersCount: 22,
     associatedTeamsCount: 74,
@@ -188,12 +192,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4111010013',
     name: '北京邮电大学',
     department: '教育部',
-    location: '北京市',
+    province: '北京市',
+    city: '北京市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '一流网络安全学院建设示范项目高校',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 512,
     verifiedTeachersCount: 41,
     associatedTeamsCount: 128,
@@ -211,12 +215,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4133010335',
     name: '浙江大学',
     department: '教育部',
-    location: '浙江省杭州市',
+    province: '浙江省',
+    city: '杭州市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '双一流 / 一流网安学院示范高校',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 388,
     verifiedTeachersCount: 31,
     associatedTeamsCount: 95,
@@ -234,12 +238,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4131010248',
     name: '上海交通大学',
     department: '教育部',
-    location: '上海市',
+    province: '上海市',
+    city: '上海市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '双一流 / 985 / 211',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 356,
     verifiedTeachersCount: 29,
     associatedTeamsCount: 89,
@@ -257,12 +261,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4131010246',
     name: '复旦大学',
     department: '教育部',
-    location: '上海市',
+    province: '上海市',
+    city: '上海市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '双一流 / 985 / 211',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 264,
     verifiedTeachersCount: 21,
     associatedTeamsCount: 66,
@@ -280,12 +284,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4142010487',
     name: '华中科技大学',
     department: '教育部',
-    location: '湖北省武汉市',
+    province: '湖北省',
+    city: '武汉市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '一流网络安全学院建设示范项目高校',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 328,
     verifiedTeachersCount: 26,
     associatedTeamsCount: 82,
@@ -303,12 +307,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4142010486',
     name: '武汉大学',
     department: '教育部',
-    location: '湖北省武汉市',
+    province: '湖北省',
+    city: '武汉市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '国家网络安全人才与创新基地核心高校',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 310,
     verifiedTeachersCount: 25,
     associatedTeamsCount: 77,
@@ -326,12 +330,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4161010701',
     name: '西安电子科技大学',
     department: '教育部',
-    location: '陕西省西安市',
+    province: '陕西省',
+    city: '西安市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '一流网络安全学院建设示范项目高校',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 445,
     verifiedTeachersCount: 36,
     associatedTeamsCount: 111,
@@ -349,12 +353,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4151010614',
     name: '电子科技大学',
     department: '教育部',
-    location: '四川省成都市',
+    province: '四川省',
+    city: '成都市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '双一流 / 985 / 211',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 284,
     verifiedTeachersCount: 22,
     associatedTeamsCount: 71,
@@ -372,12 +376,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4123010213',
     name: '哈尔滨工业大学',
     department: '工业和信息化部',
-    location: '黑龙江省哈尔滨市',
+    province: '黑龙江省',
+    city: '哈尔滨市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '工信部直属 / C9联盟',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 276,
     verifiedTeachersCount: 21,
     associatedTeamsCount: 69,
@@ -395,12 +399,12 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     code: '4134010358',
     name: '中国科学技术大学',
     department: '中国科学院',
-    location: '安徽省合肥市',
+    province: '安徽省',
+    city: '合肥市',
+    type: '普通高等学校',
     level: '本科',
-    type: '普通本科',
     remark: '中科院直属 / 一流网安学院示范高校',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 232,
     verifiedTeachersCount: 19,
     associatedTeamsCount: 58,
@@ -417,13 +421,13 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     id: 'inst-14',
     code: '4144012957',
     name: '深圳职业技术大学',
-    department: '广东省',
-    location: '广东省深圳市',
+    department: '广东省教育厅',
+    province: '广东省',
+    city: '深圳市',
+    type: '普通高等学校',
     level: '本科',
-    type: '职业本科',
-    remark: '由深圳职业技术学院升格更名',
+    remark: '职业本科 / 由深圳职业技术学院升格更名',
     platformStatus: 'enabled',
-    supportAutoVerify: true,
     verifiedStudentsCount: 148,
     verifiedTeachersCount: 14,
     associatedTeamsCount: 37,
@@ -434,20 +438,20 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
     ],
     auditLogs: [
       { id: 'log-1401', time: '2026-04-01 09:00:38', operator: '系统管理员 (admin)', action: '批量导入更新', detail: '教育部标准名录导入' },
-      { id: 'log-1402', time: '2026-04-03 16:10:00', operator: '系统管理员 (admin)', action: '教育部标准更名同步', detail: '依据教育部最新高校名录（标识码 4144012957），学校名称由“深圳职业技术学院”同步更新为“深圳职业技术大学”，办学层次更新为“本科（职业本科）”' }
+      { id: 'log-1402', time: '2026-04-03 16:10:00', operator: '系统管理员 (admin)', action: '教育部标准更名同步', detail: '依据教育部最新高校名录（标识码 4144012957），学校名称由“深圳职业技术学院”同步更新为“深圳职业技术大学”' }
     ]
   },
   {
     id: 'inst-15',
     code: '4111010858',
     name: '北京电子科技职业学院',
-    department: '北京市',
-    location: '北京市',
+    department: '北京市教育委员会',
+    province: '北京市',
+    city: '北京市',
+    type: '普通高等学校',
     level: '专科',
-    type: '高职专科',
     remark: '中国特色高水平高职学校',
     platformStatus: 'enabled',
-    supportAutoVerify: false,
     verifiedStudentsCount: 92,
     verifiedTeachersCount: 9,
     associatedTeamsCount: 23,
@@ -461,15 +465,15 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
   },
   {
     id: 'inst-16',
-    code: '4132016404',
-    name: '西交利物浦大学',
-    department: '江苏省教育厅',
-    location: '江苏省苏州市',
+    code: '4211051160',
+    name: '国家开放大学',
+    department: '教育部',
+    province: '北京市',
+    city: '北京市',
+    type: '成人高等学校',
     level: '本科',
-    type: '普通本科',
-    remark: '中外合作办学',
+    remark: '教育部直属成人高等学校',
     platformStatus: 'enabled',
-    supportAutoVerify: false,
     verifiedStudentsCount: 64,
     verifiedTeachersCount: 6,
     associatedTeamsCount: 16,
@@ -478,43 +482,42 @@ export const INITIAL_INSTITUTIONS: InstitutionRecord[] = [
       { eventId: 'comp-2', eventName: '2026“XX杯”AI大模型内生安全与对抗专项赛', verifiedStudentParticipants: 64, verifiedTeacherAdvisors: 6, registeredTeamsCount: 16, approvedTeamsCount: 15 }
     ],
     auditLogs: [
-      { id: 'log-1601', time: '2026-04-01 09:00:42', operator: '系统管理员 (admin)', action: '批量导入更新', detail: '教育部中外合作办学高校名录导入' }
+      { id: 'log-1601', time: '2026-04-01 09:00:42', operator: '系统管理员 (admin)', action: '批量导入更新', detail: '教育部全国成人高等学校名录导入' }
     ]
   },
   {
     id: 'inst-17',
-    code: '4142012310',
-    name: '武昌首义学院',
-    department: '湖北省教育厅',
-    location: '湖北省武汉市',
-    level: '本科',
-    type: '普通本科',
-    remark: '民办',
-    platformStatus: 'disabled',
-    supportAutoVerify: false,
-    verifiedStudentsCount: 28,
-    verifiedTeachersCount: 3,
-    associatedTeamsCount: 7,
-    passRate: 88.5,
+    code: '',
+    name: '香港大学',
+    department: '香港特别行政区教育局',
+    province: '香港特别行政区',
+    city: '香港',
+    type: '港澳台高校',
+    level: '',
+    remark: '港澳台特邀参赛高校',
+    platformStatus: 'enabled',
+    verifiedStudentsCount: 36,
+    verifiedTeachersCount: 4,
+    associatedTeamsCount: 9,
+    passRate: 96.0,
     eventBreakdown: [
-      { eventId: 'comp-7', eventName: '第六届“XX杯”全国网数智安全大赛（2025年度归档赛事）', verifiedStudentParticipants: 28, verifiedTeacherAdvisors: 3, registeredTeamsCount: 7, approvedTeamsCount: 7 }
+      { eventId: 'comp-1', eventName: '第七届“XX杯”全国网数智安全大赛（总决赛暨主赛道）', verifiedStudentParticipants: 36, verifiedTeacherAdvisors: 4, registeredTeamsCount: 9, approvedTeamsCount: 9 }
     ],
     auditLogs: [
-      { id: 'log-1701', time: '2026-04-01 09:00:45', operator: '系统管理员 (admin)', action: '批量导入更新', detail: '教育部标准名录导入' },
-      { id: 'log-1702', time: '2026-04-09 11:30:22', operator: '平台运营专员 (ops_wang)', action: '停用院校', detail: '因本赛年专项赛区调整暂时停用，前台认证下拉框隐藏，保留历史28名学生与3名教师认证记录' }
+      { id: 'log-1701', time: '2026-04-02 10:00:00', operator: '系统管理员 (admin)', action: '新增院校', detail: '新增港澳台特邀高校【香港大学】' }
     ]
   },
   {
     id: 'inst-18',
     code: '4133013022',
     name: '杭州职业技术学院',
-    department: '浙江省',
-    location: '浙江省杭州市',
+    department: '浙江省教育厅',
+    province: '浙江省',
+    city: '杭州市',
+    type: '普通高等学校',
     level: '专科',
-    type: '高职专科',
     remark: '国家骨干高职院校',
     platformStatus: 'disabled',
-    supportAutoVerify: false,
     verifiedStudentsCount: 16,
     verifiedTeachersCount: 2,
     associatedTeamsCount: 4,
@@ -1062,8 +1065,9 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
   // 筛选条件
   const [searchName, setSearchName] = useState('');
   const [searchCode, setSearchCode] = useState('');
-  const [filterLocation, setFilterLocation] = useState('ALL');
-  const [filterLevel, setFilterLevel] = useState<'ALL' | '本科' | '专科'>('ALL');
+  const [filterProvince, setFilterProvince] = useState('ALL');
+  const [filterType, setFilterType] = useState<'ALL' | InstitutionTypeOption>('ALL');
+  const [filterLevel, setFilterLevel] = useState<'ALL' | '本科' | '专科' | '其他'>('ALL');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'enabled' | 'disabled'>('ALL');
 
   // 多选与分页
@@ -1079,24 +1083,36 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
   const [adminUserSearchKeyword, setAdminUserSearchKeyword] = useState('');
   const [selectedCandidateUserId, setSelectedCandidateUserId] = useState<string | null>(null);
 
-  // 编辑弹窗 & 教育部标准更名同步状态
+  // 新增 / 编辑弹窗状态
+  const [formModalMode, setFormModalMode] = useState<'add' | 'edit' | null>(null);
   const [editingInstitution, setEditingInstitution] = useState<InstitutionRecord | null>(null);
-  const [isSyncRenameMode, setIsSyncRenameMode] = useState(false);
-  const [editForm, setEditForm] = useState<{
+  const [formError, setFormError] = useState<string | null>(null);
+  const [instForm, setInstForm] = useState<{
     name: string;
+    code: string;
     department: string;
-    location: string;
-    level: '本科' | '专科';
-    type: InstitutionRecord['type'];
+    province: string;
+    city: string;
+    type: InstitutionTypeOption;
+    level: InstitutionLevelOption;
     remark: string;
     platformStatus: 'enabled' | 'disabled';
-    supportAutoVerify: boolean;
-  } | null>(null);
+  }>({
+    name: '',
+    code: '',
+    department: '',
+    province: '',
+    city: '',
+    type: '普通高等学校',
+    level: '本科',
+    remark: '',
+    platformStatus: 'enabled',
+  });
 
-  // 批量导入/更新弹窗状态
+  // 批量导入弹窗状态
   const [showImportModal, setShowImportModal] = useState(false);
   const [importStep, setImportStep] = useState<'upload' | 'report'>('upload');
-  const [importFileName, setImportFileName] = useState('教育部2026全国普通高等学校标准名单(最新修订版).xlsx');
+  const [importFileName, setImportFileName] = useState('教育部全国高等学校标准名录_批量导入数据.xlsx');
   const [importReport, setImportReport] = useState<{
     addedCount: number;
     updatedCount: number;
@@ -1111,10 +1127,10 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  // 提取所有所在地选项
-  const locationOptions = useMemo(() => {
-    const locs = Array.from(new Set(institutions.map((i) => i.location)));
-    return locs;
+  // 提取所有所在省份选项
+  const provinceOptions = useMemo(() => {
+    const provs = Array.from(new Set(institutions.map((i) => i.province).filter(Boolean)));
+    return provs;
   }, [institutions]);
 
   // 过滤列表
@@ -1126,7 +1142,10 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
       if (searchCode.trim() && item.code !== searchCode.trim() && !item.code.includes(searchCode.trim())) {
         return false;
       }
-      if (filterLocation !== 'ALL' && !item.location.includes(filterLocation)) {
+      if (filterProvince !== 'ALL' && item.province !== filterProvince) {
+        return false;
+      }
+      if (filterType !== 'ALL' && item.type !== filterType) {
         return false;
       }
       if (filterLevel !== 'ALL' && item.level !== filterLevel) {
@@ -1137,7 +1156,7 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
       }
       return true;
     });
-  }, [institutions, searchName, searchCode, filterLocation, filterLevel, filterStatus]);
+  }, [institutions, searchName, searchCode, filterProvince, filterType, filterLevel, filterStatus]);
 
   const totalPages = Math.max(1, Math.ceil(filteredInstitutions.length / pageSize));
   const paginatedInstitutions = filteredInstitutions.slice(
@@ -1214,157 +1233,312 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
     setSelectedIds([]);
   };
 
+  // 打开新增弹窗
+  const handleOpenAdd = () => {
+    setEditingInstitution(null);
+    setFormError(null);
+    setInstForm({
+      name: '',
+      code: '',
+      department: '',
+      province: '',
+      city: '',
+      type: '普通高等学校',
+      level: '本科',
+      remark: '',
+      platformStatus: 'enabled',
+    });
+    setFormModalMode('add');
+  };
+
   // 打开编辑弹窗
   const handleOpenEdit = (inst: InstitutionRecord) => {
     setEditingInstitution(inst);
-    setIsSyncRenameMode(false);
-    setEditForm({
+    setFormError(null);
+    setInstForm({
       name: inst.name,
+      code: inst.code || '',
       department: inst.department,
-      location: inst.location,
-      level: inst.level,
+      province: inst.province,
+      city: inst.city,
       type: inst.type,
-      remark: inst.remark,
+      level: inst.level,
+      remark: inst.remark || '',
       platformStatus: inst.platformStatus,
-      supportAutoVerify: inst.supportAutoVerify
     });
+    setFormModalMode('edit');
   };
 
-  // 保存编辑
-  const handleSaveEdit = () => {
-    if (!editingInstitution || !editForm) return;
-    if (!editForm.name.trim()) {
-      triggerToast('学校官方全称不能为空');
+  // 保存新增或编辑
+  const handleSaveInstitutionForm = () => {
+    setFormError(null);
+    const trimmedName = instForm.name.trim();
+    const trimmedCode = instForm.code.trim();
+    const trimmedDept = instForm.department.trim();
+    const trimmedProvince = instForm.province.trim();
+    const trimmedCity = instForm.city.trim();
+    const trimmedRemark = instForm.remark.trim();
+    const isHkmacauTw = instForm.type === '港澳台高校';
+
+    if (!trimmedName) {
+      setFormError('请填写学校名称（必填）');
       return;
     }
-    const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const oldName = editingInstitution.name;
-    const newName = editForm.name.trim();
-    const renamed = newName !== oldName;
+    if (!isHkmacauTw && !trimmedCode) {
+      setFormError('请填写学校标识码（普通高等学校、成人高等学校必填）');
+      return;
+    }
+    if (!trimmedDept) {
+      setFormError('请填写主管部门（必填）');
+      return;
+    }
+    if (!trimmedProvince) {
+      setFormError('请填写所在省份（必填）');
+      return;
+    }
+    if (!trimmedCity) {
+      setFormError('请填写所在城市（必填）');
+      return;
+    }
+    if (!instForm.type) {
+      setFormError('请选择办学类型（必填）');
+      return;
+    }
+    if (!isHkmacauTw && !instForm.level) {
+      setFormError('请选择办学层级（普通高等学校、成人高等学校必填）');
+      return;
+    }
 
-    onChangeInstitutions((prev) =>
-      prev.map((item) => {
-        if (item.id !== editingInstitution.id) return item;
-        const newLogs: InstitutionAuditLog[] = [...item.auditLogs];
-        if (renamed) {
-          newLogs.unshift({
-            id: `log-rename-${Date.now()}`,
-            time: nowStr,
-            operator: '系统管理员 (admin)',
-            action: '教育部标准更名同步',
-            detail: `依据学校标识码 ${item.code} 执行官方更名同步：原校名“${item.name}”更新为“${newName}”，并级联更新平台关联用户及报名战队校名`,
-          });
-        } else {
-          newLogs.unshift({
-            id: `log-edit-${Date.now()}`,
-            time: nowStr,
-            operator: '系统管理员 (admin)',
-            action: '修改核验配置',
-            detail: `更新平台状态为【${editForm.platformStatus === 'enabled' ? '启用' : '停用'}】，自动学籍核验：【${editForm.supportAutoVerify ? '是' : '否'}】，办学类型：【${editForm.type || '未设置'}】`,
-          });
-        }
-        return {
-          ...item,
-          name: newName,
-          department: editForm.department.trim(),
-          location: editForm.location.trim(),
-          level: editForm.level,
-          type: editForm.type,
-          remark: editForm.remark.trim(),
-          platformStatus: editForm.platformStatus,
-          supportAutoVerify: editForm.supportAutoVerify,
-          auditLogs: newLogs,
-        };
-      })
+    // 校验学校名称或非空学校标识码唯一性
+    const duplicateName = institutions.find(
+      (i) => i.name === trimmedName && i.id !== editingInstitution?.id
     );
-
-    // 若发生教育部更名，自动级联同步全平台用户库与报名队伍中的所属院校名称
-    if (renamed) {
-      if (onUpdatePlatformUsers) {
-        onUpdatePlatformUsers((prev) =>
-          prev.map((u) =>
-            u.managedInstitutionId === editingInstitution.id || u.university === oldName
-              ? { ...u, university: newName }
-              : u
-          )
-        );
-      }
-      if (onUpdateCaptainTeams && captainTeams.length > 0) {
-        onUpdateCaptainTeams(
-          captainTeams.map((t) => ({
-            ...t,
-            university: t.university === oldName ? newName : t.university,
-            captainUniversity:
-              t.captainUniversity === oldName ? newName : t.captainUniversity,
-            members: t.members.map((m) =>
-              m.university === oldName ? { ...m, university: newName } : m
-            ),
-            advisors: t.advisors.map((a) =>
-              a.university === oldName ? { ...a, university: newName } : a
-            ),
-          }))
-        );
+    if (duplicateName) {
+      setFormError(`学校名称「${trimmedName}」已存在，请勿重复添加`);
+      return;
+    }
+    if (trimmedCode) {
+      const duplicateCode = institutions.find(
+        (i) => i.code === trimmedCode && i.id !== editingInstitution?.id
+      );
+      if (duplicateCode) {
+        setFormError(`学校标识码「${trimmedCode}」已被「${duplicateCode.name}」使用`);
+        return;
       }
     }
 
-    triggerToast(
-      renamed
-        ? `已完成教育部更名同步：「${oldName}」→「${newName}」，关联用户与报名队伍校名已同步更新`
-        : `已保存「${newName}」（标识码：${editingInstitution.code}）的院校配置`
-    );
-    setEditingInstitution(null);
-    setEditForm(null);
+    const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    if (formModalMode === 'add') {
+      const newInst: InstitutionRecord = {
+        id: `inst-${Date.now()}`,
+        code: trimmedCode,
+        name: trimmedName,
+        department: trimmedDept,
+        province: trimmedProvince,
+        city: trimmedCity,
+        type: instForm.type,
+        level: instForm.level,
+        remark: trimmedRemark,
+        platformStatus: instForm.platformStatus,
+        verifiedStudentsCount: 0,
+        verifiedTeachersCount: 0,
+        associatedTeamsCount: 0,
+        passRate: 100,
+        eventBreakdown: [],
+        auditLogs: [
+          {
+            id: `log-add-${Date.now()}`,
+            time: nowStr,
+            operator: '系统管理员 (admin)',
+            action: '新增院校',
+            detail: `手动新增院校【${trimmedName}】（办学类型：${instForm.type}，办学层级：${instForm.level || '无'}，状态：${instForm.platformStatus === 'enabled' ? '启用' : '停用'}）`,
+          },
+        ],
+      };
+      onChangeInstitutions((prev) => [newInst, ...prev]);
+      triggerToast(`已成功新增院校「${trimmedName}」！`);
+      setFormModalMode(null);
+      setEditingInstitution(null);
+      return;
+    }
+
+    if (formModalMode === 'edit' && editingInstitution) {
+      const oldName = editingInstitution.name;
+      const renamed = trimmedName !== oldName;
+
+      onChangeInstitutions((prev) =>
+        prev.map((item) => {
+          if (item.id !== editingInstitution.id) return item;
+          const newLogs: InstitutionAuditLog[] = [
+            {
+              id: `log-edit-${Date.now()}`,
+              time: nowStr,
+              operator: '系统管理员 (admin)',
+              action: renamed ? '教育部标准更名同步' : '编辑院校信息',
+              detail: renamed
+                ? `院校名称由“${oldName}”更新为“${trimmedName}”，并同步更新基础属性与平台状态`
+                : `更新院校属性：主管部门【${trimmedDept}】，省市【${trimmedProvince}-${trimmedCity}】，办学类型【${instForm.type}】，办学层级【${instForm.level || '无'}】，平台状态【${instForm.platformStatus === 'enabled' ? '启用' : '停用'}】`,
+            },
+            ...item.auditLogs,
+          ];
+          return {
+            ...item,
+            name: trimmedName,
+            code: trimmedCode,
+            department: trimmedDept,
+            province: trimmedProvince,
+            city: trimmedCity,
+            type: instForm.type,
+            level: instForm.level,
+            remark: trimmedRemark,
+            platformStatus: instForm.platformStatus,
+            auditLogs: newLogs,
+          };
+        })
+      );
+
+      if (renamed) {
+        if (onUpdatePlatformUsers) {
+          onUpdatePlatformUsers((prev) =>
+            prev.map((u) =>
+              u.managedInstitutionId === editingInstitution.id || u.university === oldName
+                ? { ...u, university: trimmedName }
+                : u
+            )
+          );
+        }
+        if (onUpdateCaptainTeams && captainTeams.length > 0) {
+          onUpdateCaptainTeams(
+            captainTeams.map((t) => ({
+              ...t,
+              university: t.university === oldName ? trimmedName : t.university,
+              captainUniversity:
+                t.captainUniversity === oldName ? trimmedName : t.captainUniversity,
+              members: t.members.map((m) =>
+                m.university === oldName ? { ...m, university: trimmedName } : m
+              ),
+              advisors: t.advisors.map((a) =>
+                a.university === oldName ? { ...a, university: trimmedName } : a
+              ),
+            }))
+          );
+        }
+      }
+
+      triggerToast(
+        renamed
+          ? `已保存院校修改并同步更名：「${oldName}」→「${trimmedName}」`
+          : `已保存「${trimmedName}」的院校信息配置`
+      );
+      setFormModalMode(null);
+      setEditingInstitution(null);
+    }
   };
 
-  // 执行模拟教育部标准名单批量导入/更新（按10位学校标识码匹配）
+  // 下载批量导入标准模板（字段与新增/编辑字段严格一致）
+  const handleDownloadImportTemplate = () => {
+    const headers = [
+      '学校名称',
+      '学校标识码',
+      '主管部门',
+      '所在省份',
+      '所在城市',
+      '办学类型',
+      '办学层级',
+      '备注',
+      '平台状态',
+    ];
+    const sampleRows = [
+      ['南京大学', '4132010284', '教育部', '江苏省', '南京市', '普通高等学校', '本科', '双一流 / 985 / 211', '启用'],
+      ['中山大学', '4144010558', '教育部', '广东省', '广州市', '普通高等学校', '本科', '双一流 / 985 / 211', '启用'],
+      ['北京开放大学', '4211051161', '北京市教育委员会', '北京市', '北京市', '成人高等学校', '本科', '市属成人高等学校', '启用'],
+      ['澳门大学', '', '澳门特别行政区教育及青年发展局', '澳门特别行政区', '澳门', '港澳台高校', '', '港澳台特邀高校', '启用'],
+    ];
+    const csvContent =
+      '\uFEFF' +
+      [headers.join(','), ...sampleRows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '院校管理批量导入标准模板.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast('已下载《院校管理批量导入标准模板.csv》（含最新标准字段）');
+  };
+
+  // 执行模拟批量导入（支持新增与更新，兼容港澳台高校无学校标识码和办学层级）
   const handleExecuteImport = () => {
     const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const incomingBatch = [
+    const incomingBatch: {
+      name: string;
+      code: string;
+      department: string;
+      province: string;
+      city: string;
+      type: InstitutionTypeOption;
+      level: InstitutionLevelOption;
+      remark: string;
+      platformStatus: 'enabled' | 'disabled';
+    }[] = [
       {
-        code: '4132010284',
         name: '南京大学',
+        code: '4132010284',
         department: '教育部',
-        location: '江苏省南京市',
-        level: '本科' as const,
-        type: '普通本科' as const,
-        remark: '双一流 / 985 / 211 / 新增导入'
+        province: '江苏省',
+        city: '南京市',
+        type: '普通高等学校',
+        level: '本科',
+        remark: '双一流 / 985 / 211 / 批量导入',
+        platformStatus: 'enabled',
       },
       {
-        code: '4144010558',
         name: '中山大学',
+        code: '4144010558',
         department: '教育部',
-        location: '广东省广州市',
-        level: '本科' as const,
-        type: '普通本科' as const,
-        remark: '双一流 / 985 / 211 / 新增导入'
+        province: '广东省',
+        city: '广州市',
+        type: '普通高等学校',
+        level: '本科',
+        remark: '双一流 / 985 / 211 / 批量导入',
+        platformStatus: 'enabled',
       },
       {
-        code: '4111010006',
+        name: '澳门大学',
+        code: '',
+        department: '澳门特别行政区教育及青年发展局',
+        province: '澳门特别行政区',
+        city: '澳门',
+        type: '港澳台高校',
+        level: '',
+        remark: '港澳台特邀高校（无标识码与办学层次）',
+        platformStatus: 'enabled',
+      },
+      {
         name: '北京航空航天大学',
+        code: '4111010006',
         department: '工业和信息化部',
-        location: '北京市',
-        level: '本科' as const,
-        type: '普通本科' as const,
-        remark: '工信部直属 / 双一流 / 2026教育部名录核验更新'
+        province: '北京市',
+        city: '北京市',
+        type: '普通高等学校',
+        level: '本科',
+        remark: '工信部直属 / 双一流 / 批量导入同步更新',
+        platformStatus: 'enabled',
       },
       {
-        code: '4144012957',
-        name: '深圳职业技术大学',
-        department: '广东省',
-        location: '广东省深圳市',
-        level: '本科' as const,
-        type: '职业本科' as const,
-        remark: '教育部标准名录同步确认（职业本科）'
-      },
-      {
-        code: '41110999', // 故意8位错误编码，验证10位唯一码拦截
-        name: '测试异常编码学院',
+        name: '测试缺失必填项学院',
+        code: '',
         department: '某省教育厅',
-        location: '某省某市',
-        level: '专科' as const,
-        type: '高职专科' as const,
-        remark: '标识码非10位标准编码'
-      }
+        province: '江苏省',
+        city: '南京市',
+        type: '普通高等学校',
+        level: '专科',
+        remark: '普通高等学校未填学校标识码拦截示例',
+        platformStatus: 'enabled',
+      },
     ];
 
     let addedCount = 0;
@@ -1375,59 +1549,75 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
     const nextList = [...institutions];
 
     incomingBatch.forEach((row) => {
-      if (!/^\d{10}$/.test(row.code)) {
+      const isHkmacauTw = row.type === '港澳台高校';
+      if (!row.name || !row.department || !row.province || !row.city || !row.type) {
         failedCount += 1;
         reportDetails.push({
-          code: row.code,
+          code: row.code || '无',
+          name: row.name || '未命名',
+          status: 'failed',
+          message: '校验失败：学校名称、主管部门、所在省份、所在城市、办学类型为必填项',
+        });
+        return;
+      }
+      if (!isHkmacauTw && (!row.code || !row.level)) {
+        failedCount += 1;
+        reportDetails.push({
+          code: row.code || '空',
           name: row.name,
           status: 'failed',
-          message: '校验失败：学校标识码必须为10位教育部标准数字编码'
+          message: '校验失败：普通高等学校与成人高等学校必须填写学校标识码与办学层级',
         });
         return;
       }
 
-      const existingIdx = nextList.findIndex((item) => item.code === row.code);
+      const existingIdx = nextList.findIndex(
+        (item) => (row.code && item.code === row.code) || item.name === row.name
+      );
       if (existingIdx >= 0) {
         updatedCount += 1;
         const oldItem = nextList[existingIdx];
         nextList[existingIdx] = {
           ...oldItem,
           name: row.name,
+          code: row.code,
           department: row.department,
-          location: row.location,
-          level: row.level,
+          province: row.province,
+          city: row.city,
           type: row.type,
+          level: row.level,
           remark: row.remark,
+          platformStatus: row.platformStatus,
           auditLogs: [
             {
-              id: `log-imp-${Date.now()}-${row.code}`,
+              id: `log-imp-${Date.now()}-${row.name}`,
               time: nowStr,
               operator: '系统管理员 (admin)',
               action: '批量导入更新',
-              detail: `通过《${importFileName}》按标识码 ${row.code} 匹配更新字段`
+              detail: `通过《${importFileName}》匹配更新院校字段`,
             },
-            ...oldItem.auditLogs
-          ]
+            ...oldItem.auditLogs,
+          ],
         };
         reportDetails.push({
-          code: row.code,
+          code: row.code || '港澳台无编码',
           name: row.name,
           status: 'updated',
-          message: `按10位标识码匹配成功，已同步更新主管部门、办学类型及备注`
+          message: '匹配成功，已同步更新主管部门、省市、办学类型、办学层级及状态',
         });
       } else {
         addedCount += 1;
         nextList.unshift({
-          id: `inst-${Date.now()}-${row.code}`,
+          id: `inst-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           code: row.code,
           name: row.name,
           department: row.department,
-          location: row.location,
-          level: row.level,
+          province: row.province,
+          city: row.city,
           type: row.type,
+          level: row.level,
           remark: row.remark,
-          platformStatus: 'enabled',
-          supportAutoVerify: true,
+          platformStatus: row.platformStatus,
           verifiedStudentsCount: 0,
           verifiedTeachersCount: 0,
           associatedTeamsCount: 0,
@@ -1435,19 +1625,19 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
           eventBreakdown: [],
           auditLogs: [
             {
-              id: `log-new-${Date.now()}-${row.code}`,
+              id: `log-new-${Date.now()}-${row.name}`,
               time: nowStr,
               operator: '系统管理员 (admin)',
               action: '批量导入更新',
-              detail: `通过教育部标准名单批量导入新增院校（标识码：${row.code}）`
-            }
-          ]
+              detail: `通过批量导入新增院校【${row.name}】`,
+            },
+          ],
         });
         reportDetails.push({
-          code: row.code,
+          code: row.code || '港澳台无编码',
           name: row.name,
           status: 'added',
-          message: '教育部10位唯一标识码校验通过，已作为新院校入库并默认启用'
+          message: '字段校验通过，已作为新院校入库',
         });
       }
     });
@@ -1457,7 +1647,7 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
       addedCount,
       updatedCount,
       failedCount,
-      details: reportDetails
+      details: reportDetails,
     });
     setImportStep('report');
   };
@@ -1481,9 +1671,11 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
             <div>
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-xl font-extrabold text-slate-900">{viewingInstitution.name}</h2>
-                <span className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-sky-50 text-[#0284C7] border border-sky-200 font-bold">
-                  标识码：{viewingInstitution.code}
-                </span>
+                {viewingInstitution.code && (
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-sky-50 text-[#0284C7] border border-sky-200 font-bold">
+                    标识码：{viewingInstitution.code}
+                  </span>
+                )}
                 <span
                   className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${
                     viewingInstitution.platformStatus === 'enabled'
@@ -1495,7 +1687,7 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                院校详情只读视图 · 展示教育部标准基础信息、认证统计、赛事报名关联及合规操作审计日志
+                院校详情只读视图 · 展示标准基础信息、认证统计、赛事报名关联及操作审计日志
               </p>
             </div>
           </div>
@@ -1506,62 +1698,58 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
             >
               <Edit3 className="w-4 h-4" />
-              编辑配置 / 同步更名
+              编辑
             </button>
           </div>
         </div>
 
-        {/* 1. 基础信息区（教育部标准字段 + 平台自定义字段，只读展示） */}
+        {/* 1. 基础信息区（只读展示） */}
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-[#0284C7]" />
-              <h3 className="text-base font-bold text-slate-900">一、院校基础信息区（教育部标准名录字段）</h3>
+              <h3 className="text-base font-bold text-slate-900">一、院校基础信息区</h3>
             </div>
-            <span className="text-xs text-slate-400">数据来源：教育部全国普通高等学校名单标准库</span>
+            <span className="text-xs text-slate-400">标准院校名录字段</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
-              <div className="text-xs text-slate-500 mb-1">学校标识码（10位唯一识别码）</div>
-              <div className="text-sm font-mono font-bold text-slate-900 tabular-nums">{viewingInstitution.code}</div>
+              <div className="text-xs text-slate-500 mb-1">学校名称</div>
+              <div className="text-sm font-bold text-slate-900">{viewingInstitution.name}</div>
             </div>
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
-              <div className="text-xs text-slate-500 mb-1">学校官方全称</div>
-              <div className="text-sm font-bold text-slate-900">{viewingInstitution.name}</div>
+              <div className="text-xs text-slate-500 mb-1">学校标识码</div>
+              <div className="text-sm font-mono font-bold text-slate-900 tabular-nums">
+                {viewingInstitution.code || ''}
+              </div>
             </div>
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
               <div className="text-xs text-slate-500 mb-1">主管部门</div>
               <div className="text-sm font-semibold text-slate-800">{viewingInstitution.department}</div>
             </div>
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
-              <div className="text-xs text-slate-500 mb-1">所在地（省份＋城市）</div>
-              <div className="text-sm font-semibold text-slate-800">{viewingInstitution.location}</div>
-            </div>
-            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
-              <div className="text-xs text-slate-500 mb-1">办学层次（教育部标准）</div>
-              <div className="text-sm font-semibold text-slate-800">{viewingInstitution.level}</div>
-            </div>
-            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
-              <div className="text-xs text-slate-500 mb-1">办学类型（扩展分类）</div>
-              <div className="text-sm font-bold text-[#0284C7]">{viewingInstitution.type || '普通高校'}</div>
-            </div>
-            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
-              <div className="text-xs text-slate-500 mb-1">是否支持学籍自动核验</div>
-              <div className="text-sm font-semibold">
-                {viewingInstitution.supportAutoVerify ? (
-                  <span className="text-emerald-700 inline-flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> 是（支持自动核验通道）
-                  </span>
-                ) : (
-                  <span className="text-amber-700 inline-flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4 text-amber-600" /> 否（走人工凭证核验）
-                  </span>
-                )}
+              <div className="text-xs text-slate-500 mb-1">所在省份 / 所在城市</div>
+              <div className="text-sm font-semibold text-slate-800">
+                {viewingInstitution.province} · {viewingInstitution.city}
               </div>
             </div>
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
-              <div className="text-xs text-slate-500 mb-1">备注说明</div>
+              <div className="text-xs text-slate-500 mb-1">办学类型</div>
+              <div className="text-sm font-bold text-[#0284C7]">{viewingInstitution.type}</div>
+            </div>
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
+              <div className="text-xs text-slate-500 mb-1">办学层次</div>
+              <div className="text-sm font-semibold text-slate-800">{viewingInstitution.level || ''}</div>
+            </div>
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
+              <div className="text-xs text-slate-500 mb-1">平台状态</div>
+              <div className="text-sm font-semibold text-slate-800">
+                {viewingInstitution.platformStatus === 'enabled' ? '启用' : '停用'}
+              </div>
+            </div>
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
+              <div className="text-xs text-slate-500 mb-1">备注</div>
               <div className="text-sm font-medium text-slate-700">{viewingInstitution.remark || '—'}</div>
             </div>
           </div>
@@ -1659,7 +1847,7 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
           </div>
         </div>
 
-        {/* 4. 操作日志区（指标20合规审计支撑） */}
+        {/* 4. 操作日志区 */}
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
@@ -1707,9 +1895,9 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
 
       {/* 筛选与操作栏 */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">学校名称（模糊搜索）</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">学校名称</label>
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -1719,14 +1907,14 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
                   setSearchName(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="如：北京大学 / 职业技术"
+                placeholder="如：北京大学 / 香港大学"
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#0284C7]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">学校标识码（10位精确/前缀）</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">学校标识码</label>
             <input
               type="text"
               value={searchCode}
@@ -1740,21 +1928,38 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">所在地（省市筛选）</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">所在省份</label>
             <select
-              value={filterLocation}
+              value={filterProvince}
               onChange={(e) => {
-                setFilterLocation(e.target.value);
+                setFilterProvince(e.target.value);
                 setCurrentPage(1);
               }}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-[#0284C7] cursor-pointer"
             >
-              <option value="ALL">全部省市所在地</option>
-              {locationOptions.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
+              <option value="ALL">全部省份</option>
+              {provinceOptions.map((prov) => (
+                <option key={prov} value={prov}>
+                  {prov}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1">办学类型</label>
+            <select
+              value={filterType}
+              onChange={(e) => {
+                setFilterType(e.target.value as 'ALL' | InstitutionTypeOption);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-[#0284C7] cursor-pointer"
+            >
+              <option value="ALL">全部办学类型</option>
+              <option value="普通高等学校">普通高等学校</option>
+              <option value="成人高等学校">成人高等学校</option>
+              <option value="港澳台高校">港澳台高校</option>
             </select>
           </div>
 
@@ -1763,14 +1968,15 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
             <select
               value={filterLevel}
               onChange={(e) => {
-                setFilterLevel(e.target.value as 'ALL' | '本科' | '专科');
+                setFilterLevel(e.target.value as 'ALL' | '本科' | '专科' | '其他');
                 setCurrentPage(1);
               }}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-[#0284C7] cursor-pointer"
             >
-              <option value="ALL">全部层次（本科 / 专科）</option>
-              <option value="本科">本科（含普通本科/职业本科）</option>
-              <option value="专科">专科（高职专科）</option>
+              <option value="ALL">全部办学层次</option>
+              <option value="本科">本科</option>
+              <option value="专科">专科</option>
+              <option value="其他">其他</option>
             </select>
           </div>
 
@@ -1785,8 +1991,8 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-[#0284C7] cursor-pointer"
             >
               <option value="ALL">全部状态</option>
-              <option value="enabled">启用（前台认证可选）</option>
-              <option value="disabled">停用（前台认证隐藏）</option>
+              <option value="enabled">启用</option>
+              <option value="disabled">停用</option>
             </select>
           </div>
         </div>
@@ -1809,17 +2015,29 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
             </button>
           </div>
 
-          <button
-            onClick={() => {
-              setImportStep('upload');
-              setImportReport(null);
-              setShowImportModal(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
-          >
-            <Upload className="w-4 h-4" />
-            批量导入 / 更新教育部名单
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              新增
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setImportStep('upload');
+                setImportReport(null);
+                setShowImportModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+            >
+              <Upload className="w-4 h-4" />
+              批量导入
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1849,10 +2067,12 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
                   />
                 </th>
                 <th className="py-3.5 px-3 whitespace-nowrap">学校标识码</th>
-                <th className="py-3.5 px-3">学校名称</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">学校名称</th>
                 <th className="py-3.5 px-3 whitespace-nowrap">主管部门</th>
-                <th className="py-3.5 px-3 whitespace-nowrap">所在地</th>
-                <th className="py-3.5 px-3 whitespace-nowrap">办学层次 / 类型</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">所在省份</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">所在城市</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">办学类型</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">办学层次</th>
                 <th className="py-3.5 px-3 text-right whitespace-nowrap">已验证学生数</th>
                 <th className="py-3.5 px-3 text-right whitespace-nowrap">已验证教师数</th>
                 <th className="py-3.5 px-3 text-center whitespace-nowrap">高校管理员</th>
@@ -1885,18 +2105,34 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
                         className="rounded border-slate-300 text-[#0284C7] accent-[#0284C7] cursor-pointer"
                       />
                     </td>
-                    <td className="py-3.5 px-3 font-mono font-bold text-[#0284C7] tabular-nums">{inst.code}</td>
-                    <td className="py-3.5 px-3">
-                      <div className="font-bold text-slate-900">{inst.name}</div>
-                      {inst.remark && <div className="text-[11px] text-slate-400 mt-0.5">{inst.remark}</div>}
+                    <td className="py-3.5 px-3 font-mono font-bold text-[#0284C7] tabular-nums whitespace-nowrap">
+                      {inst.code || ''}
                     </td>
-                    <td className="py-3.5 px-3 text-slate-700 font-medium">{inst.department}</td>
-                    <td className="py-3.5 px-3 text-slate-700">{inst.location}</td>
+                    <td className="py-3.5 px-3 font-bold text-slate-900 whitespace-nowrap">
+                      {inst.name}
+                    </td>
+                    <td className="py-3.5 px-3 text-slate-700 font-medium whitespace-nowrap">
+                      {inst.department}
+                    </td>
+                    <td className="py-3.5 px-3 text-slate-700 whitespace-nowrap">
+                      {inst.province}
+                    </td>
+                    <td className="py-3.5 px-3 text-slate-700 whitespace-nowrap">
+                      {inst.city}
+                    </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                        {inst.level}
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-sky-50 text-[#0369A1] border border-sky-200">
+                        {inst.type}
                       </span>
-                      {inst.type && <span className="ml-1.5 text-xs text-slate-500">{inst.type}</span>}
+                    </td>
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      {inst.level ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          {inst.level}
+                        </span>
+                      ) : (
+                        ''
+                      )}
                     </td>
                     <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-800 tabular-nums">
                       {inst.verifiedStudentsCount}
@@ -2017,21 +2253,25 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
         </div>
       </div>
 
-      {/* 编辑院校弹窗（学校标识码只读，学校名称默认只读，支持“同步更新”官方更名） */}
-      {editingInstitution && editForm && (
+      {/* 新增 / 编辑院校弹窗（包含：学校名称、学校标识码、主管部门、所在省份、所在城市、办学类型、办学层级、备注、平台状态） */}
+      {formModalMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900">编辑院校信息与平台配置</h3>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  {formModalMode === 'add' ? '新增院校' : '编辑院校'}
+                </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  教育部标准字段（学校标识码、学校名称）默认受保护不可随意修改；如遇官方更名可开启【同步更新】
+                  除备注外其余字段均为必填项（港澳台高校的学校标识码、办学层级允许为空）
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => {
+                  setFormModalMode(null);
                   setEditingInstitution(null);
-                  setEditForm(null);
+                  setFormError(null);
                 }}
                 className="text-slate-400 hover:text-slate-700 cursor-pointer"
               >
@@ -2039,166 +2279,208 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
               </button>
             </div>
 
+            {formError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">学校标识码（10位教育部唯一编码 · 只读）</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    学校名称 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    value={editingInstitution.code}
-                    disabled
-                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-500 cursor-not-allowed"
+                    value={instForm.name}
+                    onChange={(e) => setInstForm({ ...instForm, name: e.target.value })}
+                    placeholder="请输入学校名称"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-600">学校官方全称</label>
-                    <button
-                      type="button"
-                      onClick={() => setIsSyncRenameMode((v) => !v)}
-                      className="text-xs font-bold text-[#0284C7] hover:text-[#0369A1] inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      {isSyncRenameMode ? '锁定名称' : '教育部更名同步更新'}
-                    </button>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    学校标识码{' '}
+                    {instForm.type !== '港澳台高校' ? (
+                      <span className="text-red-500">*</span>
+                    ) : (
+                      <span className="text-slate-400 font-normal">（港澳台高校可为空）</span>
+                    )}
+                  </label>
                   <input
                     type="text"
-                    value={editForm.name}
-                    disabled={!isSyncRenameMode}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className={`w-full px-3 py-2 rounded-lg text-xs font-semibold ${
-                      isSyncRenameMode
-                        ? 'bg-white border-2 border-[#0284C7] text-slate-900'
-                        : 'bg-slate-100 border border-slate-200 text-slate-500 cursor-not-allowed'
-                    }`}
+                    value={instForm.code}
+                    onChange={(e) => setInstForm({ ...instForm, code: e.target.value })}
+                    placeholder={
+                      instForm.type === '港澳台高校'
+                        ? '港澳台高校可留空'
+                        : '请输入10位学校标识码'
+                    }
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-900 focus:border-[#0284C7] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    主管部门 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={instForm.department}
+                    onChange={(e) => setInstForm({ ...instForm, department: e.target.value })}
+                    placeholder="如：教育部"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    所在省份 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={instForm.province}
+                    onChange={(e) => setInstForm({ ...instForm, province: e.target.value })}
+                    placeholder="如：北京市 / 浙江省"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    所在城市 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={instForm.city}
+                    onChange={(e) => setInstForm({ ...instForm, city: e.target.value })}
+                    placeholder="如：北京市 / 杭州市"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">主管部门</label>
-                  <input
-                    type="text"
-                    value={editForm.department}
-                    onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">所在地（省份＋城市）</label>
-                  <input
-                    type="text"
-                    value={editForm.location}
-                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">办学层次（教育部标准）</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    办学类型 <span className="text-red-500">*</span>
+                  </label>
                   <select
-                    value={editForm.level}
-                    onChange={(e) => setEditForm({ ...editForm, level: e.target.value as '本科' | '专科' })}
+                    value={instForm.type}
+                    onChange={(e) => {
+                      const nextType = e.target.value as InstitutionTypeOption;
+                      setInstForm({
+                        ...instForm,
+                        type: nextType,
+                        level:
+                          nextType === '港澳台高校'
+                            ? instForm.level
+                            : instForm.level || '本科',
+                      });
+                    }}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none cursor-pointer"
                   >
-                    <option value="本科">本科</option>
-                    <option value="专科">专科</option>
+                    <option value="普通高等学校">普通高等学校</option>
+                    <option value="成人高等学校">成人高等学校</option>
+                    <option value="港澳台高校">港澳台高校</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">办学类型（扩展分类）</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    办学层级{' '}
+                    {instForm.type !== '港澳台高校' ? (
+                      <span className="text-red-500">*</span>
+                    ) : (
+                      <span className="text-slate-400 font-normal">（港澳台高校可为空）</span>
+                    )}
+                  </label>
                   <select
-                    value={editForm.type}
+                    value={instForm.level}
                     onChange={(e) =>
-                      setEditForm({ ...editForm, type: e.target.value as InstitutionRecord['type'] })
+                      setInstForm({ ...instForm, level: e.target.value as InstitutionLevelOption })
                     }
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none cursor-pointer"
                   >
-                    <option value="普通本科">普通本科</option>
-                    <option value="职业本科">职业本科</option>
-                    <option value="高职专科">高职专科</option>
-                    <option value="成人高校">成人高校</option>
+                    {instForm.type === '港澳台高校' && <option value="">（无 / 显示为空）</option>}
+                    <option value="本科">本科</option>
+                    <option value="专科">专科</option>
+                    <option value="其他">其他</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">备注（如“民办”“中外合作办学”等标记）</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  备注 <span className="text-slate-400 font-normal">（选填）</span>
+                </label>
                 <input
                   type="text"
-                  value={editForm.remark}
-                  onChange={(e) => setEditForm({ ...editForm, remark: e.target.value })}
+                  value={instForm.remark}
+                  onChange={(e) => setInstForm({ ...instForm, remark: e.target.value })}
                   placeholder="选填，如：民办 / 中外合作办学 / 双一流"
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    平台状态（控制前台学籍认证下拉框可见性）
-                  </label>
-                  <select
-                    value={editForm.platformStatus}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, platformStatus: e.target.value as 'enabled' | 'disabled' })
-                    }
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none cursor-pointer"
-                  >
-                    <option value="enabled">启用（前台学籍认证可选）</option>
-                    <option value="disabled">停用（前台隐藏，保留历史认证数据）</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">是否支持学籍自动核验</label>
-                  <select
-                    value={editForm.supportAutoVerify ? 'yes' : 'no'}
-                    onChange={(e) => setEditForm({ ...editForm, supportAutoVerify: e.target.value === 'yes' })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none cursor-pointer"
-                  >
-                    <option value="yes">是（支持自动核验通道）</option>
-                    <option value="no">否（仅支持人工审核证件）</option>
-                  </select>
-                </div>
+              <div className="pt-2 border-t border-slate-100">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  平台状态 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={instForm.platformStatus}
+                  onChange={(e) =>
+                    setInstForm({
+                      ...instForm,
+                      platformStatus: e.target.value as 'enabled' | 'disabled',
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:border-[#0284C7] focus:outline-none cursor-pointer"
+                >
+                  <option value="enabled">启用（前台学籍认证可选）</option>
+                  <option value="disabled">停用（前台隐藏，保留历史认证数据）</option>
+                </select>
               </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
               <button
+                type="button"
                 onClick={() => {
+                  setFormModalMode(null);
                   setEditingInstitution(null);
-                  setEditForm(null);
+                  setFormError(null);
                 }}
                 className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer"
               >
                 取消
               </button>
               <button
-                onClick={handleSaveEdit}
+                type="button"
+                onClick={handleSaveInstitutionForm}
                 className="px-5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer shadow-xs"
               >
-                保存院校配置
+                {formModalMode === 'add' ? '确认新增' : '保存修改'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 批量导入/更新教育部名单弹窗 */}
+      {/* 批量导入弹窗（支持下载模板和导入） */}
       {showImportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
           <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900">批量导入 / 更新教育部全国普通高等学校名单</h3>
+                <h3 className="text-lg font-extrabold text-slate-900">批量导入</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  系统以10位【学校标识码】作为唯一主键进行比对：已存在则更新属性，不存在则新增入库，非10位编码自动拦截报错
+                  支持下载标准导入模板并批量导入院校数据（模板字段：学校名称、学校标识码、主管部门、所在省份、所在城市、办学类型、办学层级、备注、平台状态）
                 </p>
               </div>
               <button
@@ -2211,17 +2493,38 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
 
             {importStep === 'upload' ? (
               <div className="space-y-4">
+                {/* 模板下载区域 */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-bold text-slate-900">
+                      第一步：下载标准导入模板
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      模板包含字段：学校名称、学校标识码、主管部门、所在省份、所在城市、办学类型、办学层级、备注、平台状态
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadImportTemplate}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-sky-50 text-[#0284C7] border border-sky-200 text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    <Download className="w-4 h-4" />
+                    下载模板
+                  </button>
+                </div>
+
+                {/* 上传文件区域 */}
                 <div className="border-2 border-dashed border-sky-300 bg-sky-50/40 rounded-xl p-6 text-center space-y-3">
                   <Upload className="w-10 h-10 text-[#0284C7] mx-auto" />
                   <div className="text-sm font-bold text-slate-900">
-                    已就绪文件：<span className="text-[#0284C7] font-mono">{importFileName}</span>
+                    已选择导入文件：<span className="text-[#0284C7] font-mono">{importFileName}</span>
                   </div>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    支持教育部官方发布的标准 Excel (.xlsx) / CSV 格式，包含列：学校标识码(10位)、学校名称、主管部门、所在地、办学层次、办学类型、备注
+                  <p className="text-xs text-slate-500 max-w-lg mx-auto">
+                    支持 Excel (.xlsx) / CSV 格式，包含列：学校名称、学校标识码、主管部门、所在省份、所在城市、办学类型（普通高等学校/成人高等学校/港澳台高校）、办学层级（本科/专科/其他）、备注、平台状态
                   </p>
                   <div className="pt-2">
                     <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer">
-                      <span>更换本地 Excel 文件</span>
+                      <span>选择本地导入文件</span>
                       <input
                         type="file"
                         accept=".xlsx,.xls,.csv"
@@ -2237,9 +2540,10 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
 
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 space-y-1.5">
                   <div className="font-bold text-slate-900">本次导入数据包预检（共 5 条示例记录）：</div>
-                  <div>• 新增院校：南京大学 (4132010284)、中山大学 (4144010558)</div>
-                  <div>• 匹配更新：北京航空航天大学 (4111010006)、深圳职业技术大学 (4144012957)</div>
-                  <div>• 异常拦截测试：测试异常编码学院 (41110999，非10位唯一标识码)</div>
+                  <div>• 新增普通高校：南京大学 (4132010284，江苏省-南京市，普通高等学校，本科)、中山大学 (4144010558，广东省-广州市，普通高等学校，本科)</div>
+                  <div>• 新增港澳台高校：澳门大学 (无学校标识码，澳门特别行政区-澳门，港澳台高校，无办学层级)</div>
+                  <div>• 匹配更新：北京航空航天大学 (4111010006，北京市-北京市，普通高等学校，本科)</div>
+                  <div>• 异常拦截测试：测试缺失必填项学院 (普通高等学校缺失学校标识码)</div>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2">
@@ -2253,7 +2557,7 @@ export const AdminInstitutionManagement: React.FC<AdminInstitutionManagementProp
                     onClick={handleExecuteImport}
                     className="px-5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer shadow-xs"
                   >
-                    开始校验并执行导入
+                    开始导入
                   </button>
                 </div>
               </div>

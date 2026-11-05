@@ -1505,7 +1505,8 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
       (inst) =>
         inst.name.toLowerCase().includes(kw) ||
         inst.code.toLowerCase().includes(kw) ||
-        inst.location.toLowerCase().includes(kw)
+        inst.province.toLowerCase().includes(kw) ||
+        inst.city.toLowerCase().includes(kw)
     );
   }, [institutions, institutionSearchKeyword]);
 
@@ -2510,7 +2511,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                                   >
                                     <span>{inst.name}</span>
                                     <span className="font-mono-num text-[11px] text-slate-400">
-                                      {inst.code} · {inst.location}
+                                      {inst.code ? `${inst.code} · ` : ''}{inst.province} {inst.city}
                                     </span>
                                   </button>
                                 ))
