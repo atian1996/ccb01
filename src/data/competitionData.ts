@@ -1756,6 +1756,56 @@ export function getCompetitionStatusLabel(status: CompetitionCalculatedStatus): 
   return '进行中';
 }
 
+/**
+ * 前后台赛事目录列表统一排序规则：
+ * 1. 先按状态排序：进行中 (ongoing) -> 未开始 (upcoming) -> 已结束 (ended)
+ * 2. 再按赛事开始时间倒序（由新到旧）
+ * 3. 若状态与开始时间完全一致，最后按创建时间 (createdAt) 倒序兜底排序
+ */
+export function sortCompetitionCatalogItems(
+  items: CompetitionCatalogItem[]
+): CompetitionCatalogItem[] {
+  const statusOrder: Record<CompetitionCalculatedStatus, number> = {
+    ongoing: 1,
+    upcoming: 2,
+    ended: 3,
+  };
+
+  const normalizeTime = (raw?: string) => {
+    if (!raw) return '';
+    const cleaned = raw
+      .trim()
+      .replace('T', ' ')
+      .replace(/[年月]/g, '-')
+      .replace(/日/g, '');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+      return `${cleaned} 00:00:00`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$/.test(cleaned)) {
+      return `${cleaned}:00`;
+    }
+    return cleaned;
+  };
+
+  return [...items].sort((a, b) => {
+    const statusA = computeCompetitionStatus(a.startDate, a.endDate);
+    const statusB = computeCompetitionStatus(b.startDate, b.endDate);
+    if (statusOrder[statusA] !== statusOrder[statusB]) {
+      return statusOrder[statusA] - statusOrder[statusB];
+    }
+
+    const startA = normalizeTime(a.startDate);
+    const startB = normalizeTime(b.startDate);
+    if (startA !== startB) {
+      return startB.localeCompare(startA);
+    }
+
+    const createdA = normalizeTime(a.createdAt);
+    const createdB = normalizeTime(b.createdAt);
+    return createdB.localeCompare(createdA);
+  });
+}
+
 export const INITIAL_COMPETITION_CATALOG: CompetitionCatalogItem[] = [
   {
     id: 'comp-2026-main',

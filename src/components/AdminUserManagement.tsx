@@ -1690,16 +1690,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               <Download className="w-3.5 h-3.5" />
               <span>导出</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => setShowExportAuditDrawer(true)}
-              className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="查看导出与操作审计日志"
-            >
-              <History className="w-3.5 h-3.5 text-slate-500" />
-              <span>操作/导出审计</span>
-            </button>
           </div>
         </div>
       </form>
@@ -1752,7 +1742,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                   );
                   const displayRealName =
                     user.realName && user.realName.trim() ? user.realName.trim() : '-';
-                  const isSelf = isSelfAccount(user);
 
                   return (
                     <tr
@@ -1801,11 +1790,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                           <span className="font-mono-num font-bold text-slate-900 text-xs sm:text-[13px]">
                             {user.username || user.id}
                           </span>
-                          {isSelf && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-[#0369A1] border border-sky-200">
-                              当前登录
-                            </span>
-                          )}
                         </div>
                         <div className="text-[11px] text-slate-400 font-mono-num mt-0.5">
                           {user.phone ? maskPhoneNumber(user.phone) : '未绑定手机'} ·{' '}

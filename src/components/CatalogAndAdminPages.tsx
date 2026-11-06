@@ -48,6 +48,7 @@ import {
   type CompetitionAttachment,
   computeCompetitionStatus,
   getCompetitionStatusLabel,
+  sortCompetitionCatalogItems,
   type CompetitionCalculatedStatus,
   type HomeBannerConfig,
   type DivisionRecord,
@@ -409,7 +410,7 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
   );
 
   const filteredCompetitions = useMemo(() => {
-    return publicCompetitions.filter((item) => {
+    const matched = publicCompetitions.filter((item) => {
       const calcStatus = computeCompetitionStatus(item.startDate, item.endDate);
       if (statusFilter !== 'all' && calcStatus !== statusFilter) return false;
       if (searchKeyword.trim()) {
@@ -421,6 +422,7 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
       }
       return true;
     });
+    return sortCompetitionCatalogItems(matched);
   }, [publicCompetitions, statusFilter, searchKeyword]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCompetitions.length / pageSize));
@@ -1168,9 +1170,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     }, 3000);
   };
 
-  // 过滤后的后台赛事列表
+  // 过滤并按统一规则排序后的后台赛事列表
   const filteredList = useMemo(() => {
-    return competitions.filter((item) => {
+    const matched = competitions.filter((item) => {
       const calcStatus = computeCompetitionStatus(item.startDate, item.endDate);
       if (statusFilter !== 'all' && calcStatus !== statusFilter) return false;
       if (searchName.trim()) {
@@ -1178,6 +1180,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       }
       return true;
     });
+    return sortCompetitionCatalogItems(matched);
   }, [competitions, statusFilter, searchName]);
 
   // 全选 / 取消全选当前筛选结果

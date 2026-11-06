@@ -3392,18 +3392,6 @@ export const AdminNewsManagement: React.FC<AdminNewsManagementProps> = ({
                   />
                 </label>
               </div>
-
-              {formIsPinned && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">置顶有效期（选填，到期自动取消置顶）</label>
-                  <input
-                    type="datetime-local"
-                    value={formPinExpire}
-                    onChange={(e) => setFormPinExpire(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0284C7]"
-                  />
-                </div>
-              )}
             </div>
 
             <div className="flex flex-col gap-2.5 pt-2">
