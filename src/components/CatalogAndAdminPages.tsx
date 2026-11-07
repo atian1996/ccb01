@@ -671,7 +671,10 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
   const platformRegStatus = registrationConfig
     ? computeRegistrationConfigStatus(registrationConfig)
     : 'not_started';
-  const platformRegMeta = getRegistrationStatusMeta(platformRegStatus);
+  const platformRegMeta = getRegistrationStatusMeta(
+    platformRegStatus,
+    registrationConfig?.earlyClosed
+  );
 
   const handleClickRegisterButton = () => {
     if (!hasAssociatedRegistration || !registrationConfig) return;

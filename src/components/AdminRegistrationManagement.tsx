@@ -357,15 +357,17 @@ export const INITIAL_REGISTRATION_CONFIGS: EventRegistrationConfig[] = [
   },
 ];
 
-// 当赛事选B（平台在线报名）且【报名管理】表中尚无该 Event_ID 时，自动插入一条默认状态为“未开始（未开启）”的报名数据
+// 当赛事选B（平台在线报名）且【报名管理】表中尚无该 Event_ID 时，自动插入一条默认状态为“未开始”的报名数据
 export function createDefaultRegistrationConfig(eventId: string): EventRegistrationConfig {
   const nowStr = '2026-10-28 12:00:00';
   return {
     id: `reg-cfg-${Date.now()}`,
     eventId,
-    regStartTime: '2026-11-15 09:00:00', // 默认未来时间 -> 状态自动为“未开始（未开启）”
+    regStartTime: '2026-11-15 09:00:00', // 默认未来时间 -> 状态自动为“未开始”
     regEndTime: '2026-12-15 23:59:59',
     earlyClosed: false,
+    schoolAuditEnabled: false,
+    secretariatAuditEnabled: false,
     allowCrossSchool: false,
     includeAdvisor: true,
     maxAdvisors: 2,
@@ -416,7 +418,7 @@ export function getRegistrationStatusMeta(
       };
     case 'ended':
       return {
-        label: earlyClosed ? '已关闭（提前关闭）' : '已截止',
+        label: earlyClosed ? '已关闭' : '已截止',
         badgeClass: 'text-slate-600 bg-slate-100 border-slate-200',
         dotClass: 'bg-slate-400',
       };
@@ -863,6 +865,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         regStartTime: formattedStart,
         regEndTime: formattedEnd,
         earlyClosed: cfgEarlyClosed,
+        schoolAuditEnabled: false,
+        secretariatAuditEnabled: false,
         allowCrossSchool: false,
         includeAdvisor: cfgIncludeAdvisor,
         minAdvisors: cfgIncludeAdvisor ? cfgMinAdvisors : 0,
@@ -914,8 +918,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   const handleEnterTeamDataManagement = (eventId: string) => {
     const targetCfg = registrationConfigs.find((c) => c.eventId === eventId);
     const targetComp = getCompById(eventId);
-    const isSchoolOpen = targetCfg ? targetCfg.schoolAuditEnabled !== false : true;
-    const isSecOpen = targetCfg ? targetCfg.secretariatAuditEnabled !== false : true;
+    const isSchoolOpen = Boolean(targetCfg?.schoolAuditEnabled);
+    const isSecOpen = Boolean(targetCfg?.secretariatAuditEnabled);
 
     // 联动逻辑1：当“高校审核”未开启时，高校管理员点击【查看报名】，提示未开启，无法进入列表
     if (adminRole === 'school_admin' && !isSchoolOpen) {
@@ -961,12 +965,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
   const activeConfigForTeams = registrationConfigs.find(
     (c) => c.eventId === activeEventIdForTeams
   );
-  const isSchoolStageOpen = activeConfigForTeams
-    ? activeConfigForTeams.schoolAuditEnabled !== false
-    : true;
-  const isSecretariatStageOpen = activeConfigForTeams
-    ? activeConfigForTeams.secretariatAuditEnabled !== false
-    : true;
+  const isSchoolStageOpen = Boolean(activeConfigForTeams?.schoolAuditEnabled);
+  const isSecretariatStageOpen = Boolean(activeConfigForTeams?.secretariatAuditEnabled);
 
   // 切换全局/赛事审核阶段开关（仅组委会超级管理员可操作）
   const handleToggleAuditStageSwitch = (stage: 'school' | 'secretariat') => {
@@ -1793,7 +1793,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         : '本科';
     const inTeamRoleText =
       params.roleType === 'advisor'
-        ? '指导教师（不参与CTF角色）'
+        ? '指导教师'
         : formatCtfRolesText(params.ctfRoles, false);
     const locAndDiv = resolveUniversityLocationAndDivision(
       params.university,
@@ -6363,8 +6363,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                   const statusMeta = getRegistrationStatusMeta(calcStatus, cfg.earlyClosed);
                   const stats = getEventTeamStats(cfg.eventId);
                   const canDelete = calcStatus === 'disabled';
-                  const schoolSwitchOn = cfg.schoolAuditEnabled !== false;
-                  const secSwitchOn = cfg.secretariatAuditEnabled !== false;
+                  const schoolSwitchOn = Boolean(cfg.schoolAuditEnabled);
+                  const secSwitchOn = Boolean(cfg.secretariatAuditEnabled);
 
                   return (
                     <tr key={cfg.id} className="hover:bg-sky-50/40 transition-colors">

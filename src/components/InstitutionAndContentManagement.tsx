@@ -10257,6 +10257,11 @@ export const AdminDivisionManagement: React.FC<AdminDivisionManagementProps> = (
   };
 
   const handleToggleProvinceInModal = (prov: string) => {
+    const currentOwner = provinceToDivisionMap.get(prov);
+    if (currentOwner && currentOwner.id !== editingDivision?.id) {
+      showToast(`【${prov}】已被【${currentOwner.name}】关联，不可选择！`);
+      return;
+    }
     setFormProvinces((prev) =>
       prev.includes(prov)
         ? prev.filter((p) => p !== prov)
@@ -10347,10 +10352,6 @@ export const AdminDivisionManagement: React.FC<AdminDivisionManagementProps> = (
       {/* 顶部概览与检索栏 */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="px-3.5 py-2 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-[#0284C7]">
-            全国省级行政区覆盖：{ALL_CHINA_PROVINCES.length - unassignedProvinces.length} /{' '}
-            {ALL_CHINA_PROVINCES.length}（含香港特别行政区、澳门特别行政区、台湾省）
-          </div>
           {unassignedProvinces.length > 0 && (
             <div className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800">
               待分配省份：{unassignedProvinces.join('、')}
@@ -10388,7 +10389,6 @@ export const AdminDivisionManagement: React.FC<AdminDivisionManagementProps> = (
               <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
                 <th className="py-3.5 px-4 whitespace-nowrap">赛区名称 / 编码</th>
                 <th className="py-3.5 px-4">对应省份及特别行政区（含港澳台）</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">管辖省份数</th>
                 <th className="py-3.5 px-4">赛区说明</th>
                 <th className="py-3.5 px-4 whitespace-nowrap">更新时间</th>
                 <th className="py-3.5 px-4 text-right whitespace-nowrap">操作</th>
@@ -10428,9 +10428,6 @@ export const AdminDivisionManagement: React.FC<AdminDivisionManagementProps> = (
                         })
                       )}
                     </div>
-                  </td>
-                  <td className="py-4 px-4 whitespace-nowrap font-mono font-bold text-slate-800">
-                    {div.provinces.length} 个省级行政区
                   </td>
                   <td className="py-4 px-4 text-slate-600 max-w-xs">
                     <div className="line-clamp-2">{div.description}</div>
@@ -10525,38 +10522,56 @@ export const AdminDivisionManagement: React.FC<AdminDivisionManagementProps> = (
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-1">
                   <label className="font-bold text-slate-700">
                     勾选本赛区管辖的省份/自治区/直辖市/特别行政区（已选 {formProvinces.length} 个）
                   </label>
-                  <span className="text-[11px] text-slate-400">
-                    若勾选其他赛区已有省份，保存后将自动划转至本赛区
+                  <span className="text-[11px] text-slate-500">
+                    已被其他赛区关联的省份已置灰不可选（须先在对应赛区取消勾选）
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-3 rounded-xl bg-slate-50 border border-slate-200">
                   {ALL_CHINA_PROVINCES.map((prov) => {
                     const checked = formProvinces.includes(prov);
                     const currentOwner = provinceToDivisionMap.get(prov);
+                    const isOccupiedByOther = Boolean(
+                      currentOwner && currentOwner.id !== editingDivision?.id
+                    );
+
                     return (
                       <label
                         key={prov}
-                        className={`p-2 rounded-lg border flex items-center gap-2 cursor-pointer transition-colors ${
-                          checked
-                            ? 'bg-sky-50 border-[#0284C7] text-[#0369A1] font-bold'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                        title={
+                          isOccupiedByOther
+                            ? `【${prov}】已被【${currentOwner?.name}】关联，不可选。如需选择，请先前往对应赛区取消勾选。`
+                            : undefined
+                        }
+                        className={`p-2 rounded-lg border flex items-center gap-2 select-none transition-colors ${
+                          isOccupiedByOther
+                            ? 'bg-slate-100/90 border-slate-200 text-slate-400 cursor-not-allowed opacity-75'
+                            : checked
+                            ? 'bg-sky-50 border-[#0284C7] text-[#0369A1] font-bold cursor-pointer'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer'
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={checked}
+                          disabled={isOccupiedByOther}
                           onChange={() => handleToggleProvinceInModal(prov)}
-                          className="w-3.5 h-3.5 rounded text-[#0284C7]"
+                          className={`w-3.5 h-3.5 rounded ${
+                            isOccupiedByOther
+                              ? 'text-slate-300 border-slate-300 cursor-not-allowed'
+                              : 'text-[#0284C7] cursor-pointer'
+                          }`}
                         />
-                        <div className="min-w-0">
-                          <div className="truncate">{prov}</div>
-                          {currentOwner && currentOwner.id !== editingDivision?.id && (
+                        <div className="min-w-0 flex-1">
+                          <div className={`truncate ${isOccupiedByOther ? 'text-slate-400' : ''}`}>
+                            {prov}
+                          </div>
+                          {isOccupiedByOther && (
                             <div className="text-[10px] text-slate-400 truncate">
-                              原属：{currentOwner.name}
+                              已关联：{currentOwner?.name}
                             </div>
                           )}
                         </div>
