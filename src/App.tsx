@@ -771,9 +771,8 @@ export default function App() {
       ? participatedTeams.find(
           (p) =>
             p.competitionId === comp.id &&
-            (p.status === 'joined' ||
-              p.status === 'team_pending_review' ||
-              p.status === 'team_approved')
+            p.status !== 'declined' &&
+            p.status !== 'pending_invite'
         )
       : undefined;
     if (existingAsCaptain || existingAsMember) {

@@ -5746,7 +5746,6 @@ export const StandaloneUserCenterPage: React.FC<{
                         <th className="py-3.5 px-4 whitespace-nowrap">起止时间</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">赛事状态</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">参赛队伍名称</th>
-                        <th className="py-3.5 px-4 whitespace-nowrap">校内排名</th>
                         <th className="py-3.5 px-4 whitespace-nowrap">我的身份</th>
                         <th className="py-3.5 px-4 text-right whitespace-nowrap">操作</th>
                       </tr>
@@ -5792,14 +5791,6 @@ export const StandaloneUserCenterPage: React.FC<{
                           {/* 5. 参赛队伍名称 */}
                           <td className="py-4 px-4 align-middle whitespace-nowrap font-extrabold text-slate-900">
                             {item.teamName}
-                          </td>
-
-                          {/* 6. 最终校内排名 */}
-                          <td className="py-4 px-4 align-middle whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-xs font-extrabold">
-                              <Trophy className="w-3.5 h-3.5 text-amber-600" />
-                              <span>校内排名：第{item.schoolRank || 1}名</span>
-                            </span>
                           </td>
 
                           {/* 7. 我的身份（队长/队员/指导教师） */}

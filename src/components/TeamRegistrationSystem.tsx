@@ -442,10 +442,15 @@ export function resolveTeamCaptainContact(
 
 export type ParticipatedInviteStatus =
   | 'pending_invite' // 待处理邀请（高亮）
-  | 'joined' // 已加入
+  | 'joined' // 已加入（队伍组建中）
   | 'declined' // 已拒绝
-  | 'team_pending_review' // 队伍已提交审核
-  | 'team_approved'; // 队伍报名成功
+  | 'team_pending_review' // 队伍已提交审核（待高校审核）
+  | 'team_school_rejected' // 高校审核已驳回（显示驳回原因）
+  | 'team_wait_school_match' // 高校审核已通过（待校赛提报）
+  | 'team_pending_secretariat' // 待秘书处终审（高校已提报）
+  | 'team_secretariat_rejected' // 待秘书处终审（名单被驳回，等待高校重报）
+  | 'team_not_advanced' // 止步校赛（未进入晋级名单）
+  | 'team_approved'; // 队伍报名成功（已晋级总决赛）
 
 export interface ParticipatedTeamMemberBrief {
   name: string;
@@ -474,6 +479,8 @@ export interface ParticipatedTeamRecord {
   teammatesSummary: string[];
   teamMembersDetail?: ParticipatedTeamMemberBrief[]; // 队伍成员及各自角色标签明细
   declineReason?: string;
+  schoolRejectReason?: string; // 高校审核驳回原因
+  secretariatRejectReason?: string; // 秘书处终审驳回原因
   approvedSnapshot?: TeamApprovedSnapshot; // 报名成功时的只读快照
 }
 
@@ -3037,8 +3044,9 @@ export const INITIAL_UNIVERSITY_ADVANCEMENT_SUBMISSIONS: UniversityAdvancementSu
   },
 ];
 
-// 初始预置“我参与的（队员/老师视角）”受邀记录
+// 初始预置“我参与的（队员/老师视角）”受邀记录（完整覆盖：待处理邀请[队员/教师]、组建中已加入、待高校审核、高校已驳回、高校已通过、待秘书处终审、待终审名单被驳回、止步校赛未晋级、报名成功[队员/教师]、已拒绝等全部全链路状态）
 export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
+  // 1. 待处理邀请（参赛队员视角）
   {
     id: 'part-team-1',
     competitionId: 'comp-2026-ics-special',
@@ -3046,7 +3054,7 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     subTrackName: '智能网联汽车CAN/车载以太网渗透与防护赛道',
     teamName: '北航车联护盾联队',
     teamLogo: 'default-logo',
-    teamIntro: '专注智能网联汽车车载总线固件逆向、CAN报文入侵检测与V2X通信安全防护（同校合规邀请，点击同意可直接通过）。',
+    teamIntro: '专注智能网联汽车车载总线固件逆向、CAN报文入侵检测与V2X通信安全防护（同校合规邀请，待本人确认加入）。',
     captainName: '周子航',
     captainPhone: '137****8821',
     university: '北京航空航天大学',
@@ -3078,54 +3086,54 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
       },
     ],
   },
+  // 2. 待处理邀请（指导教师视角）
   {
-    id: 'part-team-3',
-    competitionId: 'comp-2026-cloud-def',
-    competitionTitle: '2026“XX杯”云原生与零信任架构安全攻防挑战赛',
-    subTrackName: '云原生容器集群渗透与逃逸防御赛道',
-    teamName: '北航云原生星云战队',
+    id: 'part-team-2',
+    competitionId: 'comp-2027-winter-camp',
+    competitionTitle: '2027第六届“XX杯”高校网安拔尖人才冬季特训营暨资格邀请赛',
+    subTrackName: '拔尖创新人才二进制分析与高级漏洞利用综合特训赛道',
+    teamName: '北航网安冬训卓越战队',
     teamLogo: 'default-logo',
-    teamIntro: '围绕Kubernetes生产集群RBAC权限逃逸、Service Mesh流量劫持防御展开联合攻关。',
-    captainName: '宋知行',
-    captainPhone: '139****0004',
+    teamIntro: '由队长发起的冬训营赛队，特邀您作为指导教师提供科研与技术方向指导（指导教师待处理邀请视角）。',
+    captainName: '郭晨阳',
+    captainPhone: '138****5533',
     university: '北京航空航天大学',
-    myRoleInTeam: '参赛队员',
-    myCtfRoles: ['Web手', '密码学手'],
+    myRoleInTeam: '指导教师',
     status: 'pending_invite',
-    invitedAt: '2026-10-28 10:20',
-    teammatesSummary: ['宋知行（队长 · 北京航空航天大学）', '陈思远（队员 · 已同意）'],
+    invitedAt: '2026-10-28 11:20',
+    teammatesSummary: ['郭晨阳（队长 · 北京航空航天大学）', '陈思远（队员 · 已同意）', '林远航（指导教师 · 待确认）'],
     teamMembersDetail: [
       {
-        name: '宋知行',
+        name: '郭晨阳',
         role: '队长',
         university: '北京航空航天大学',
-        ctfRoles: ['Pwn手', '杂项手'],
+        ctfRoles: ['Pwn手', '逆向手'],
         statusLabel: '队长本人',
       },
       {
         name: '陈思远',
         role: '队员',
         university: '北京航空航天大学',
-        ctfRoles: ['逆向手'],
+        ctfRoles: ['Web手'],
         statusLabel: '已同意',
       },
       {
         name: '林远航',
-        role: '队员',
+        role: '指导教师',
         university: '北京航空航天大学',
-        ctfRoles: ['Web手', '密码学手'],
         statusLabel: '待确认（本人）',
       },
     ],
   },
+  // 3. 已加入（队伍组建中，队长尚未提交高校审核，对应发起中的草稿/邀请中）
   {
-    id: 'part-team-4',
-    competitionId: 'comp-2026-data',
-    competitionTitle: '2026“XX杯”全国网数智安全大赛 · 数据安全与隐私计算专项挑战赛',
-    subTrackName: '金融跨境数据合规与智能脱敏水印赛道',
-    teamName: '北航数安暗水印突击队',
+    id: 'part-team-3',
+    competitionId: 'comp-2026-telecom-antifraud',
+    competitionTitle: '2026“XX杯”通信网络与数字反诈反黑产技术实战对抗赛',
+    subTrackName: '电信诈骗黑灰产AI语音合成欺诈对抗赛道',
+    teamName: '北航网安声纹反诈战队',
     teamLogo: 'default-logo',
-    teamIntro: '研究高吞吐量数据库无损暗水印嵌入与跨境数据流转合规审计（状态：已同意加入，等待队长提交高校审核）。',
+    teamIntro: '研究伪造深度语音辨析与黑产通话特征抽取（状态：本人已同意入队，队长正在组建邀请中，尚未提交高校审核）。',
     captainName: '沈清雪',
     captainPhone: '139****0005',
     university: '北京航空航天大学',
@@ -3157,35 +3165,36 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
       },
     ],
   },
+  // 4. 已提交（等待高校资格审核，对应发起中的已提交）
   {
-    id: 'part-team-5',
-    competitionId: 'comp-2026-iot-earlyclose',
-    competitionTitle: '2026“XX杯”物联网固件逆向与智能终端安全挑战赛',
-    subTrackName: '智能终端TEE可信执行环境与侧信道安全赛道',
-    teamName: '北航可信终端安全联队',
+    id: 'part-team-4',
+    competitionId: 'comp-2026-smartgrid-def',
+    competitionTitle: '2026“XX杯”智能电网特高压SCADA系统与新型电力防护挑战赛',
+    subTrackName: '新型电力工控协议与PMU同步相量量测渗透赛道',
+    teamName: '北航电网智巡防御突击队',
     teamLogo: 'default-logo',
-    teamIntro: '针对智能终端TEE可信执行环境开展故障注入与侧信道防护评测（状态：全员已确认，队长已提交审核中）。',
-    captainName: '陈思远',
-    captainPhone: '139****0002',
+    teamIntro: '聚焦智能电网特高压调度自动化与PMU量测协议渗透对抗（状态：队长已提交报名，等待高校管理员资格审核）。',
+    captainName: '陆浩然',
+    captainPhone: '137****1108',
     university: '北京航空航天大学',
     myRoleInTeam: '参赛队员',
-    myCtfRoles: ['逆向手', 'Pwn手'],
+    myCtfRoles: ['逆向手', '取证手'],
     status: 'team_pending_review',
     invitedAt: '2026-10-22 14:00',
-    teammatesSummary: ['陈思远（队长 · 北京航空航天大学）', '林远航（队员 · 已同意）', '冯文博 副教授（指导教师 · 已同意）'],
+    teammatesSummary: ['陆浩然（队长 · 北京航空航天大学）', '林远航（队员 · 已同意）', '冯文博 副教授（指导教师 · 已同意）'],
     teamMembersDetail: [
       {
-        name: '陈思远',
+        name: '陆浩然',
         role: '队长',
         university: '北京航空航天大学',
-        ctfRoles: ['逆向手'],
+        ctfRoles: ['Pwn手', '逆向手'],
         statusLabel: '队长本人',
       },
       {
         name: '林远航',
         role: '队员',
         university: '北京航空航天大学',
-        ctfRoles: ['逆向手', 'Pwn手'],
+        ctfRoles: ['逆向手', '取证手'],
         statusLabel: '已同意（本人）',
       },
       {
@@ -3196,8 +3205,244 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
       },
     ],
   },
+  // 5. 高校审核已驳回（高校初审未通过，对应发起中的已驳回）
+  {
+    id: 'part-team-5',
+    competitionId: 'comp-2026-openharmony-sec',
+    competitionTitle: '2026“XX杯”开源鸿蒙生态与跨端分布式协同安全极客挑战赛',
+    subTrackName: '分布式软总线协议逆向与微内核漏洞利用赛道',
+    teamName: '北航开源鸿蒙安全先锋队',
+    teamLogo: 'default-logo',
+    teamIntro: '专注OpenHarmony分布式软总线协议安全审计与微内核提权分析（状态：高校初审被驳回，等待队长修改后重新提交）。',
+    captainName: '杜子恒',
+    captainPhone: '136****5520',
+    university: '北京航空航天大学',
+    myRoleInTeam: '参赛队员',
+    myCtfRoles: ['Pwn手', '逆向手'],
+    status: 'team_school_rejected',
+    schoolRejectReason:
+      '经高校管理员核查：队伍填报的赛道与实验室支撑备案方向不符，且指导教师需补充确认学院公章备案编号，请队长完善后重新提交高校审核。',
+    invitedAt: '2026-10-21 16:30',
+    teammatesSummary: ['杜子恒（队长）', '林远航（队员 · 已同意）', '赵振宇 教授（指导教师 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '杜子恒',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['Pwn手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['Pwn手', '逆向手'],
+        statusLabel: '已同意（本人）',
+      },
+      {
+        name: '赵振宇 教授',
+        role: '指导教师',
+        university: '北京航空航天大学',
+        statusLabel: '已同意',
+      },
+    ],
+  },
+  // 6. 高校审核已通过（待校内选拔赛/待高校晋级提报，对应发起中的高校已通过）
   {
     id: 'part-team-6',
+    competitionId: 'comp-2026-satellite-sec',
+    competitionTitle: '2026“XX杯”低轨卫星互联网空间天基网元安全攻防专项挑战赛',
+    subTrackName: '空间星地链路激光通信截获与星载路由欺骗赛道',
+    teamName: '北航苍穹天基护盾战队',
+    teamLogo: 'default-logo',
+    teamIntro: '全员已完成身份认证并通过高校第一段资格审核，当前处于“高校已通过（待校赛）”阶段，等待高校统一提报晋级名单。',
+    captainName: '周逸轩',
+    captainPhone: '139****7788',
+    university: '北京航空航天大学',
+    myRoleInTeam: '参赛队员',
+    myCtfRoles: ['Web手', '密码学手'],
+    status: 'team_wait_school_match',
+    invitedAt: '2026-10-22 10:15',
+    teammatesSummary: ['周逸轩（队长）', '林远航（队员 · 已同意）', '王若曦（队员 · 已同意）', '冯文博 副教授（指导教师 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '周逸轩',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['Web手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['Web手', '密码学手'],
+        statusLabel: '已同意（本人）',
+      },
+      {
+        name: '王若曦',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['逆向手'],
+        statusLabel: '已同意',
+      },
+      {
+        name: '冯文博 副教授',
+        role: '指导教师',
+        university: '北京航空航天大学',
+        statusLabel: '已同意',
+      },
+    ],
+  },
+  // 7. 待秘书处终审（高校已提报晋级名单，校内排名第2名，对应发起中的待秘书处终审）
+  {
+    id: 'part-team-7',
+    competitionId: 'comp-2026-quantum-crypto',
+    competitionTitle: '2026“XX杯”量子计算环境后量子密码工程实现对抗挑战赛',
+    subTrackName: '后量子密码Shor算法对抗与QKD量子密钥分发攻防赛道',
+    teamName: '北航量子前沿密码战队',
+    teamLogo: 'default-logo',
+    teamIntro: '已通过高校初审并参加校内选拔赛，高校已正式提报晋级名单（校内排名第2名），当前等待大赛秘书处终审。',
+    captainName: '彭思源',
+    captainPhone: '139****8811',
+    university: '北京航空航天大学',
+    myRoleInTeam: '参赛队员',
+    myCtfRoles: ['密码学手', '逆向手'],
+    schoolRank: 2,
+    status: 'team_pending_secretariat',
+    invitedAt: '2026-10-18 14:00',
+    teammatesSummary: ['彭思源（队长）', '林远航（队员 · 校内第2名）', '宋知行（队员 · 已同意）', '赵振宇 教授（指导教师 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '彭思源',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['密码学手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['密码学手', '逆向手'],
+        statusLabel: '已同意（本人）',
+      },
+      {
+        name: '宋知行',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['Pwn手'],
+        statusLabel: '已同意',
+      },
+      {
+        name: '赵振宇 教授',
+        role: '指导教师',
+        university: '北京航空航天大学',
+        statusLabel: '已同意',
+      },
+    ],
+  },
+  // 8. 待秘书处终审（名单被驳回，等待高校重报，对应发起中的待终审名单被驳回）
+  {
+    id: 'part-team-8',
+    competitionId: 'comp-2026-finsec-open',
+    competitionTitle: '2026“XX杯”金融行业核心业务系统供应链安全与信创攻防挑战赛',
+    subTrackName: '金融信创中间件与核心账务系统反编译审计赛道',
+    teamName: '北航金融信创防线战队',
+    teamLogo: 'default-logo',
+    teamIntro: '高校已提报晋级（校内排名第3名），因学校上传的校赛成绩证明文件印章不清晰被秘书处退回待补充材料，队伍保持待终审状态，队长无需修改队伍。',
+    captainName: '方晓宇',
+    captainPhone: '138****3344',
+    university: '北京航空航天大学',
+    myRoleInTeam: '参赛队员',
+    myCtfRoles: ['取证手', '杂项手'],
+    schoolRank: 3,
+    status: 'team_secretariat_rejected',
+    secretariatRejectReason:
+      '经大赛组委会秘书处终审核验：北京航空航天大学提报的晋级成绩单扫描件中，教务处或学院盖章模糊不清，已退回高校管理员重新上传清晰盖章件（队长及队员无需重新提交队伍信息）。',
+    invitedAt: '2026-10-19 11:30',
+    teammatesSummary: ['方晓宇（队长）', '林远航（队员 · 校内第3名）', '李嘉铭（队员 · 已同意）', '冯文博 副教授（指导教师 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '方晓宇',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['Web手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['取证手', '杂项手'],
+        statusLabel: '已同意（本人）',
+      },
+      {
+        name: '李嘉铭',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['逆向手'],
+        statusLabel: '已同意',
+      },
+      {
+        name: '冯文博 副教授',
+        role: '指导教师',
+        university: '北京航空航天大学',
+        statusLabel: '已同意',
+      },
+    ],
+  },
+  // 9. 止步校赛（未进入晋级名单，对应发起中的未晋级）
+  {
+    id: 'part-team-9',
+    competitionId: 'comp-2026-supplychain',
+    competitionTitle: '2026“XX杯”开源软件供应链投毒防线与SBOM自动化审计挑战赛',
+    subTrackName: '开源软件投毒行为动态沙箱沙盒逃逸检测赛道',
+    teamName: '北航开源供应链卫士队',
+    teamLogo: 'default-logo',
+    teamIntro: '通过高校资格初审并参加校内选拔赛，最终校内排名第4名。受单校晋级名额上限（最多3队）限制，未入选晋级名单，止步校赛。',
+    captainName: '姜文轩',
+    captainPhone: '135****6677',
+    university: '北京航空航天大学',
+    myRoleInTeam: '参赛队员',
+    myCtfRoles: ['逆向手', 'Pwn手'],
+    schoolRank: 4,
+    status: 'team_not_advanced',
+    invitedAt: '2026-10-16 09:20',
+    teammatesSummary: ['姜文轩（队长）', '林远航（队员 · 校内第4名）', '沈清雪（队员 · 已同意）', '赵振宇 教授（指导教师 · 已同意）'],
+    teamMembersDetail: [
+      {
+        name: '姜文轩',
+        role: '队长',
+        university: '北京航空航天大学',
+        ctfRoles: ['Pwn手'],
+        statusLabel: '队长本人',
+      },
+      {
+        name: '林远航',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['逆向手', 'Pwn手'],
+        statusLabel: '已同意（本人）',
+      },
+      {
+        name: '沈清雪',
+        role: '队员',
+        university: '北京航空航天大学',
+        ctfRoles: ['密码学手'],
+        statusLabel: '已同意',
+      },
+      {
+        name: '赵振宇 教授',
+        role: '指导教师',
+        university: '北京航空航天大学',
+        statusLabel: '已同意',
+      },
+    ],
+  },
+  // 10. 已拒绝（队员视角已拒绝入队邀请，附带拒绝原因）
+  {
+    id: 'part-team-10',
     competitionId: 'comp-2026-crypto-deadline',
     competitionTitle: '2026“XX杯”商用密码应用与后量子密码算法挑战赛',
     subTrackName: '政务信息系统商用密码密评改造方案赛道',
@@ -3230,8 +3475,9 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
     ],
     declineReason: '已作为队长组建同赛事“国密算法协议分析与白盒密码逆向赛道”战队，同一赛事无法兼报两支队伍',
   },
+  // 11. 报名成功（参赛队员视角，已通过双级终审并晋级总决赛）
   {
-    id: 'part-team-7',
+    id: 'part-team-11',
     competitionId: 'comp-2026-ai-pilot',
     competitionTitle: '2026“XX杯”全国网数智安全大赛 · 大模型与人工智能安全先导赛',
     subTrackName: 'AIGC音视频深度伪造（Deepfake）鉴伪溯源赛道',
@@ -3295,8 +3541,9 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
       ],
     },
   },
+  // 12. 报名成功（指导教师视角，已通过双级终审并晋级总决赛）
   {
-    id: 'part-team-8',
+    id: 'part-team-12',
     competitionId: 'comp-2025-archive-ctf',
     competitionTitle: '2025第四届“XX杯”全国网数智安全大赛 · 年度总决赛历史归档',
     subTrackName: '第四届网络安全攻防实战总决赛归档',
@@ -7067,7 +7314,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               )}
               {item.status === 'joined' && (
                 <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
-                  已加入（已同意）
+                  已加入（队伍组建中）
                 </span>
               )}
               {item.status === 'declined' && (
@@ -7076,17 +7323,77 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                 </span>
               )}
               {item.status === 'team_pending_review' && (
+                <span className="text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg">
+                  已提交（待高校资格审核）
+                </span>
+              )}
+              {item.status === 'team_school_rejected' && (
+                <span className="text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-lg">
+                  高校资格审核已驳回
+                </span>
+              )}
+              {item.status === 'team_wait_school_match' && (
                 <span className="text-sky-700 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
-                  队伍待审核
+                  高校已通过
+                </span>
+              )}
+              {item.status === 'team_pending_secretariat' && (
+                <span className="text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-lg">
+                  待秘书处终审
+                </span>
+              )}
+              {item.status === 'team_secretariat_rejected' && (
+                <span className="text-amber-800 bg-amber-50 border border-amber-300 px-3 py-1 rounded-lg">
+                  待秘书处终审（名单被驳回，等待高校重报）
+                </span>
+              )}
+              {item.status === 'team_not_advanced' && (
+                <span className="text-slate-600 bg-slate-100 border border-slate-300 px-3 py-1 rounded-lg">
+                  未晋级
                 </span>
               )}
               {item.status === 'team_approved' && (
                 <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
-                  队伍报名成功
+                  报名成功（已晋级总决赛）
                 </span>
               )}
             </div>
           </div>
+
+          {/* 若存在高校或秘书处驳回说明，在队伍信息上方显著提示 */}
+          {item.status === 'team_school_rejected' && item.schoolRejectReason && (
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs space-y-1">
+              <div className="font-bold text-red-800 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>高校资格初审驳回原因（等待队长修改队伍信息并重新提交）：</span>
+              </div>
+              <div className="text-red-700 pl-5.5 leading-relaxed font-semibold">
+                {item.schoolRejectReason}
+              </div>
+            </div>
+          )}
+          {item.status === 'team_secretariat_rejected' && item.secretariatRejectReason && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-xs space-y-1">
+              <div className="font-bold text-amber-800 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>秘书处终审核验退回说明（等待本校高校管理员重新上传盖章证明材料）：</span>
+              </div>
+              <div className="text-amber-800 pl-5.5 leading-relaxed font-semibold">
+                {item.secretariatRejectReason}
+              </div>
+            </div>
+          )}
+          {item.status === 'declined' && item.declineReason && (
+            <div className="p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs space-y-1">
+              <div className="font-bold text-slate-700 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-slate-500 shrink-0" />
+                <span>您拒绝该队伍邀请时填写的理由：</span>
+              </div>
+              <div className="text-slate-600 pl-5.5 leading-relaxed">
+                {item.declineReason}
+              </div>
+            </div>
+          )}
 
           {/* 核心展示：队长是谁、队伍名称、所属院校、队长分配给我的初始角色标签、队伍介绍 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-5 rounded-xl border border-slate-200/80 text-sm">
@@ -7110,6 +7417,14 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               <span className="text-slate-500 text-xs block mb-0.5">队伍所属院校</span>
               <span className="font-bold text-[#0369A1]">{item.university}</span>
             </div>
+            {item.schoolRank && (
+              <div>
+                <span className="text-slate-500 text-xs block mb-0.5">校内排名</span>
+                <span className="font-extrabold text-amber-700">
+                  第 {item.schoolRank} 名
+                </span>
+              </div>
+            )}
             <div className="sm:col-span-2 p-3.5 rounded-xl bg-white border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-1">
                 <span className="text-slate-500 text-xs font-bold block">
@@ -7674,7 +7989,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                               </span>
                             )}
                             {item.status === 'joined' && (
-                              <span className="font-bold text-emerald-700">● 已加入</span>
+                              <span className="font-bold text-emerald-700">● 已加入（组建中）</span>
                             )}
                             {item.status === 'declined' && (
                               <div
@@ -7705,11 +8020,60 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                               </div>
                             )}
                             {item.status === 'team_pending_review' && (
-                              <span className="font-bold text-[#0284C7]">● 队伍待审核</span>
+                              <span className="font-bold text-amber-600">● 已提交（待高校审核）</span>
+                            )}
+                            {item.status === 'team_school_rejected' && (
+                              <div
+                                className="inline-flex items-center gap-1.5"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-200/80 text-xs font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                  <span>已驳回</span>
+                                </span>
+                                {item.schoolRejectReason && (
+                                  <div className="relative group inline-flex items-center">
+                                    <span
+                                      className="w-4 h-4 rounded-full bg-red-100 hover:bg-red-200 text-red-600 inline-flex items-center justify-center cursor-help transition-colors"
+                                      title={item.schoolRejectReason}
+                                    >
+                                      <AlertTriangle className="w-3 h-3" />
+                                    </span>
+                                    <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 p-2.5 rounded-xl bg-slate-900 text-white text-[11px] leading-relaxed shadow-xl">
+                                      <div className="font-bold text-red-300 mb-0.5">
+                                        高校驳回原因：
+                                      </div>
+                                      <div className="text-slate-100 break-words whitespace-normal">
+                                        {item.schoolRejectReason}
+                                      </div>
+                                      <div className="w-2 h-2 bg-slate-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {item.status === 'team_wait_school_match' && (
+                              <span className="font-bold text-[#0284C7]">● 高校已通过</span>
+                            )}
+                            {item.status === 'team_pending_secretariat' && (
+                              <span className="font-bold text-indigo-700">
+                                ● 待秘书处终审
+                              </span>
+                            )}
+                            {item.status === 'team_secretariat_rejected' && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300 text-xs font-bold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                <span>待秘书处终审（名单被驳回）</span>
+                              </span>
+                            )}
+                            {item.status === 'team_not_advanced' && (
+                              <span className="font-bold text-slate-500">
+                                ● 未晋级
+                              </span>
                             )}
                             {item.status === 'team_approved' && (
                               <span className="font-bold text-emerald-700 block">
-                                报名成功
+                                ● 报名成功
                               </span>
                             )}
                           </td>
