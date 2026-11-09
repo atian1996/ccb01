@@ -163,7 +163,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'go_modify',
     relatedCaptainTeamId: 'cap-team-4',
   },
-  // 3. 队员视角 —— 入队邀请（未读、待处理，对应新队伍 part-team-new-star，点击同意后立刻新增出现在“我的报名-我参与的”中）
+  // 3. 队员视角 —— 入队邀请（未读、待处理，对应新队伍 part-team-new-star）
   {
     id: 'msg-invite-2',
     title: '陆景川 邀请您加入队伍',
@@ -244,7 +244,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     inviteStatus: 'pending',
     relatedParticipatedTeamId: 'part-team-3',
   },
-  // 6. 指导教师视角 —— 指导教师入队邀请（已同意示例，对应 part-team-2）
+  // 6. 指导教师视角 —— 指导教师入队邀请（对应 part-team-2）
   {
     id: 'msg-invite-advisor',
     title: '沈星河 邀请您担任指导教师',
@@ -302,12 +302,12 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-1',
   },
-  // 9. 队长视角 —— 第一段【高校资格审核】通过（状态变更为“待校赛”，对应 cap-team-2）
+  // 9. 队长视角 —— 第一段【高校资格审核】通过（格式严格符合用户要求）
   {
     id: 'msg-review-progress',
-    title: '高校资格审核已通过（待校赛）',
+    title: '高校资格审核已通过',
     shortTitle: '队伍已通过高校资格审核',
-    desc: '您的队伍【北航零日防御先锋队】已通过第一段【高校资格审核】，当前报名状态更新为【待校赛】。待本校选拔赛结束后，将由高校管理员统一勾选晋级名单并上传成绩证明提报至秘书处。',
+    desc: '您的队伍【北航零日防御先锋队】已通过【高校资格审核】，当前报名状态更新为【高校已通过】。待本校校内选拔赛结束后，将由高校管理员将晋级名单上报至秘书处。',
     time: '3小时前',
     unread: false,
     category: 'review',
@@ -318,26 +318,10 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-2',
   },
-  // 10. 队长视角 —— 第二段【高校晋级提报】已列入名单（状态变更为“待终审”，对应 cap-team-7）
-  {
-    id: 'msg-review-promoted',
-    title: '高校已提报晋级名单（待终审）',
-    shortTitle: '队伍已获高校晋级提报',
-    desc: '恭喜！本校高校管理员已将您的队伍【SkyHawk-0day（林远航单兵队）】列入校赛晋级推荐名单（校内排名：第 2 名）并随附校赛成绩证明提交至大赛秘书处，当前报名状态为【待终审】。',
-    time: '3小时30分钟前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'review_progress',
-    messageTypeLabel: '晋级提报通知',
-    iconStyle: 'info',
-    actionType: 'view_detail',
-    relatedCaptainTeamId: 'cap-team-7',
-  },
-  // 11. 队长视角 —— 第二段【高校晋级提报】未晋级（状态变更为“未晋级”，对应 cap-team-8）
+  // 10. 队长视角 —— 第二段【高校晋级提报】未晋级（状态变更为“未晋级”，对应 cap-team-8）
   {
     id: 'msg-review-not-advanced',
-    title: '校赛晋级结果通知（未晋级）',
+    title: '校赛结果通知（未晋级）',
     shortTitle: '队伍止步校内选拔赛',
     desc: '贵校管理员已完成【2026第五届“XX杯”全国网数智安全大赛】本校晋级名单提报，您的队伍【北航玄武密码学研习队】未在本次晋级推荐名单内，当前报名状态更新为【未晋级】。感谢您的参与！',
     time: '4小时前',
@@ -350,39 +334,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-8',
   },
-  // 12. 队长视角 —— 第三段【秘书处终审】驳回高校晋级名单（对应 cap-team-9）
-  {
-    id: 'msg-review-sec-reject',
-    title: '秘书处终审退回高校重报提醒',
-    shortTitle: '本校晋级名单待高校重报',
-    desc: '您所在的【北航量子防线战队】（校内排名：第 3 名）所属高校晋级提报单被大赛秘书处退回补充材料（原因：校赛成绩单缺少教务处或网安学院公章）。队伍当前保持【待终审】状态，等待本校高校管理员重新上传提报，队长无需修改队伍信息。',
-    time: '4小时20分钟前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'review_progress',
-    messageTypeLabel: '终审进度提醒',
-    iconStyle: 'warning',
-    actionType: 'view_detail',
-    relatedCaptainTeamId: 'cap-team-9',
-  },
-  // 13. 队长视角 —— 第三段【秘书处终审】通过（报名成功，对应 cap-team-3）
-  {
-    id: 'msg-reg-success',
-    title: '恭喜！秘书处终审通过，报名成功',
-    shortTitle: '恭喜！队伍报名成功',
-    desc: '您的队伍【北航智盾先锋队】（校内排名：第 1 名）已通过高校资格审核、高校晋级提报及大赛秘书处终审，报名状态正式变更为【报名成功】，已同步载入【我的竞赛】与最终参赛队伍清单！',
-    time: '5小时前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'registration_success',
-    messageTypeLabel: '报名成功',
-    iconStyle: 'success',
-    actionType: 'view_detail',
-    relatedCaptainTeamId: 'cap-team-3',
-  },
-  // 14. 队员/指导教师视角 —— 队内角色分配变更提醒
+  // 11. 队员/指导教师视角 —— 队内角色分配变更提醒
   {
     id: 'msg-role-updated',
     title: '队长更新了您的队内角色标签',
@@ -398,7 +350,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedParticipatedTeamId: 'part-team-2',
   },
-  // 15. 队员/指导教师视角 —— 被移出队伍（纯通知，无按钮）
+  // 12. 队员/指导教师视角 —— 被移出队伍
   {
     id: 'msg-removed-team',
     title: '移出队伍通知',
@@ -411,45 +363,29 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     scenarioType: 'removed_from_team',
     messageTypeLabel: '被移出队伍',
     iconStyle: 'warning',
-    actionType: 'none',
-  },
-  // 16. 队员/指导教师视角 —— 所在队伍状态变更（通过秘书处终审 -> 报名成功）
-  {
-    id: 'msg-team-status-change',
-    title: '所在队伍报名成功通知',
-    shortTitle: '所在队伍已报名成功',
-    desc: '您参与的队伍【北航多模态鉴伪实验室战队】（校内排名：第 2 名）已通过大赛秘书处终审，状态正式变更为【报名成功】，您可前往【我的竞赛】查看完整参赛档案。',
-    time: '昨天 14:10',
-    unread: false,
-    category: 'review',
-    rolePerspective: '队员/指导教师视角',
-    scenarioType: 'team_status_change',
-    messageTypeLabel: '队伍状态提醒',
-    iconStyle: 'success',
     actionType: 'view_detail',
-    relatedParticipatedTeamId: 'part-team-7',
   },
-  // 17. 队员/指导教师视角 —— 所在队伍状态变更（通过高校资格审核 -> 待校赛）
+  // 13. 队员/指导教师视角 —— 所在队伍状态变更（通过高校资格审核）
   {
     id: 'msg-team-status-school-pass',
     title: '所在队伍已通过高校资格审核',
-    shortTitle: '所在队伍进入待校赛阶段',
-    desc: '您作为参赛队员加入的【北航智能网联防火墙战队】已通过本校高校资格审核，当前处于【待校赛】阶段。',
+    shortTitle: '所在队伍已通过高校资格审核',
+    desc: '您的队伍【北航零日防御先锋队】已通过【高校资格审核】，当前报名状态更新为【高校已通过】。待本校校内选拔赛结束后，将由高校管理员将晋级名单上报至秘书处。',
     time: '昨天 12:30',
     unread: false,
     category: 'review',
     rolePerspective: '队员/指导教师视角',
     scenarioType: 'team_status_change',
-    messageTypeLabel: '队伍状态提醒',
+    messageTypeLabel: '高校审核通过',
     iconStyle: 'info',
     actionType: 'view_detail',
     relatedParticipatedTeamId: 'part-team-5',
   },
 
   // =========================================================================
-  // 三、高校管理员视角
+  // 二、高校管理员视角（高校管理与审核待办）
   // =========================================================================
-  // 18. 高校管理员视角 —— 待办提醒（本校有新队伍提交资格审核）
+  // 14. 高校管理员视角 —— 待办提醒（本校有新队伍提交资格审核）
   {
     id: 'msg-univ-todo',
     title: '本校新报名队伍待资格审核',
@@ -464,7 +400,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'info',
     actionType: 'go_admin',
   },
-  // 19. 高校管理员视角 —— 待办提醒（学生认证/教师认证待审核）
+  // 15. 高校管理员视角 —— 待办提醒（学生认证/教师认证待审核）
   {
     id: 'msg-univ-cert-todo',
     title: '本校新增学生/教师认证待审核',
@@ -479,52 +415,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'info',
     actionType: 'go_admin',
   },
-  // 20. 高校管理员视角 —— 待办提醒（校赛结束，提报本校晋级名单）
-  {
-    id: 'msg-univ-promote-todo',
-    title: '请提报本校校赛晋级队伍名单',
-    shortTitle: '请提报本校晋级队伍名单',
-    desc: '本校已有 5 支队伍通过第一段【高校资格审核】。请在校内选拔赛结束后，前往后台【高校资格审核】点击【提报晋级名单】，勾选晋级队伍、设置校内排名并上传盖章版校赛成绩证明。',
-    time: '2天前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '高校管理员视角',
-    scenarioType: 'univ_todo',
-    messageTypeLabel: '晋级提报待办',
-    iconStyle: 'warning',
-    actionType: 'go_admin',
-  },
-  // 21. 高校管理员视角 —— 秘书处驳回本校提报的晋级名单（需修改重报）
-  {
-    id: 'msg-univ-sec-reject',
-    title: '本校晋级提报单被秘书处驳回',
-    shortTitle: '晋级名单被驳回需重报',
-    desc: '大赛秘书处在第三段终审中驳回了贵校提报的晋级名单，驳回原因：上传的校赛成绩证明PDF未加盖学院或教务部门公章，且第3名队伍排序备注不全。请前往后台重新上传材料并提报。',
-    time: '2天前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '高校管理员视角',
-    scenarioType: 'univ_todo',
-    messageTypeLabel: '终审驳回重报',
-    iconStyle: 'error',
-    actionType: 'go_admin',
-  },
-  // 22. 高校管理员视角 —— 秘书处已通过本校晋级名单
-  {
-    id: 'msg-univ-sec-pass',
-    title: '本校晋级队伍名单已通过秘书处终审',
-    shortTitle: '本校晋级名单终审通过',
-    desc: '贵校提报的【2026第五届“XX杯”全国网数智安全大赛】晋级队伍名单（共 3 支队伍）已通过大赛秘书处终审，全部晋级队伍已正式进入【最终参赛队伍清单】。',
-    time: '2天前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '高校管理员视角',
-    scenarioType: 'univ_todo',
-    messageTypeLabel: '终审通过通知',
-    iconStyle: 'success',
-    actionType: 'go_admin',
-  },
-  // 23. 高校管理员视角 —— 通道开启（秘书处开启高校审核与晋级提报通道）
+  // 16. 高校管理员视角 —— 通道开启（高校审核与晋级提报通道）
   {
     id: 'msg-univ-channel-open',
     title: '高校资格审核与晋级提报通道已开启',
@@ -541,58 +432,9 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
   },
 
   // =========================================================================
-  // 四、秘书处视角
+  // 三、全角色通用（系统与认证类）
   // =========================================================================
-  // 24. 秘书处视角 —— 待办提醒（高校已提报晋级名单，待秘书处终审）
-  {
-    id: 'msg-sec-todo',
-    title: '高校晋级名单待秘书处终审',
-    shortTitle: '有高校提报晋级名单待终审',
-    desc: '【北京航空航天大学】、【清华大学】等 3 所高校已提交校赛晋级推荐名单及成绩证明材料（合计 9 支晋级队伍），请前往后台【查看报名 -> 秘书处终审】按高校维度核验材料并完成终审。',
-    time: '2天前',
-    unread: true,
-    category: 'review',
-    rolePerspective: '秘书处视角',
-    scenarioType: 'sec_todo',
-    messageTypeLabel: '终审待办提醒',
-    iconStyle: 'info',
-    actionType: 'go_admin',
-  },
-  // 25. 秘书处视角 —— 待办提醒（被驳回高校已修改并重新提报晋级名单）
-  {
-    id: 'msg-sec-resubmit-todo',
-    title: '高校已重新提报晋级名单待复核',
-    shortTitle: '高校已重新提报晋级名单',
-    desc: '此前被打回补充材料的【哈尔滨工业大学】已完成校赛成绩证明材料重传与排名修正，并重新提交至【秘书处终审】，请及时复核。',
-    time: '2天前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '秘书处视角',
-    scenarioType: 'sec_todo',
-    messageTypeLabel: '重报复核待办',
-    iconStyle: 'warning',
-    actionType: 'go_admin',
-  },
-  // 26. 秘书处视角 —— 最终参赛队伍清单汇总提醒
-  {
-    id: 'msg-sec-summary',
-    title: '各赛区最终参赛队伍清单阶段汇总',
-    shortTitle: '最终参赛队伍清单阶段汇总',
-    desc: '当前已有 18 所高校通过秘书处终审，共计 52 支队伍正式沉淀至【最终参赛队伍清单】，您可随时前往后台导出包含队员身份证号、学历、队内角色、所属赛区等全量字段的 Excel 明细表。',
-    time: '3天前',
-    unread: false,
-    category: 'system',
-    rolePerspective: '秘书处视角',
-    scenarioType: 'sec_todo',
-    messageTypeLabel: '赛事汇总通知',
-    iconStyle: 'success',
-    actionType: 'go_admin',
-  },
-
-  // =========================================================================
-  // 五、全角色通用（系统与认证类）
-  // =========================================================================
-  // 27. 全角色通用 —— 实名认证审核通过
+  // 17. 全角色通用 —— 实名认证审核通过
   {
     id: 'msg-cert-pass',
     title: '实名认证已完成',
@@ -607,7 +449,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'success',
     actionType: 'go_cert',
   },
-  // 28. 全角色通用 —— 学生认证审核通过
+  // 18. 全角色通用 —— 学生认证审核通过
   {
     id: 'msg-cert-student-pass',
     title: '学生认证审核通过',
@@ -622,7 +464,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'success',
     actionType: 'go_cert',
   },
-  // 29. 全角色通用 —— 学生认证被驳回
+  // 19. 全角色通用 —— 学生认证被驳回
   {
     id: 'msg-cert-reject',
     title: '学生认证审核被驳回',
@@ -637,7 +479,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'error',
     actionType: 'go_cert',
   },
-  // 30. 全角色通用 —— 教师认证审核通过
+  // 20. 全角色通用 —— 教师认证审核通过
   {
     id: 'msg-cert-teacher-pass',
     title: '教师认证审核通过',
@@ -652,7 +494,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'success',
     actionType: 'go_cert',
   },
-  // 31. 全角色通用 —— 教师认证被驳回
+  // 21. 全角色通用 —— 教师认证被驳回
   {
     id: 'msg-cert-teacher-reject',
     title: '教师认证审核被驳回',
@@ -667,7 +509,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'error',
     actionType: 'go_cert',
   },
-  // 32. 全角色通用 —— 赛事报名截止提醒
+  // 22. 全角色通用 —— 赛事报名截止提醒（系统公告，无操作按钮）
   {
     id: 'msg-sys-deadline',
     title: '赛事报名截止时间临近提醒',
@@ -680,7 +522,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     scenarioType: 'review_progress',
     messageTypeLabel: '系统公告',
     iconStyle: 'warning',
-    actionType: 'view_detail',
+    actionType: 'none',
   },
 ];
 
@@ -3628,7 +3470,7 @@ export const StandaloneUserCenterPage: React.FC<{
   // “我的消息”页面内部筛选状态：分类Tab（全部 / 组队邀请 / 审核与反馈 / 系统通知）与角色视角筛选
   const [msgCategoryTab, setMsgCategoryTab] = useState<'all' | MessageCategoryTab>('all');
   const [msgRoleFilter, setMsgRoleFilter] = useState<'all' | MessageRolePerspective>('all');
-  const [detailModalMessage, setDetailModalMessage] = useState<PlatformMessageItem | null>(null);
+  const [registrationRoleTab, setRegistrationRoleTab] = useState<'initiated' | 'participated'>('initiated');
 
   const unreadMsgCount = React.useMemo(
     () => messages.filter((m) => m.unread).length,
@@ -5721,6 +5563,8 @@ export const StandaloneUserCenterPage: React.FC<{
               registrationConfigs={registrationConfigs}
               onContinueEditDraft={onContinueEditDraft}
               onJumpToCertification={() => setActiveTab('certification')}
+              initialRoleViewTab={registrationRoleTab}
+              onRoleViewTabChange={setRegistrationRoleTab}
             />
           )}
 
@@ -5977,7 +5821,7 @@ export const StandaloneUserCenterPage: React.FC<{
                   })}
                 </div>
 
-                {/* 辅助角色视角筛选（展示队长、队员/指导教师、高校管理员、秘书处、全角色通用 5 类视角） */}
+                {/* 辅助角色视角筛选（展示队长、队员/指导教师、高校管理员、全角色通用） */}
                 <div className="flex items-center gap-1.5 flex-wrap text-xs">
                   <span className="text-slate-400 font-medium mr-1">角色场景预览：</span>
                   {(
@@ -5986,7 +5830,6 @@ export const StandaloneUserCenterPage: React.FC<{
                       { id: '队长视角', label: '队长视角' },
                       { id: '队员/指导教师视角', label: '队员/指导教师' },
                       { id: '高校管理员视角', label: '高校管理员' },
-                      { id: '秘书处视角', label: '秘书处' },
                       { id: '全角色通用', label: '通用系统' },
                     ] as const
                   ).map((rp) => {
@@ -6009,7 +5852,7 @@ export const StandaloneUserCenterPage: React.FC<{
                 </div>
               </div>
 
-              {/* 3. 列表区：消息流横向卡片，按时间倒序排列，左中右结构 */}
+              {/* 3. 列表区：消息流横向卡片，直接在列表中展示全文，不再设置详情弹窗 */}
               <div className="divide-y divide-slate-100">
                 {filteredMessages.length === 0 ? (
                   <div className="py-16 text-center text-xs sm:text-sm text-slate-400 space-y-2">
@@ -6019,21 +5862,6 @@ export const StandaloneUserCenterPage: React.FC<{
                 ) : (
                   filteredMessages.map((msg) => {
                     const isUserAvatar = msg.iconStyle === 'avatar' || Boolean(msg.senderName);
-                    const resolvedAction: MessageRightActionType =
-                      msg.actionType ||
-                      (msg.scenarioType === 'team_invite'
-                        ? 'invite_actions'
-                        : msg.scenarioType === 'review_rejected'
-                        ? 'go_modify'
-                        : msg.scenarioType === 'removed_from_team'
-                        ? 'none'
-                        : msg.scenarioType === 'univ_todo' ||
-                          msg.scenarioType === 'univ_channel_open' ||
-                          msg.scenarioType === 'sec_todo'
-                        ? 'go_admin'
-                        : msg.scenarioType === 'cert_result'
-                        ? 'go_cert'
-                        : 'view_detail');
 
                     return (
                       <div
@@ -6047,7 +5875,7 @@ export const StandaloneUserCenterPage: React.FC<{
                           msg.unread ? 'bg-sky-50/35 hover:bg-sky-50/70' : 'bg-white hover:bg-slate-50/80'
                         }`}
                       >
-                        {/* 左侧头像/图标：用户交互类显示对方头像；系统/审核类显示带颜色的系统Icon */}
+                        {/* 左侧头像/图标 */}
                         <div className="shrink-0">
                           {isUserAvatar ? (
                             msg.senderAvatarUrl ? (
@@ -6080,10 +5908,10 @@ export const StandaloneUserCenterPage: React.FC<{
                           )}
                         </div>
 
-                        {/* 中部内容：第一行标题（未读时加粗，带小红点）；第二行摘要内容（超过一行省略号截断）；第三行时间 */}
-                        <div className="flex-1 min-w-0 space-y-1">
-                          {/* 第一行：标题（未读加粗 + 小红点 + 角色/类型标签） */}
-                          <div className="flex items-center gap-2 min-w-0">
+                        {/* 中部内容：展示标题、全文内容与时间 */}
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          {/* 第一行：标题（未读加粗 + 小红点，删除“入队邀请”与“队员/指导教师视角”标签） */}
+                          <div className="flex items-center gap-2 min-w-0 flex-wrap">
                             {msg.unread && (
                               <span
                                 className="w-2 h-2 rounded-full bg-[#F53F3F] shrink-0"
@@ -6091,7 +5919,7 @@ export const StandaloneUserCenterPage: React.FC<{
                               />
                             )}
                             <span
-                              className={`text-sm truncate ${
+                              className={`text-sm ${
                                 msg.unread
                                   ? 'font-extrabold text-slate-900'
                                   : 'font-medium text-slate-700'
@@ -6099,24 +5927,23 @@ export const StandaloneUserCenterPage: React.FC<{
                             >
                               {msg.title}
                             </span>
-                            {msg.messageTypeLabel && (
+                            {msg.messageTypeLabel && msg.messageTypeLabel !== '入队邀请' && (
                               <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
                                 {msg.messageTypeLabel}
                               </span>
                             )}
-                            {msg.rolePerspective && (
+                            {msg.rolePerspective && msg.rolePerspective !== '队员/指导教师视角' && (
                               <span className="hidden md:inline-flex px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0284C7] border border-sky-200/80 shrink-0">
                                 {msg.rolePerspective}
                               </span>
                             )}
                           </div>
 
-                          {/* 第二行：摘要内容（超过一行省略号截断） */}
+                          {/* 第二行：所有消息直接在列表中展示全文，不再设置截断 */}
                           <p
-                            className={`text-xs sm:text-sm truncate ${
+                            className={`text-xs sm:text-sm leading-relaxed whitespace-pre-line ${
                               msg.unread ? 'text-slate-700 font-medium' : 'text-slate-500'
                             }`}
-                            title={msg.desc}
                           >
                             {msg.desc}
                           </p>
@@ -6164,122 +5991,137 @@ export const StandaloneUserCenterPage: React.FC<{
                           className="shrink-0 flex items-center gap-2"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* 1. 邀请类：支持点开邀请详情查看角色，未处理显示高亮主色【同意加入】和普通【拒绝】按钮；已处理显示灰色文字 已同意 或 已拒绝 */}
-                          {resolvedAction === 'invite_actions' && (
-                            <div className="flex items-center gap-2">
+                          {(() => {
+                            // 1. 系统公告：操作按钮删除
+                            if (msg.messageTypeLabel === '系统公告') {
+                              return null;
+                            }
+
+                            // 2. 高校管理员待办与通道开启：保留“去后台处理”
+                            if (
+                              msg.actionType === 'go_admin' ||
+                              msg.scenarioType === 'univ_todo' ||
+                              msg.scenarioType === 'univ_channel_open'
+                            ) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (msg.unread && onMarkMessageRead) {
+                                      onMarkMessageRead(msg.id);
+                                    }
+                                    if (onGoToAdminBackend) {
+                                      onGoToAdminBackend();
+                                    }
+                                  }}
+                                  className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
+                                >
+                                  去后台处理
+                                </button>
+                              );
+                            }
+
+                            // 3. 入队邀请：只保留一个“去处理”按钮，点击后跳转到【我的报名的我参与的】页面
+                            if (
+                              msg.scenarioType === 'team_invite' ||
+                              msg.category === 'invite' ||
+                              msg.actionType === 'invite_actions'
+                            ) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (msg.unread && onMarkMessageRead) {
+                                      onMarkMessageRead(msg.id);
+                                    }
+                                    setRegistrationRoleTab('participated');
+                                    setActiveTab('registrations');
+                                  }}
+                                  className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
+                                >
+                                  去处理
+                                </button>
+                              );
+                            }
+
+                            // 4. 成员拒绝或同意的反馈：操作改为“去查看”，点击后跳转到【我的报名的我发起的】页面
+                            if (msg.scenarioType === 'member_feedback') {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (msg.unread && onMarkMessageRead) {
+                                      onMarkMessageRead(msg.id);
+                                    }
+                                    setRegistrationRoleTab('initiated');
+                                    setActiveTab('registrations');
+                                  }}
+                                  className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-sky-50 text-[#0284C7] border border-sky-300 text-xs font-bold cursor-pointer transition-colors whitespace-nowrap"
+                                >
+                                  去查看
+                                </button>
+                              );
+                            }
+
+                            // 5. 高校审核通过的消息：操作按钮只保留一个“去查看”，根据用户是队长还是队员跳转到我发起的或我参与的页面
+                            const isSchoolPass =
+                              msg.id === 'msg-review-progress' ||
+                              msg.id === 'msg-team-status-school-pass' ||
+                              (msg.messageTypeLabel === '高校审核通过' &&
+                                msg.desc.includes('已通过【高校资格审核】'));
+                            if (isSchoolPass) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (msg.unread && onMarkMessageRead) {
+                                      onMarkMessageRead(msg.id);
+                                    }
+                                    if (msg.rolePerspective === '队长视角') {
+                                      setRegistrationRoleTab('initiated');
+                                    } else {
+                                      setRegistrationRoleTab('participated');
+                                    }
+                                    setActiveTab('registrations');
+                                  }}
+                                  className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-sky-50 text-[#0284C7] border border-sky-300 text-xs font-bold cursor-pointer transition-colors whitespace-nowrap"
+                                >
+                                  去查看
+                                </button>
+                              );
+                            }
+
+                            // 6. 其他消息：除“去后台处理”外，操作都改为“去查看”，点击跳转至对应业务页面
+                            return (
                               <button
                                 type="button"
                                 onClick={() => {
                                   if (msg.unread && onMarkMessageRead) {
                                     onMarkMessageRead(msg.id);
                                   }
-                                  setDetailModalMessage(msg);
+                                  if (
+                                    msg.scenarioType === 'cert_result' ||
+                                    msg.actionType === 'go_cert'
+                                  ) {
+                                    setActiveTab('certification');
+                                  } else if (
+                                    msg.rolePerspective === '队员/指导教师视角' ||
+                                    msg.scenarioType === 'team_status_change' ||
+                                    msg.scenarioType === 'removed_from_team'
+                                  ) {
+                                    setRegistrationRoleTab('participated');
+                                    setActiveTab('registrations');
+                                  } else {
+                                    setRegistrationRoleTab('initiated');
+                                    setActiveTab('registrations');
+                                  }
                                 }}
-                                className="text-xs font-bold text-[#0284C7] hover:text-[#0369A1] hover:underline px-2 py-1 cursor-pointer transition-colors"
+                                className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-sky-50 text-[#0284C7] border border-sky-300 text-xs font-bold cursor-pointer transition-colors whitespace-nowrap"
                               >
-                                邀请详情
+                                去查看
                               </button>
-                              {(!msg.inviteStatus || msg.inviteStatus === 'pending') ? (
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      onAcceptInviteMessage && onAcceptInviteMessage(msg)
-                                    }
-                                    className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold shadow-2xs cursor-pointer transition-colors"
-                                  >
-                                    同意加入
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      onRejectInviteMessage && onRejectInviteMessage(msg)
-                                    }
-                                    className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold cursor-pointer transition-colors"
-                                  >
-                                    拒绝
-                                  </button>
-                                </div>
-                              ) : msg.inviteStatus === 'accepted' ? (
-                                <span className="text-xs font-semibold text-slate-400 px-2 py-1 select-none">
-                                  已同意
-                                </span>
-                              ) : (
-                                <span className="text-xs font-semibold text-slate-400 px-2 py-1 select-none">
-                                  已拒绝
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* 2. 需处理类（如被驳回）：展示【去修改】按钮 */}
-                          {resolvedAction === 'go_modify' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (msg.unread && onMarkMessageRead) {
-                                  onMarkMessageRead(msg.id);
-                                }
-                                setActiveTab('registrations');
-                              }}
-                              className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer transition-colors"
-                            >
-                              去修改
-                            </button>
-                          )}
-
-                          {/* 3. 高校管理员 / 秘书处待办或通道开启：展示【去后台处理】按钮 */}
-                          {resolvedAction === 'go_admin' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (msg.unread && onMarkMessageRead) {
-                                  onMarkMessageRead(msg.id);
-                                }
-                                if (onGoToAdminBackend) {
-                                  onGoToAdminBackend();
-                                }
-                              }}
-                              className="px-3.5 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer transition-colors"
-                            >
-                              去后台处理
-                            </button>
-                          )}
-
-                          {/* 4. 全角色通用认证结果类：展示【去查看】按钮 */}
-                          {resolvedAction === 'go_cert' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (msg.unread && onMarkMessageRead) {
-                                  onMarkMessageRead(msg.id);
-                                }
-                                setActiveTab('certification');
-                              }}
-                              className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-sky-50 text-[#0284C7] border border-sky-200 text-xs font-bold cursor-pointer transition-colors"
-                            >
-                              去查看
-                            </button>
-                          )}
-
-                          {/* 5. 纯通知类（除“被移出队伍”无按钮外）：展示【查看详情】文本链接 */}
-                          {resolvedAction === 'view_detail' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (msg.unread && onMarkMessageRead) {
-                                  onMarkMessageRead(msg.id);
-                                }
-                                setDetailModalMessage(msg);
-                              }}
-                              className="text-xs font-bold text-[#0284C7] hover:text-[#0369A1] hover:underline px-2 py-1 cursor-pointer transition-colors"
-                            >
-                              查看详情
-                            </button>
-                          )}
-
-                          {/* 6. 被移出队伍：无操作按钮（纯通知） */}
-                          {resolvedAction === 'none' && null}
+                            );
+                          })()}
                         </div>
                       </div>
                     );
@@ -6290,153 +6132,6 @@ export const StandaloneUserCenterPage: React.FC<{
           )}
         </div>
       </div>
-
-      {/* =====================================================================
-          弹窗：【我的消息 -> 查看详情】消息全文与关联业务跳转弹窗
-         ===================================================================== */}
-      {detailModalMessage && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 bg-gradient-to-r from-[#0369A1] to-[#0284C7] text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4" />
-                <span className="font-bold text-sm">
-                  消息详情{detailModalMessage.messageTypeLabel ? ` · ${detailModalMessage.messageTypeLabel}` : ''}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetailModalMessage(null)}
-                className="text-white/80 hover:text-white cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                <h3 className="text-base font-extrabold text-slate-900">
-                  {detailModalMessage.title}
-                </h3>
-                <span className="text-xs text-slate-400 font-mono-num shrink-0">
-                  {detailModalMessage.time}
-                </span>
-              </div>
-              {detailModalMessage.rolePerspective && (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-500">触发角色场景：</span>
-                  <span className="px-2 py-0.5 rounded bg-sky-50 border border-sky-200 text-[#0284C7] font-bold">
-                    {detailModalMessage.rolePerspective}
-                  </span>
-                </div>
-              )}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-700 leading-relaxed">
-                {detailModalMessage.desc}
-              </div>
-
-              {/* 队员视角：在【消息中心】点开邀请详情时，展示队伍名、队长名以及队长分配的初始角色标签 */}
-              {detailModalMessage.scenarioType === 'team_invite' && (() => {
-                const inviteTeam =
-                  detailModalMessage.inviteTeamPayload ||
-                  participatedTeams.find(
-                    (pt) => pt.id === detailModalMessage.relatedParticipatedTeamId
-                  );
-                if (!inviteTeam) return null;
-                const isAdvisorInvite = inviteTeam.myRoleInTeam === '指导教师';
-                return (
-                  <div className="p-4 rounded-xl bg-sky-50/70 border border-sky-200 space-y-2.5 text-xs">
-                    <div className="font-bold text-slate-900 flex items-center justify-between">
-                      <span>入队邀请详情单</span>
-                      <span className="text-[11px] font-semibold text-[#0284C7]">
-                        受激身份：{inviteTeam.myRoleInTeam}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700">
-                      <div>
-                        <span className="text-slate-500">队伍名称：</span>
-                        <strong className="text-slate-900">{inviteTeam.teamName}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">发起队长：</span>
-                        <strong className="text-slate-900">{inviteTeam.captainName}</strong>
-                      </div>
-                    </div>
-                    {!isAdvisorInvite && (
-                      <div className="pt-2 border-t border-sky-200/70 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-slate-600 font-semibold">
-                            队长给您分配的初始角色标签：
-                          </span>
-                          <CtfRoleBadges
-                            roles={inviteTeam.myCtfRoles}
-                            emptyText="待分配"
-                          />
-                        </div>
-                        <span className="text-[11px] text-slate-500">
-                          点击【同意加入】后角色标签正式生效（如需调整请联系队长修改）
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setDetailModalMessage(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
-                >
-                  关闭
-                </button>
-                {detailModalMessage.scenarioType === 'team_invite' &&
-                  (!detailModalMessage.inviteStatus ||
-                    detailModalMessage.inviteStatus === 'pending') && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onRejectInviteMessage) {
-                            onRejectInviteMessage(detailModalMessage);
-                          }
-                          setDetailModalMessage(null);
-                        }}
-                        className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer"
-                      >
-                        拒绝邀请
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onAcceptInviteMessage) {
-                            onAcceptInviteMessage(detailModalMessage);
-                          }
-                          setDetailModalMessage(null);
-                        }}
-                        className="px-4 py-2 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold cursor-pointer shadow-xs"
-                      >
-                        同意加入
-                      </button>
-                    </>
-                  )}
-                {(detailModalMessage.relatedCaptainTeamId ||
-                  detailModalMessage.relatedParticipatedTeamId ||
-                  detailModalMessage.category === 'review') && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDetailModalMessage(null);
-                      setActiveTab('registrations');
-                    }}
-                    className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer"
-                  >
-                    前往【我的报名】查看队伍 &rarr;
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* =====================================================================
           弹窗：【我的竞赛 -> 查看队伍详情】（完整回显报名时填写的所有队伍字段 + 每个队员的手机号与邮箱）

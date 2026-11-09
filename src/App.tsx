@@ -1594,45 +1594,28 @@ export default function App() {
                                     </div>
                                   </div>
 
-                                  {/* 面板内的快捷交互：若为未处理的邀请类消息，右侧直接显示极简版【同意】/【拒绝】微缩按钮 */}
+                                  {/* 面板内的快捷交互：若为入队邀请类消息，右侧只保留一个【去处理】按钮，点击后跳转至我的报名的我参与的页面 */}
                                   {isInvitePending && (
-                                    <div
-                                      className="flex items-center gap-1 shrink-0"
-                                      onClick={(e) => e.stopPropagation()}
+                                    <button
+                                      type="button"
+                                      title="去处理入队邀请"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setNotifications((prev) =>
+                                          prev.map((n) =>
+                                            n.id === item.id ? { ...n, unread: false } : n
+                                          )
+                                        );
+                                        setBellDropdownOpen(false);
+                                        setUserCenterInitialTab('registrations');
+                                        setCurrentView('user-center');
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                      }}
+                                      className="px-2 py-1 rounded bg-[#0284C7] hover:bg-[#0369A1] text-white text-[11px] font-bold cursor-pointer transition-colors shrink-0"
                                     >
-                                      <button
-                                        type="button"
-                                        title="同意加入队伍"
-                                        onClick={() => handleAcceptInviteFromMessage(item)}
-                                        className="px-2 py-1 rounded bg-[#1664FF] hover:bg-[#0E4FD6] text-white text-[11px] font-bold flex items-center gap-0.5 cursor-pointer transition-colors"
-                                      >
-                                        <Check className="w-3 h-3" />
-                                        <span>同意</span>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        title="拒绝邀请"
-                                        onClick={() => handleRejectInviteFromMessage(item)}
-                                        className="px-2 py-1 rounded bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-[11px] font-semibold flex items-center gap-0.5 cursor-pointer transition-colors"
-                                      >
-                                        <X className="w-3 h-3" />
-                                        <span>拒绝</span>
-                                      </button>
-                                    </div>
+                                      去处理
+                                    </button>
                                   )}
-
-                                  {item.actionType === 'invite_actions' &&
-                                    item.inviteStatus === 'accepted' && (
-                                      <span className="text-[11px] text-slate-400 shrink-0">
-                                        已同意
-                                      </span>
-                                    )}
-                                  {item.actionType === 'invite_actions' &&
-                                    item.inviteStatus === 'rejected' && (
-                                      <span className="text-[11px] text-slate-400 shrink-0">
-                                        已拒绝
-                                      </span>
-                                    )}
                                 </div>
                               );
                             });

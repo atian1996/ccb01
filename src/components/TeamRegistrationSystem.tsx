@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Shield,
   Users,
@@ -5327,6 +5327,8 @@ interface MyRegistrationsClosedLoopModuleProps {
   registrationConfigs?: EventRegistrationConfig[];
   onContinueEditDraft: (team: CaptainTeamRecord) => void;
   onJumpToCertification: () => void;
+  initialRoleViewTab?: 'initiated' | 'participated';
+  onRoleViewTabChange?: (tab: 'initiated' | 'participated') => void;
 }
 
 export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoopModuleProps> = ({
@@ -5340,6 +5342,8 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
   registrationConfigs = [],
   onContinueEditDraft,
   onJumpToCertification,
+  initialRoleViewTab = 'initiated',
+  onRoleViewTabChange,
 }) => {
   const activePlatformUsers = useMemo(
     () =>
@@ -5350,7 +5354,22 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
   );
 
   // 顶层视角切换：'initiated' (我发起的 - 队长) | 'participated' (我参与的 - 队员/老师)
-  const [roleViewTab, setRoleViewTab] = useState<'initiated' | 'participated'>('initiated');
+  const [roleViewTab, setRoleViewTabState] = useState<'initiated' | 'participated'>(
+    initialRoleViewTab
+  );
+
+  useEffect(() => {
+    if (initialRoleViewTab) {
+      setRoleViewTabState(initialRoleViewTab);
+    }
+  }, [initialRoleViewTab]);
+
+  const setRoleViewTab = (tab: 'initiated' | 'participated') => {
+    setRoleViewTabState(tab);
+    if (onRoleViewTabChange) {
+      onRoleViewTabChange(tab);
+    }
+  };
 
   // 页面3：队长当前打开的【队伍详情/管理页】ID
   const [managingTeamId, setManagingTeamId] = useState<string | null>(null);
