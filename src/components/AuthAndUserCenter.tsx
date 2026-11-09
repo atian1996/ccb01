@@ -70,6 +70,8 @@ export type MessageCategoryTab = 'invite' | 'review' | 'system';
 
 export type MessageRolePerspective =
   | '队长视角'
+  | '队员视角'
+  | '指导教师视角'
   | '队员/指导教师视角'
   | '高校管理员视角'
   | '秘书处视角'
@@ -78,23 +80,23 @@ export type MessageRolePerspective =
 export type MessageScenarioType =
   | 'member_feedback' // 1. 队长视角：成员反馈（队员/老师同意或拒绝）
   | 'review_rejected' // 1. 队长视角：审核驳回（高校/秘书处驳回）
-  | 'review_progress' // 1. 队长视角：审核进度（高校通过，待秘书处）
+  | 'review_progress' // 1. 队长视角：审核进度（已提交、高校通过、晋级提报待终审、未晋级、名单退回重报）
   | 'registration_success' // 1. 队长视角：报名成功（秘书处终审通过）
-  | 'team_invite' // 2. 队员/指导教师视角：入队邀请（队长发出邀请）
-  | 'removed_from_team' // 2. 队员/指导教师视角：被移出队伍（纯通知，无按钮）
-  | 'team_status_change' // 2. 队员/指导教师视角：队伍状态提醒（队伍被驳回/通过）
-  | 'univ_todo' // 3. 高校管理员视角：待办提醒（本校有队伍提交审核）
-  | 'univ_channel_open' // 3. 高校管理员视角：通道开启（秘书处开启高校审核）
-  | 'sec_todo' // 4. 秘书处视角：待办提醒（高校审核通过队伍）
-  | 'cert_result'; // 5. 全角色通用：认证结果（实名/学籍/教师认证审核完）
+  | 'team_invite' // 2. 队员/指导教师视角：入队邀请与催办提醒
+  | 'removed_from_team' // 2. 队员/指导教师视角：被移出队伍/解除指导
+  | 'team_status_change' // 2. 队员/指导教师视角：队伍状态提醒（角色变更、提审、初审通过/驳回、晋级/未晋级、终审通过/退回）
+  | 'univ_todo' // 3. 高校管理员视角：待办与结果提醒（认证审核、队伍初审、重交复核、晋级提报、终审退回重报、终审通过）
+  | 'univ_channel_open' // 3. 高校管理员视角：通道开启
+  | 'sec_todo' // 4. 秘书处视角（前台已过滤不展示）
+  | 'cert_result'; // 5. 全角色通用：认证结果（实名/学生/教师/高校管理员认证审核结果）
 
 export type MessageRightActionType =
-  | 'invite_actions' // 【同意】【拒绝】（已处理后显示灰色“已同意”或“已拒绝”）
-  | 'go_modify' // 【去修改】
-  | 'view_detail' // 【查看详情】
-  | 'go_admin' // 【去后台处理】
-  | 'go_cert' // 【去查看】
-  | 'none'; // 无（纯通知，如被移出队伍）
+  | 'invite_actions' // 【去处理】（跳转至我的报名-我参与的）
+  | 'go_modify' // 【去查看】（跳转至我的报名-我发起的）
+  | 'view_detail' // 【去查看】（按角色跳转至我的报名对应Tab）
+  | 'go_admin' // 【去后台处理】（跳转至运营管理后台）
+  | 'go_cert' // 【去查看】（跳转至个人中心-用户认证）
+  | 'none'; // 无（系统公告等纯通知）
 
 export interface PlatformMessageItem {
   id: string;
@@ -115,28 +117,223 @@ export interface PlatformMessageItem {
   actionType?: MessageRightActionType;
   /** 邀请类消息的处理状态 */
   inviteStatus?: 'pending' | 'accepted' | 'rejected';
-  /** 关联的“我参与的队伍”ID（用于点击【同意】/【拒绝】双向同步到我的报名-我参与的队伍） */
+  /** 关联的“我参与的队伍”ID */
   relatedParticipatedTeamId?: string;
-  /** 若同意的是一条新邀请，携带完整队伍信息以便立刻插入到“我参与的队伍”列表 */
+  /** 若同意的是一条新邀请，携带完整队伍信息 */
   inviteTeamPayload?: ParticipatedTeamRecord;
-  /** 关联的队长发起队伍ID（用于点击【去修改】或【查看详情】定位到对应队伍） */
+  /** 关联的队长发起队伍ID */
   relatedCaptainTeamId?: string;
 }
 
 export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
   // =========================================================================
-  // 一、队员 / 指导教师视角
+  // 一、队长视角（完整覆盖：队员同意/拒绝、指导教师同意/拒绝、正式提交审核、
+  //     高校初审通过/驳回、校赛晋级提报待终审/未晋级、秘书处退回名单待高校重报、秘书处终审通过报名成功）
   // =========================================================================
-  // 1. 队员视角 —— 入队邀请（未读、待处理，对应 part-team-1）
+  // 1. 队长视角 —— 成员反馈：受邀队员同意加入
+  {
+    id: 'msg-feedback-member-accept',
+    title: '苏沐宸 已同意加入队伍',
+    shortTitle: '苏沐宸已同意加入队伍',
+    desc: '受邀队员【苏沐宸】已确认加入您的队伍【北航天枢攻防战队】，分配队内角色【逆向手、Pwn手】已正式生效。',
+    time: '10分钟前',
+    unread: true,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'member_feedback',
+    messageTypeLabel: '成员反馈',
+    iconStyle: 'avatar',
+    senderName: '苏沐宸',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=160&q=80',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-1',
+  },
+  // 2. 队长视角 —— 成员反馈：受邀队员拒绝加入
+  {
+    id: 'msg-feedback-reject',
+    title: '张子轩 已拒绝加入队伍',
+    shortTitle: '张子轩已拒绝加入队伍',
+    desc: '受邀队员【张子轩】拒绝了加入您的队伍【北航天枢攻防战队】（拒绝原因：下周有操作系统课程设计答辩，时间冲突），您可前往队伍管理页移除该记录并继续邀请其他同校同学替换。',
+    time: '20分钟前',
+    unread: true,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'member_feedback',
+    messageTypeLabel: '成员反馈',
+    iconStyle: 'avatar',
+    senderName: '张子轩',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=160&q=80',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-1',
+  },
+  // 3. 队长视角 —— 成员反馈：受邀指导教师同意加入
+  {
+    id: 'msg-feedback-accept',
+    title: '赵振宇 教授 已同意担任指导教师',
+    shortTitle: '赵振宇教授已同意加入',
+    desc: '受邀指导教师【赵振宇 教授】已确认加入您的队伍【北航天枢攻防战队】担任指导教师。',
+    time: '35分钟前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'member_feedback',
+    messageTypeLabel: '成员反馈',
+    iconStyle: 'avatar',
+    senderName: '赵振宇',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=160&q=80',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-1',
+  },
+  // 4. 队长视角 —— 成员反馈：受邀指导教师拒绝加入
+  {
+    id: 'msg-feedback-advisor-reject',
+    title: '孙立伟 副教授 已拒绝指导邀请',
+    shortTitle: '孙立伟副教授已拒绝指导邀请',
+    desc: '受邀指导教师【孙立伟 副教授】拒绝了加入您的队伍【北航隐私计算先锋队】担任指导教师（拒绝原因：本学期课题组指导参赛队伍名额已满），您可前往队伍管理页重新邀请本校其他已认证教师。',
+    time: '50分钟前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'member_feedback',
+    messageTypeLabel: '成员反馈',
+    iconStyle: 'avatar',
+    senderName: '孙立伟',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-2',
+  },
+  // 5. 队长视角 —— 报名提审：队伍已正式提交高校资格审核
+  {
+    id: 'msg-cap-submitted',
+    title: '队伍已正式提交高校资格审核',
+    shortTitle: '队伍已提交高校资格审核',
+    desc: '您的队伍【北航猎鹰固件逆向组】已全员确认并正式提交报名，当前报名状态更新为【已提交】，请等待本校高校管理员进行【高校资格审核】，审核期间队伍信息与成员顺位已锁定。',
+    time: '1小时前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '提审通知',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-5',
+  },
+  // 6. 队长视角 —— 第一段【高校资格审核】被驳回（对应 cap-team-4）
+  {
+    id: 'msg-reject-1',
+    title: '高校资格审核已驳回，请修改',
+    shortTitle: '您的队伍被高校审核驳回',
+    desc: '您的队伍【北航凌云密算战队】在第一段【高校资格审核】中未通过（当前报名状态：已驳回），驳回原因：队伍简介中未注明所依托的学院实验室安全合规备案号，且指导教师信息需补充确认。系统已为您解锁队伍编辑权限，请修改后重新提交审核。',
+    time: '1小时20分钟前',
+    unread: true,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_rejected',
+    messageTypeLabel: '高校审核驳回',
+    iconStyle: 'error',
+    actionType: 'go_modify',
+    relatedCaptainTeamId: 'cap-team-4',
+  },
+  // 7. 队长视角 —— 第一段【高校资格审核】已通过（严格遵循指定文案格式，对应 cap-team-6）
+  {
+    id: 'msg-review-progress',
+    title: '高校资格审核已通过',
+    shortTitle: '队伍已通过高校资格审核',
+    desc: '您的队伍【北航零日防御先锋队】已通过【高校资格审核】，当前报名状态更新为【高校已通过】。待本校校内选拔赛结束后，将由高校管理员将晋级名单上报至秘书处。',
+    time: '2小时前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '高校审核通过',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-6',
+  },
+  // 8. 队长视角 —— 第二段【高校晋级提报】已列入本校晋级名单（待秘书处终审，对应 cap-team-7）
+  {
+    id: 'msg-cap-promoted',
+    title: '高校已提报晋级名单（待秘书处终审）',
+    shortTitle: '队伍已获高校晋级提报',
+    desc: '恭喜！本校高校管理员已将您的队伍【SkyHawk-0day（林远航单兵队）】列入校内选拔赛晋级推荐名单（校内排名：第 2 名）并随附校赛成绩证明上报至大赛秘书处，当前报名状态更新为【待秘书处终审】。',
+    time: '2小时30分钟前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '晋级提报通知',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-7',
+  },
+  // 9. 队长视角 —— 第二段【高校晋级提报】未入围晋级名单（未晋级，对应 cap-team-9）
+  {
+    id: 'msg-review-not-advanced',
+    title: '校赛结果通知（未晋级）',
+    shortTitle: '队伍止步校内选拔赛',
+    desc: '贵校管理员已完成【2026第五届“XX杯”全国网数智安全大赛】本校晋级名单提报，您的队伍【北航星火二进制青训队】（校内排名：第 5 名）未在本次晋级推荐名单内，当前报名状态更新为【未晋级】。感谢您的参与！',
+    time: '3小时前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '校赛结果通知',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-9',
+  },
+  // 10. 队长视角 —— 第三段【秘书处终审】退回本校晋级提报单（待秘书处终审·名单被驳回，对应 cap-team-8）
+  {
+    id: 'msg-cap-sec-reject',
+    title: '所在高校晋级名单待补充材料重报',
+    shortTitle: '本校晋级名单待高校重报',
+    desc: '您的队伍【北航零信任微隔离战队】（校内排名：第 3 名）所属高校晋级提报单被大赛秘书处退回补充证明材料，当前报名状态更新为【待秘书处终审（名单被驳回）】。正等待本校高校管理员重新上传盖章版校赛成绩单并提报，队长无需修改队伍信息。',
+    time: '3小时30分钟前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'review_progress',
+    messageTypeLabel: '终审进度提醒',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-8',
+  },
+  // 11. 队长视角 —— 第三段【秘书处终审】通过（报名成功，对应 cap-team-3）
+  {
+    id: 'msg-cap-reg-success',
+    title: '恭喜！秘书处终审通过，报名成功',
+    shortTitle: '恭喜！队伍报名成功',
+    desc: '您的队伍【北航智盾先锋队】（校内排名：第 1 名）已通过高校资格审核、高校晋级提报及大赛秘书处终审，当前报名状态正式更新为【报名成功】，已同步载入【我的竞赛】与最终参赛队伍清单，您可前往下载报名成功确认回执单！',
+    time: '4小时前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队长视角',
+    scenarioType: 'registration_success',
+    messageTypeLabel: '报名成功',
+    iconStyle: 'success',
+    actionType: 'view_detail',
+    relatedCaptainTeamId: 'cap-team-3',
+  },
+
+  // =========================================================================
+  // 二、参赛队员视角（完整覆盖：收到入队邀请、收到队长催办、队内角色调整、被移出队伍、
+  //     所在队伍已提交高校初审、高校初审被驳回、高校初审已通过、获高校晋级提报待终审、
+  //     校赛未晋级、晋级名单被退回待高校重报、秘书处终审通过报名成功）
+  // =========================================================================
+  // 12. 队员视角 —— 收到队长入队邀请（未读、待处理，对应 part-team-1）
   {
     id: 'msg-invite-1',
     title: '周子航 邀请您加入队伍',
     shortTitle: '周子航邀请您加入队伍',
-    desc: '邀请您加入【2026“XX杯”车联网与智能工业控制系统安全极客邀请赛】的【北航车联护盾联队】担任【参赛队员】（初始分配角色：Web手、取证手）',
+    desc: '邀请您加入【2026“XX杯”车联网与智能工业控制系统安全极客邀请赛】的【北航车联护盾联队】担任【参赛队员】（初始分配角色：逆向手、Pwn手）',
     time: '5分钟前',
     unread: true,
     category: 'invite',
-    rolePerspective: '队员/指导教师视角',
+    rolePerspective: '队员视角',
     scenarioType: 'team_invite',
     messageTypeLabel: '入队邀请',
     iconStyle: 'avatar',
@@ -147,32 +344,16 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     inviteStatus: 'pending',
     relatedParticipatedTeamId: 'part-team-1',
   },
-  // 2. 队长视角 —— 第一段【高校资格审核】被驳回（未读，对应 cap-team-4）
-  {
-    id: 'msg-reject-1',
-    title: '高校资格审核已驳回，请修改',
-    shortTitle: '您的队伍被高校审核驳回',
-    desc: '您的队伍【北航凌云密算战队】在第一段【高校资格审核】中未通过（当前报名状态：已驳回），驳回原因：队伍简介中未注明所依托的学院实验室安全合规备案号，且指导教师信息需补充确认。请修改后重新提交审核。',
-    time: '15分钟前',
-    unread: true,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'review_rejected',
-    messageTypeLabel: '高校审核驳回',
-    iconStyle: 'error',
-    actionType: 'go_modify',
-    relatedCaptainTeamId: 'cap-team-4',
-  },
-  // 3. 队员视角 —— 入队邀请（未读、待处理，对应新队伍 part-team-new-star）
+  // 13. 队员视角 —— 收到队长催办提醒（未读、待处理，对应 part-team-new-star）
   {
     id: 'msg-invite-2',
-    title: '陆景川 邀请您加入队伍',
-    shortTitle: '陆景川邀请您加入队伍',
-    desc: '邀请您加入【2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛】的【北航星辰二进制战队】担任【参赛队员】（初始分配角色：Pwn手、逆向手）',
+    title: '队长 陆景川 提醒您尽快确认入队邀请',
+    shortTitle: '陆景川催促您确认入队邀请',
+    desc: '【北航星辰二进制战队】队长【陆景川】发来催办提醒：战队即将提交【2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛】高校资格审核，请您尽快前往【我的报名 -> 我参与的】处理入队邀请（分配角色：Pwn手、逆向手）。',
     time: '28分钟前',
     unread: true,
     category: 'invite',
-    rolePerspective: '队员/指导教师视角',
+    rolePerspective: '队员视角',
     scenarioType: 'team_invite',
     messageTypeLabel: '入队邀请',
     iconStyle: 'avatar',
@@ -181,7 +362,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
       'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=160&q=80',
     actionType: 'invite_actions',
     inviteStatus: 'pending',
-    relatedParticipatedTeamId: 'part-team-new-star',
+    relatedParticipatedTeamId: 'part-team-1',
     inviteTeamPayload: {
       id: 'part-team-new-star',
       competitionId: 'comp-2026-main',
@@ -205,167 +386,70 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
       ],
     },
   },
-  // 4. 队长视角 —— 成员反馈（未读，受邀队员拒绝加入）
-  {
-    id: 'msg-feedback-reject',
-    title: '张子轩 已拒绝加入队伍',
-    shortTitle: '张子轩已拒绝加入队伍',
-    desc: '受邀队员【张子轩】拒绝了加入您的队伍【北航红蓝极客战队】（拒绝原因：下周有操作系统课程设计答辩，时间冲突），您可继续邀请其他同学替换或满1名已同意队员后提交审核。',
-    time: '45分钟前',
-    unread: true,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'member_feedback',
-    messageTypeLabel: '成员反馈',
-    iconStyle: 'avatar',
-    senderName: '张子轩',
-    senderAvatarUrl:
-      'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=160&q=80',
-    actionType: 'view_detail',
-    relatedCaptainTeamId: 'cap-team-1',
-  },
-  // 5. 队员视角 —— 入队邀请（未读、待处理，对应 part-team-3 宋知行）
-  {
-    id: 'msg-invite-3',
-    title: '宋知行 邀请您加入队伍',
-    shortTitle: '宋知行邀请您加入队伍',
-    desc: '邀请您加入【2026“XX杯”云原生与零信任架构安全攻防挑战赛】的【北航云原生星云战队】担任【参赛队员】（初始分配角色：Web手、杂项手）',
-    time: '1小时前',
-    unread: true,
-    category: 'invite',
-    rolePerspective: '队员/指导教师视角',
-    scenarioType: 'team_invite',
-    messageTypeLabel: '入队邀请',
-    iconStyle: 'avatar',
-    senderName: '宋知行',
-    senderAvatarUrl:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80',
-    actionType: 'invite_actions',
-    inviteStatus: 'pending',
-    relatedParticipatedTeamId: 'part-team-3',
-  },
-  // 6. 指导教师视角 —— 指导教师入队邀请（对应 part-team-2）
-  {
-    id: 'msg-invite-advisor',
-    title: '沈星河 邀请您担任指导教师',
-    shortTitle: '沈星河邀请您担任指导教师',
-    desc: '邀请您加入【2026“XX杯”人工智能生成内容（AIGC）安全与大模型攻防挑战赛】的【北航AIGC安全卫士队】担任【指导教师】',
-    time: '1小时30分钟前',
-    unread: false,
-    category: 'invite',
-    rolePerspective: '队员/指导教师视角',
-    scenarioType: 'team_invite',
-    messageTypeLabel: '指导教师邀请',
-    iconStyle: 'avatar',
-    senderName: '沈星河',
-    senderAvatarUrl:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80',
-    actionType: 'invite_actions',
-    inviteStatus: 'accepted',
-    relatedParticipatedTeamId: 'part-team-2',
-  },
-  // 7. 队长视角 —— 成员反馈（队员同意加入）
-  {
-    id: 'msg-feedback-member-accept',
-    title: '苏沐宸 已同意加入队伍',
-    shortTitle: '苏沐宸已同意加入队伍',
-    desc: '受邀队员【苏沐宸】已确认加入您的队伍【北航红蓝极客战队】，分配队内角色【逆向手、Pwn手】已正式生效。',
-    time: '1小时45分钟前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'member_feedback',
-    messageTypeLabel: '成员反馈',
-    iconStyle: 'avatar',
-    senderName: '苏沐宸',
-    senderAvatarUrl:
-      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=160&q=80',
-    actionType: 'view_detail',
-    relatedCaptainTeamId: 'cap-team-1',
-  },
-  // 8. 队长视角 —— 成员反馈（指导教师同意加入）
-  {
-    id: 'msg-feedback-accept',
-    title: '赵振宇 教授 已同意加入',
-    shortTitle: '赵振宇教授已同意加入',
-    desc: '【赵振宇 教授】已确认加入您的队伍【北航红蓝极客战队】担任指导教师。',
-    time: '2小时前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'member_feedback',
-    messageTypeLabel: '成员反馈',
-    iconStyle: 'avatar',
-    senderName: '赵振宇',
-    senderAvatarUrl:
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=160&q=80',
-    actionType: 'view_detail',
-    relatedCaptainTeamId: 'cap-team-1',
-  },
-  // 9. 队长视角 —— 第一段【高校资格审核】通过（格式严格符合用户要求）
-  {
-    id: 'msg-review-progress',
-    title: '高校资格审核已通过',
-    shortTitle: '队伍已通过高校资格审核',
-    desc: '您的队伍【北航零日防御先锋队】已通过【高校资格审核】，当前报名状态更新为【高校已通过】。待本校校内选拔赛结束后，将由高校管理员将晋级名单上报至秘书处。',
-    time: '3小时前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'review_progress',
-    messageTypeLabel: '高校审核通过',
-    iconStyle: 'info',
-    actionType: 'view_detail',
-    relatedCaptainTeamId: 'cap-team-2',
-  },
-  // 10. 队长视角 —— 第二段【高校晋级提报】未晋级（状态变更为“未晋级”，对应 cap-team-8）
-  {
-    id: 'msg-review-not-advanced',
-    title: '校赛结果通知（未晋级）',
-    shortTitle: '队伍止步校内选拔赛',
-    desc: '贵校管理员已完成【2026第五届“XX杯”全国网数智安全大赛】本校晋级名单提报，您的队伍【北航玄武密码学研习队】未在本次晋级推荐名单内，当前报名状态更新为【未晋级】。感谢您的参与！',
-    time: '4小时前',
-    unread: false,
-    category: 'review',
-    rolePerspective: '队长视角',
-    scenarioType: 'review_progress',
-    messageTypeLabel: '校赛结果通知',
-    iconStyle: 'warning',
-    actionType: 'view_detail',
-    relatedCaptainTeamId: 'cap-team-8',
-  },
-  // 11. 队员/指导教师视角 —— 队内角色分配变更提醒
+  // 14. 队员视角 —— 队内角色分配变更提醒（对应 part-team-3）
   {
     id: 'msg-role-updated',
     title: '队长更新了您的队内角色标签',
     shortTitle: '队内角色标签已更新',
-    desc: '【北航AIGC安全卫士队】队长【沈星河】更新了您在队内的角色分配标签，当前角色为：【Web手、密码学手、杂项手】。',
+    desc: '您加入的队伍【北航网安声纹反诈战队】队长【沈清雪】调整了您在队内的角色分配标签，当前最新角色为：【密码学手、取证手】。',
     time: '昨天 19:40',
     unread: false,
     category: 'review',
-    rolePerspective: '队员/指导教师视角',
+    rolePerspective: '队员视角',
     scenarioType: 'team_status_change',
     messageTypeLabel: '角色变更提醒',
     iconStyle: 'info',
     actionType: 'view_detail',
-    relatedParticipatedTeamId: 'part-team-2',
+    relatedParticipatedTeamId: 'part-team-3',
   },
-  // 12. 队员/指导教师视角 —— 被移出队伍
+  // 15. 队员视角 —— 被队长移出队伍
   {
     id: 'msg-removed-team',
     title: '移出队伍通知',
     shortTitle: '您已被移出队伍',
-    desc: '您已被队长【陈思远】移出队伍【北航固件狩猎二队】。',
+    desc: '您已被队长【陈思远】移出队伍【北航固件狩猎二队】，如有疑问可联系队长沟通或加入本校其他战队。',
     time: '昨天 18:20',
     unread: false,
     category: 'system',
-    rolePerspective: '队员/指导教师视角',
+    rolePerspective: '队员视角',
     scenarioType: 'removed_from_team',
     messageTypeLabel: '被移出队伍',
     iconStyle: 'warning',
     actionType: 'view_detail',
   },
-  // 13. 队员/指导教师视角 —— 所在队伍状态变更（通过高校资格审核）
+  // 16. 队员视角 —— 所在队伍已正式提交高校资格审核（对应 part-team-4）
+  {
+    id: 'msg-mem-team-submitted',
+    title: '所在队伍已提交高校资格审核',
+    shortTitle: '所在队伍已提交高校审核',
+    desc: '您作为参赛队员加入的队伍【北航电网智巡防御突击队】已由队长【陆浩然】正式提交报名，当前状态已更新为【已提交（待高校审核）】，队伍信息与成员顺位已锁定。',
+    time: '昨天 16:50',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '队伍状态提醒',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-4',
+  },
+  // 17. 队员视角 —— 所在队伍【高校资格审核】被驳回（对应 part-team-5）
+  {
+    id: 'msg-mem-team-school-reject',
+    title: '所在队伍高校资格审核已驳回',
+    shortTitle: '所在队伍被高校审核驳回',
+    desc: '您作为参赛队员加入的队伍【北航开源鸿蒙安全先锋队】在【高校资格审核】中未通过，当前状态更新为【已驳回】（原因：队伍填报的赛道与实验室支撑备案方向不符，且指导教师需补充确认学院公章备案编号）。请等待队长【杜子恒】修改队伍信息后重新提交审核。',
+    time: '昨天 15:10',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '高校审核驳回',
+    iconStyle: 'error',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-5',
+  },
+  // 18. 队员视角 —— 所在队伍【高校资格审核】已通过（严格遵循指定文案格式，对应 part-team-6）
   {
     id: 'msg-team-status-school-pass',
     title: '所在队伍已通过高校资格审核',
@@ -374,23 +458,228 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     time: '昨天 12:30',
     unread: false,
     category: 'review',
-    rolePerspective: '队员/指导教师视角',
+    rolePerspective: '队员视角',
     scenarioType: 'team_status_change',
     messageTypeLabel: '高校审核通过',
     iconStyle: 'info',
     actionType: 'view_detail',
-    relatedParticipatedTeamId: 'part-team-5',
+    relatedParticipatedTeamId: 'part-team-6',
+  },
+  // 19. 队员视角 —— 所在队伍已获【高校晋级提报】（待秘书处终审，对应 part-team-7）
+  {
+    id: 'msg-mem-team-promoted',
+    title: '所在队伍已获高校晋级提报（待秘书处终审）',
+    shortTitle: '所在队伍已获高校晋级提报',
+    desc: '恭喜！您作为参赛队员加入的队伍【北航量子前沿密码战队】（队长：彭思源）已入围本校校内选拔赛晋级推荐名单（校内排名：第 2 名）并上报至大赛秘书处，当前状态更新为【待秘书处终审】。',
+    time: '昨天 10:20',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '晋级提报通知',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-7',
+  },
+  // 20. 队员视角 —— 所在队伍校赛结果通知（未晋级，对应 part-team-9）
+  {
+    id: 'msg-mem-team-not-advanced',
+    title: '所在队伍校赛结果通知（未晋级）',
+    shortTitle: '所在队伍止步校内选拔赛',
+    desc: '贵校管理员已完成本校校赛晋级名单提报，您作为参赛队员参与的队伍【北航开源供应链卫士队】（队长：姜文轩，校内排名：第 4 名）受单校晋级名额上限限制未入围推荐名单，当前状态更新为【未晋级】。感谢您的参与！',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '校赛结果通知',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-9',
+  },
+  // 21. 队员视角 —— 所在队伍所属高校晋级提报单被退回待补充重报（对应 part-team-8）
+  {
+    id: 'msg-mem-team-sec-reject',
+    title: '所在队伍晋级名单待高校补充重报',
+    shortTitle: '所在队伍晋级名单待高校重报',
+    desc: '您作为参赛队员加入的队伍【北航金融信创防线战队】（队长：方晓宇，校内排名：第 3 名）所属高校晋级提报单被大赛秘书处退回补充盖章材料，当前状态更新为【待秘书处终审（名单被驳回）】，正等待本校高校管理员重新上传提报。',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '终审进度提醒',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-8',
+  },
+  // 22. 队员视角 —— 所在队伍通过【秘书处终审】（报名成功，对应 part-team-11）
+  {
+    id: 'msg-mem-team-approved',
+    title: '恭喜！所在队伍终审通过，报名成功',
+    shortTitle: '所在队伍已报名成功',
+    desc: '恭喜！您作为参赛队员参与的队伍【北航多模态鉴伪实验室战队】（队长：韩明轩，校内排名：第 2 名）已通过大赛秘书处终审，当前状态正式更新为【报名成功】，已同步载入您的【我的竞赛】参赛档案！',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '队员视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '报名成功',
+    iconStyle: 'success',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-11',
   },
 
   // =========================================================================
-  // 二、高校管理员视角（高校管理与审核待办）
+  // 三、指导教师视角（完整覆盖：收到指导教师邀请、收到队长催办、解除指导关联、
+  //     所指导队伍已提交审核、高校初审被驳回、高校初审已通过、获高校晋级提报、终审通过报名成功）
   // =========================================================================
-  // 14. 高校管理员视角 —— 待办提醒（本校有新队伍提交资格审核）
+  // 23. 指导教师视角 —— 收到指导教师入队邀请（未读、待处理，对应 part-team-2）
+  {
+    id: 'msg-invite-advisor',
+    title: '郭晨阳 邀请您担任指导教师',
+    shortTitle: '郭晨阳邀请您担任指导教师',
+    desc: '邀请您加入【2027第六届“XX杯”高校网安拔尖人才冬季特训营暨资格邀请赛】的【北航网安冬训卓越战队】担任【指导教师】。',
+    time: '35分钟前',
+    unread: true,
+    category: 'invite',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'team_invite',
+    messageTypeLabel: '入队邀请',
+    iconStyle: 'avatar',
+    senderName: '郭晨阳',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80',
+    actionType: 'invite_actions',
+    inviteStatus: 'pending',
+    relatedParticipatedTeamId: 'part-team-2',
+  },
+  // 24. 指导教师视角 —— 收到队长催办确认指导邀请（对应 part-team-2）
+  {
+    id: 'msg-tea-urge',
+    title: '队长 郭晨阳 提醒您尽快确认指导教师邀请',
+    shortTitle: '队长催促您确认指导教师邀请',
+    desc: '【北航网安冬训卓越战队】队长【郭晨阳】发来催办提醒：战队参赛队员已全部确认完毕，请您尽快前往【我的报名 -> 我参与的】处理指导教师入队邀请。',
+    time: '1小时10分钟前',
+    unread: false,
+    category: 'invite',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'team_invite',
+    messageTypeLabel: '入队邀请',
+    iconStyle: 'avatar',
+    senderName: '郭晨阳',
+    senderAvatarUrl:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80',
+    actionType: 'invite_actions',
+    inviteStatus: 'pending',
+    relatedParticipatedTeamId: 'part-team-2',
+  },
+  // 25. 指导教师视角 —— 指导关系解除/移出队伍通知
+  {
+    id: 'msg-tea-removed',
+    title: '指导队伍变动通知',
+    shortTitle: '指导队伍变动通知',
+    desc: '由于【北航二进制突击三队】调整参赛赛道与课题指导方向，队长【梁博】已将您移出该队指导教师名单。',
+    time: '昨天 17:30',
+    unread: false,
+    category: 'system',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'removed_from_team',
+    messageTypeLabel: '指导变动通知',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+  },
+  // 26. 指导教师视角 —— 所指导队伍已正式提交高校资格审核
+  {
+    id: 'msg-tea-submitted',
+    title: '所指导队伍已提交高校资格审核',
+    shortTitle: '所指导队伍已提交高校审核',
+    desc: '您担任指导教师的队伍【北航电网智巡防御突击队】（队长：陆浩然）已正式提交报名申请，当前状态已更新为【已提交（待高校审核）】。',
+    time: '昨天 16:55',
+    unread: false,
+    category: 'review',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '队伍状态提醒',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-4',
+  },
+  // 27. 指导教师视角 —— 所指导队伍【高校资格审核】被驳回
+  {
+    id: 'msg-tea-school-reject',
+    title: '所指导队伍高校资格审核已驳回',
+    shortTitle: '所指导队伍被高校审核驳回',
+    desc: '您担任指导教师的队伍【北航开源鸿蒙安全先锋队】（队长：杜子恒）在【高校资格审核】中未通过，当前状态更新为【已驳回】（原因：需补充确认学院实验室安全合规备案编号），正等待队长修改后重新提交。',
+    time: '昨天 15:15',
+    unread: false,
+    category: 'review',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '高校审核驳回',
+    iconStyle: 'error',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-5',
+  },
+  // 28. 指导教师视角 —— 所指导队伍【高校资格审核】已通过（严格遵循指定文案格式）
+  {
+    id: 'msg-tea-school-pass',
+    title: '所指导队伍已通过高校资格审核',
+    shortTitle: '所指导队伍已通过高校审核',
+    desc: '您的队伍【北航零日防御先锋队】已通过【高校资格审核】，当前报名状态更新为【高校已通过】。待本校校内选拔赛结束后，将由高校管理员将晋级名单上报至秘书处。',
+    time: '昨天 12:35',
+    unread: false,
+    category: 'review',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '高校审核通过',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-6',
+  },
+  // 29. 指导教师视角 —— 所指导队伍已获【高校晋级提报】（待秘书处终审）
+  {
+    id: 'msg-tea-promoted',
+    title: '所指导队伍已获高校晋级提报（待秘书处终审）',
+    shortTitle: '所指导队伍已获高校晋级提报',
+    desc: '恭喜！您担任指导教师的队伍【北航量子前沿密码战队】（队长：彭思源）已入围本校校内选拔赛晋级推荐名单（校内排名：第 2 名）并上报至大赛秘书处，当前状态更新为【待秘书处终审】。',
+    time: '昨天 10:25',
+    unread: false,
+    category: 'review',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '晋级提报通知',
+    iconStyle: 'info',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-7',
+  },
+  // 30. 指导教师视角 —— 所指导队伍通过【秘书处终审】（报名成功，对应 part-team-12）
+  {
+    id: 'msg-tea-approved',
+    title: '恭喜！所指导队伍终审通过，报名成功',
+    shortTitle: '所指导队伍已报名成功',
+    desc: '恭喜！您担任指导教师的队伍【北航苍穹防线2025战队（指导教师视角示例）】（队长：秦昊天，校内排名：第 1 名）已通过大赛秘书处终审，当前状态正式更新为【报名成功】，已同步载入您的【我的竞赛】指导档案！',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '报名成功',
+    iconStyle: 'success',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-12',
+  },
+
+  // =========================================================================
+  // 四、高校管理员视角（完整覆盖：审核通道开启、学生认证待办、教师认证待办、
+  //     新报名队伍初审待办、秘书处退回晋级名单需重报、秘书处终审通过通知）
+  // =========================================================================
+  // 31. 高校管理员视角 —— 待办提醒：本校新报名队伍待资格初审
   {
     id: 'msg-univ-todo',
     title: '本校新报名队伍待资格审核',
     shortTitle: '本校有新队伍待审核',
-    desc: '【北京航空航天大学】有 2 支新组建队伍（北航云端猎手战队、SkyHawk-0day）已提交报名，请前往后台【报名管理 -> 查看报名 -> 高校资格审核】核验队伍及成员合规性。',
+    desc: '【北京航空航天大学】有 2 支新组建队伍（北航猎鹰固件逆向组、北航电网智巡防御突击队）已提交报名申请，请前往后台【报名管理 -> 查看报名 -> 高校资格审核】核验队伍及成员合规性。',
     time: '昨天 11:00',
     unread: true,
     category: 'review',
@@ -400,22 +689,67 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'info',
     actionType: 'go_admin',
   },
-  // 15. 高校管理员视角 —— 待办提醒（学生认证/教师认证待审核）
+  // 32. 高校管理员视角 —— 待办提醒：本校新增学生学籍认证待审核
   {
     id: 'msg-univ-cert-todo',
-    title: '本校新增学生/教师认证待审核',
-    shortTitle: '新增学生/教师认证待审核',
-    desc: '【北京航空航天大学】有 3 条新的学生认证申请与 1 条教师认证申请提交至后台，请前往【认证管理】核对所属院校、学历、专业及入学/毕业时间信息。',
+    title: '本校新增学生学籍认证待审核',
+    shortTitle: '新增学生认证待审核',
+    desc: '【北京航空航天大学】有 3 条新的参赛学生学籍认证申请提交至后台，请前往后台【认证管理 -> 学生认证】核对所属院校、学历层次、就读专业、学号及学生证/学信网证明附件。',
     time: '昨天 09:45',
     unread: false,
     category: 'review',
     rolePerspective: '高校管理员视角',
     scenarioType: 'univ_todo',
-    messageTypeLabel: '身份认证待办',
+    messageTypeLabel: '学生认证待办',
     iconStyle: 'info',
     actionType: 'go_admin',
   },
-  // 16. 高校管理员视角 —— 通道开启（高校审核与晋级提报通道）
+  // 33. 高校管理员视角 —— 待办提醒：本校新增指导教师认证待审核
+  {
+    id: 'msg-univ-tea-cert-todo',
+    title: '本校新增指导教师认证待审核',
+    shortTitle: '新增教师认证待审核',
+    desc: '【北京航空航天大学】有 2 条新的指导教师资格认证申请提交至后台，请前往后台【认证管理 -> 教师认证】核对所属院系部门、职称、教工号及工作证/在职证明附件。',
+    time: '昨天 09:30',
+    unread: false,
+    category: 'review',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_todo',
+    messageTypeLabel: '教师认证待办',
+    iconStyle: 'info',
+    actionType: 'go_admin',
+  },
+  // 34. 高校管理员视角 —— 终审退回处理：本校提报的晋级名单被秘书处退回补充材料
+  {
+    id: 'msg-univ-sec-reject',
+    title: '本校晋级提报单被秘书处退回，请修改重报',
+    shortTitle: '晋级名单被退回需重报',
+    desc: '大赛秘书处在第三段终审中退回了贵校提报的晋级队伍名单，退回原因：上传的校赛成绩证明PDF未加盖学院或教务部门公章，且第3名队伍排序备注不全。请前往后台重新上传合格材料并再次提报。',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_todo',
+    messageTypeLabel: '终审退回重报',
+    iconStyle: 'error',
+    actionType: 'go_admin',
+  },
+  // 35. 高校管理员视角 —— 终审结果通知：本校提报的晋级名单已通过秘书处终审
+  {
+    id: 'msg-univ-sec-pass',
+    title: '本校晋级队伍名单已通过秘书处终审',
+    shortTitle: '本校晋级名单终审通过',
+    desc: '贵校提报的【2026第五届“XX杯”全国网数智安全大赛】晋级队伍名单（共 3 支队伍）已通过大赛秘书处终审，全部晋级队伍状态已更新为【报名成功】并正式进入【最终参赛队伍清单】。',
+    time: '2天前',
+    unread: false,
+    category: 'review',
+    rolePerspective: '高校管理员视角',
+    scenarioType: 'univ_todo',
+    messageTypeLabel: '终审通过通知',
+    iconStyle: 'success',
+    actionType: 'go_admin',
+  },
+  // 36. 高校管理员视角 —— 通道开启：高校资格审核与晋级提报通道开启
   {
     id: 'msg-univ-channel-open',
     title: '高校资格审核与晋级提报通道已开启',
@@ -432,14 +766,15 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
   },
 
   // =========================================================================
-  // 三、全角色通用（系统与认证类）
+  // 五、全角色通用（覆盖实名认证、学生认证通过/驳回、教师认证通过/驳回、
+  //     高校管理员权限申请通过/驳回、系统公告）
   // =========================================================================
-  // 17. 全角色通用 —— 实名认证审核通过
+  // 39. 全角色通用 —— 实名认证已完成
   {
     id: 'msg-cert-pass',
     title: '实名认证已完成',
     shortTitle: '实名认证已完成',
-    desc: '您的实名认证信息（姓名、身份证号）及手机号、邮箱已核验通过，现已解锁【学生/教师认证】申请权限。',
+    desc: '您的个人实名认证信息（姓名、身份证号）及手机号、邮箱已核验通过，现已解锁【学生/教师认证】申请权限。',
     time: '3天前',
     unread: false,
     category: 'system',
@@ -449,7 +784,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'success',
     actionType: 'go_cert',
   },
-  // 18. 全角色通用 —— 学生认证审核通过
+  // 40. 全角色通用 —— 学生认证审核通过
   {
     id: 'msg-cert-student-pass',
     title: '学生认证审核通过',
@@ -464,7 +799,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'success',
     actionType: 'go_cert',
   },
-  // 19. 全角色通用 —— 学生认证被驳回
+  // 41. 全角色通用 —— 学生认证审核被驳回
   {
     id: 'msg-cert-reject',
     title: '学生认证审核被驳回',
@@ -479,12 +814,12 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'error',
     actionType: 'go_cert',
   },
-  // 20. 全角色通用 —— 教师认证审核通过
+  // 42. 全角色通用 —— 教师认证审核通过
   {
     id: 'msg-cert-teacher-pass',
     title: '教师认证审核通过',
     shortTitle: '教师认证审核通过',
-    desc: '您提交的【指导教师】身份认证（北京航空航天大学 · 网络空间安全学院 · 信息安全专业 · 博士及以上）已通过审核，现可受邀担任本校参赛队伍指导教师。',
+    desc: '您提交的【指导教师】身份认证（北京航空航天大学 · 网络空间安全学院 · 信息安全专业 · 博士及以上）已通过审核，现可受邀担任本校参赛队伍指导教师，或申请成为本校高校管理员。',
     time: '4天前',
     unread: false,
     category: 'system',
@@ -494,7 +829,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'success',
     actionType: 'go_cert',
   },
-  // 21. 全角色通用 —— 教师认证被驳回
+  // 43. 全角色通用 —— 教师认证审核被驳回
   {
     id: 'msg-cert-teacher-reject',
     title: '教师认证审核被驳回',
@@ -509,13 +844,43 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'error',
     actionType: 'go_cert',
   },
-  // 22. 全角色通用 —— 赛事报名截止提醒（系统公告，无操作按钮）
+  // 44. 全角色通用 —— 高校管理员扩展权限申请审核通过
+  {
+    id: 'msg-cert-univ-admin-pass',
+    title: '高校管理员权限申请审核通过',
+    shortTitle: '高校管理员权限已开通',
+    desc: '您提交的【北京航空航天大学 · 高校管理员】扩展身份授权申请（含加盖公章《高校管理员授权公函》）已通过大赛秘书处审核，现已为您开通后台本校学生/教师认证审核与队伍报名管理权限！',
+    time: '5天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '全角色通用',
+    scenarioType: 'cert_result',
+    messageTypeLabel: '管理员授权结果',
+    iconStyle: 'success',
+    actionType: 'go_cert',
+  },
+  // 45. 全角色通用 —— 高校管理员扩展权限申请被驳回
+  {
+    id: 'msg-cert-univ-admin-reject',
+    title: '高校管理员权限申请被驳回',
+    shortTitle: '高校管理员申请被驳回',
+    desc: '您提交的【高校管理员】扩展身份申请未通过大赛秘书处审核，驳回原因：上传的《高校管理员授权公函》扫描件未加盖学院或教务部门公章，请前往【个人中心 -> 用户认证】重新上传清晰盖章件后提交。',
+    time: '5天前',
+    unread: false,
+    category: 'system',
+    rolePerspective: '全角色通用',
+    scenarioType: 'cert_result',
+    messageTypeLabel: '管理员授权结果',
+    iconStyle: 'error',
+    actionType: 'go_cert',
+  },
+  // 46. 全角色通用 —— 赛事报名截止提醒（系统公告，无操作按钮）
   {
     id: 'msg-sys-deadline',
     title: '赛事报名截止时间临近提醒',
     shortTitle: '赛事报名即将截止',
     desc: '【2026第五届“XX杯”全国网数智安全大赛 · 网络安全攻防实战赛】将于 2026-11-15 23:59:59 截止报名，请尚处于“组建中”或“邀请中”的战队尽快完成队员确认并提交高校审核。',
-    time: '5天前',
+    time: '6天前',
     unread: false,
     category: 'system',
     rolePerspective: '全角色通用',
@@ -5821,16 +6186,17 @@ export const StandaloneUserCenterPage: React.FC<{
                   })}
                 </div>
 
-                {/* 辅助角色视角筛选（展示队长、队员/指导教师、高校管理员、全角色通用） */}
+                {/* 辅助角色视角筛选（展示队长、队员、指导教师、高校管理员、通用与认证） */}
                 <div className="flex items-center gap-1.5 flex-wrap text-xs">
                   <span className="text-slate-400 font-medium mr-1">角色场景预览：</span>
                   {(
                     [
                       { id: 'all', label: '全部角色' },
                       { id: '队长视角', label: '队长视角' },
-                      { id: '队员/指导教师视角', label: '队员/指导教师' },
+                      { id: '队员视角', label: '队员视角' },
+                      { id: '指导教师视角', label: '指导教师视角' },
                       { id: '高校管理员视角', label: '高校管理员' },
-                      { id: '全角色通用', label: '通用系统' },
+                      { id: '全角色通用', label: '通用与认证' },
                     ] as const
                   ).map((rp) => {
                     const isSelected = msgRoleFilter === rp.id;
@@ -5910,7 +6276,7 @@ export const StandaloneUserCenterPage: React.FC<{
 
                         {/* 中部内容：展示标题、全文内容与时间 */}
                         <div className="flex-1 min-w-0 space-y-1.5">
-                          {/* 第一行：标题（未读加粗 + 小红点，删除“入队邀请”与“队员/指导教师视角”标签） */}
+                          {/* 第一行：标题（未读加粗 + 小红点，删除“入队邀请”与队员/指导教师视角标签） */}
                           <div className="flex items-center gap-2 min-w-0 flex-wrap">
                             {msg.unread && (
                               <span
@@ -5932,11 +6298,14 @@ export const StandaloneUserCenterPage: React.FC<{
                                 {msg.messageTypeLabel}
                               </span>
                             )}
-                            {msg.rolePerspective && msg.rolePerspective !== '队员/指导教师视角' && (
-                              <span className="hidden md:inline-flex px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0284C7] border border-sky-200/80 shrink-0">
-                                {msg.rolePerspective}
-                              </span>
-                            )}
+                            {msg.rolePerspective &&
+                              msg.rolePerspective !== '队员/指导教师视角' &&
+                              msg.rolePerspective !== '队员视角' &&
+                              msg.rolePerspective !== '指导教师视角' && (
+                                <span className="hidden md:inline-flex px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0284C7] border border-sky-200/80 shrink-0">
+                                  {msg.rolePerspective}
+                                </span>
+                              )}
                           </div>
 
                           {/* 第二行：所有消息直接在列表中展示全文，不再设置截断 */}
@@ -6021,7 +6390,7 @@ export const StandaloneUserCenterPage: React.FC<{
                               );
                             }
 
-                            // 3. 入队邀请：只保留一个“去处理”按钮，点击后跳转到【我的报名的我参与的】页面
+                            // 3. 入队邀请（含催办确认提醒）：只保留一个“去处理”按钮，点击后跳转到【我的报名的我参与的】页面
                             if (
                               msg.scenarioType === 'team_invite' ||
                               msg.category === 'invite' ||
@@ -6063,10 +6432,11 @@ export const StandaloneUserCenterPage: React.FC<{
                               );
                             }
 
-                            // 5. 高校审核通过的消息：操作按钮只保留一个“去查看”，根据用户是队长还是队员跳转到我发起的或我参与的页面
+                            // 5. 高校审核通过的消息：操作按钮只保留一个“去查看”，根据用户是队长还是队员/指导教师跳转到我发起的或我参与的页面
                             const isSchoolPass =
                               msg.id === 'msg-review-progress' ||
                               msg.id === 'msg-team-status-school-pass' ||
+                              msg.id === 'msg-tea-school-pass' ||
                               (msg.messageTypeLabel === '高校审核通过' &&
                                 msg.desc.includes('已通过【高校资格审核】'));
                             if (isSchoolPass) {
@@ -6105,6 +6475,8 @@ export const StandaloneUserCenterPage: React.FC<{
                                   ) {
                                     setActiveTab('certification');
                                   } else if (
+                                    msg.rolePerspective === '队员视角' ||
+                                    msg.rolePerspective === '指导教师视角' ||
                                     msg.rolePerspective === '队员/指导教师视角' ||
                                     msg.scenarioType === 'team_status_change' ||
                                     msg.scenarioType === 'removed_from_team'
