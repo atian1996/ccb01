@@ -1867,10 +1867,10 @@ export default function App() {
                 shortTitle: `队伍【${disbandedTeam.teamName}】已解散`,
                 desc: `您受邀参与的【${disbandedTeam.competitionTitle}】参赛队伍【${disbandedTeam.teamName}】已被队长【${disbandedTeam.captainName}】解散（已同步通知受邀队员与指导教师：${
                   invitedNames.length > 0 ? invitedNames.join('、') : '拟邀成员'
-                }）。之前队员和老师“我参与的”中对应的报名数据状态已更新为【已解散】。`,
+                }），对应的报名数据已从【我的报名】中删除。`,
                 time: '刚刚',
                 unread: true,
-                category: 'system',
+                category: 'invite',
                 rolePerspective: '队员视角',
                 scenarioType: 'team_status_change',
                 messageTypeLabel: '队伍解散通知',
@@ -1886,7 +1886,7 @@ export default function App() {
               device: 'Windows 11 / Chrome 130.0',
               action: `解散报名队伍（${disbandedTeam.teamName}）`,
               result: '成功',
-              detail: `赛事：${disbandedTeam.competitionTitle}，已通知受邀成员并将“我参与的”状态更新为「已解散」`,
+              detail: `赛事：${disbandedTeam.competitionTitle}，已通知受邀成员并将对应报名数据从“我的报名”中直接删除`,
             });
           }}
         />
@@ -2052,6 +2052,7 @@ export default function App() {
                 desc: `已向名单中的 ${invitingTeam.members.length} 名队员与 ${invitingTeam.advisors.length} 名指导教师发送站内信与短信通知，队伍状态已变更为「邀请中」。`,
                 time: '刚刚',
                 unread: true,
+                category: 'invite',
               },
               ...prev,
             ]);
@@ -2071,42 +2072,11 @@ export default function App() {
           }}
           onDisbandDraftTeam={(draftTeam) => {
             setCaptainTeams((prev) => prev.filter((t) => t.id !== draftTeam.id));
-            setParticipatedTeams((prev) => {
-              const hasMatch = prev.some(
-                (item) => item.id === draftTeam.id || item.teamName === draftTeam.teamName
-              );
-              if (hasMatch) {
-                return prev.map((item) =>
-                  item.id === draftTeam.id || item.teamName === draftTeam.teamName
-                    ? { ...item, status: 'team_disbanded' }
-                    : item
-                );
-              }
-              return [
-                {
-                  id: `part-disbanded-${draftTeam.id}`,
-                  competitionId: draftTeam.competitionId,
-                  competitionTitle: draftTeam.competitionTitle,
-                  subTrackName: draftTeam.subTrackName,
-                  teamName: draftTeam.teamName,
-                  teamLogo: draftTeam.teamLogo || 'default-logo',
-                  teamIntro: draftTeam.teamIntro || '队长已解散该队伍，相关组队邀请与报名已终止。',
-                  captainName: draftTeam.captainName,
-                  captainPhone: draftTeam.captainPhone || '138****6921',
-                  university: draftTeam.university,
-                  myRoleInTeam: '参赛队员',
-                  myCtfRoles: draftTeam.members[0]?.ctfRoles || ['Web手'],
-                  status: 'team_disbanded',
-                  invitedAt: draftTeam.createdAt || '2026-10-27 10:00',
-                  teammatesSummary: [
-                    `${draftTeam.captainName}（队长 · ${draftTeam.university}）`,
-                    ...draftTeam.members.map((m) => `${m.name}（队员）`),
-                    ...draftTeam.advisors.map((a) => `${a.name}（指导教师）`),
-                  ],
-                },
-                ...prev,
-              ];
-            });
+            setParticipatedTeams((prev) =>
+              prev.filter(
+                (item) => item.id !== draftTeam.id && item.teamName !== draftTeam.teamName
+              )
+            );
             const invitedNames = [
               ...draftTeam.members.map((m) => m.name),
               ...draftTeam.advisors.map((a) => a.name),
@@ -2118,10 +2088,10 @@ export default function App() {
                 shortTitle: `队伍【${draftTeam.teamName}】已解散`,
                 desc: `您受邀参与的【${draftTeam.competitionTitle}】参赛队伍【${draftTeam.teamName}】已被队长【${draftTeam.captainName}】解散（已同步通知受邀队员与指导教师：${
                   invitedNames.length > 0 ? invitedNames.join('、') : '拟邀成员'
-                }）。之前队员和老师“我参与的”中对应的报名数据状态已更新为【已解散】。`,
+                }），对应的报名数据已从【我的报名】中删除。`,
                 time: '刚刚',
                 unread: true,
-                category: 'system',
+                category: 'invite',
                 rolePerspective: '队员视角',
                 scenarioType: 'team_status_change',
                 messageTypeLabel: '队伍解散通知',
@@ -2137,7 +2107,7 @@ export default function App() {
               device: 'Windows 11 / Chrome 130.0',
               action: `解散组建中报名队伍（${draftTeam.teamName}）`,
               result: '成功',
-              detail: `赛事：${draftTeam.competitionTitle}，已通知受邀成员并将“我参与的”状态更新为「已解散」`,
+              detail: `赛事：${draftTeam.competitionTitle}，已通知受邀成员并将对应报名数据从“我的报名”中直接删除`,
             });
             setEditingDraftTeam(null);
             setUserCenterInitialTab('registrations');

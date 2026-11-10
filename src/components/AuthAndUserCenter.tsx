@@ -130,7 +130,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
   // 一、队长视角（完整覆盖：队员同意/拒绝、指导教师同意/拒绝、正式提交审核、
   //     高校初审通过/驳回、校赛晋级提报待终审/未晋级、秘书处退回名单待高校重报、秘书处终审通过报名成功）
   // =========================================================================
-  // 1. 队长视角 —— 成员反馈：受邀队员同意加入
+  // 1. 队长视角 —— 成员反馈：受邀队员同意加入（归类到“组队邀请”）
   {
     id: 'msg-feedback-member-accept',
     title: '苏沐宸 已同意加入队伍',
@@ -138,7 +138,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     desc: '受邀队员【苏沐宸】已确认加入您的队伍【北航天枢攻防战队】，分配队内角色【逆向手、Pwn手】已正式生效。',
     time: '10分钟前',
     unread: true,
-    category: 'review',
+    category: 'invite',
     rolePerspective: '队长视角',
     scenarioType: 'member_feedback',
     messageTypeLabel: '成员反馈',
@@ -149,7 +149,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-1',
   },
-  // 2. 队长视角 —— 成员反馈：受邀队员拒绝加入
+  // 2. 队长视角 —— 成员反馈：受邀队员拒绝加入（归类到“组队邀请”）
   {
     id: 'msg-feedback-reject',
     title: '张子轩 已拒绝加入队伍',
@@ -157,7 +157,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     desc: '受邀队员【张子轩】拒绝了加入您的队伍【北航天枢攻防战队】（拒绝原因：下周有操作系统课程设计答辩，时间冲突），您可前往队伍管理页移除该记录并继续邀请其他同校同学替换。',
     time: '20分钟前',
     unread: true,
-    category: 'review',
+    category: 'invite',
     rolePerspective: '队长视角',
     scenarioType: 'member_feedback',
     messageTypeLabel: '成员反馈',
@@ -168,7 +168,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-1',
   },
-  // 3. 队长视角 —— 成员反馈：受邀指导教师同意加入
+  // 3. 队长视角 —— 成员反馈：受邀指导教师同意加入（归类到“组队邀请”）
   {
     id: 'msg-feedback-accept',
     title: '赵振宇 教授 已同意担任指导教师',
@@ -176,7 +176,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     desc: '受邀指导教师【赵振宇 教授】已确认加入您的队伍【北航天枢攻防战队】担任指导教师。',
     time: '35分钟前',
     unread: false,
-    category: 'review',
+    category: 'invite',
     rolePerspective: '队长视角',
     scenarioType: 'member_feedback',
     messageTypeLabel: '成员反馈',
@@ -187,7 +187,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedCaptainTeamId: 'cap-team-1',
   },
-  // 4. 队长视角 —— 成员反馈：受邀指导教师拒绝加入
+  // 4. 队长视角 —— 成员反馈：受邀指导教师拒绝加入（归类到“组队邀请”）
   {
     id: 'msg-feedback-advisor-reject',
     title: '孙立伟 副教授 已拒绝指导邀请',
@@ -195,7 +195,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     desc: '受邀指导教师【孙立伟 副教授】拒绝了加入您的队伍【北航隐私计算先锋队】担任指导教师（拒绝原因：本学期课题组指导参赛队伍名额已满），您可前往队伍管理页重新邀请本校其他已认证教师。',
     time: '50分钟前',
     unread: false,
-    category: 'review',
+    category: 'invite',
     rolePerspective: '队长视角',
     scenarioType: 'member_feedback',
     messageTypeLabel: '成员反馈',
@@ -402,7 +402,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     actionType: 'view_detail',
     relatedParticipatedTeamId: 'part-team-3',
   },
-  // 15. 队员视角 —— 被队长移出队伍
+  // 15. 队员视角 —— 被队长移出队伍（归类到“组队邀请”）
   {
     id: 'msg-removed-team',
     title: '移出队伍通知',
@@ -410,28 +410,27 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     desc: '您已被队长【陈思远】移出队伍【北航固件狩猎二队】，如有疑问可联系队长沟通或加入本校其他战队。',
     time: '昨天 18:20',
     unread: false,
-    category: 'system',
+    category: 'invite',
     rolePerspective: '队员视角',
     scenarioType: 'removed_from_team',
     messageTypeLabel: '被移出队伍',
     iconStyle: 'warning',
     actionType: 'view_detail',
   },
-  // 15b. 队员视角 —— 所在队伍被队长解散通知（对应 part-team-13）
+  // 15b. 队员视角 —— 所在队伍被队长解散通知（归类到“组队邀请”）
   {
     id: 'msg-mem-team-disbanded',
     title: '所在队伍已解散通知',
     shortTitle: '所在队伍已被队长解散',
-    desc: '您受邀参与的【2026“XX杯”云原生与零信任架构安全攻防挑战赛】参赛队伍【北航星云二进制攻防队】已被队长【韩子墨】解散，相关组队邀请与报名已终止，您在【我的报名 -> 我参与的】中对应的报名记录状态已更新为【已解散】。',
+    desc: '您受邀参与的【2026“XX杯”云原生与零信任架构安全攻防挑战赛】参赛队伍【北航星云二进制攻防队】已被队长【韩子墨】解散，相关组队邀请与报名已终止，对应的报名数据已从【我的报名】中删除。',
     time: '昨天 17:45',
     unread: false,
-    category: 'system',
+    category: 'invite',
     rolePerspective: '队员视角',
     scenarioType: 'team_status_change',
     messageTypeLabel: '队伍解散通知',
     iconStyle: 'warning',
     actionType: 'view_detail',
-    relatedParticipatedTeamId: 'part-team-13',
   },
   // 16. 队员视角 —— 所在队伍已正式提交高校资格审核（对应 part-team-4）
   {
@@ -590,7 +589,7 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     inviteStatus: 'pending',
     relatedParticipatedTeamId: 'part-team-2',
   },
-  // 25. 指导教师视角 —— 指导关系解除/移出队伍通知
+  // 25. 指导教师视角 —— 指导关系解除/移出队伍通知（归类到“组队邀请”）
   {
     id: 'msg-tea-removed',
     title: '指导队伍变动通知',
@@ -598,28 +597,27 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     desc: '由于【北航二进制突击三队】调整参赛赛道与课题指导方向，队长【梁博】已将您移出该队指导教师名单。',
     time: '昨天 17:30',
     unread: false,
-    category: 'system',
+    category: 'invite',
     rolePerspective: '指导教师视角',
     scenarioType: 'removed_from_team',
     messageTypeLabel: '指导变动通知',
     iconStyle: 'warning',
     actionType: 'view_detail',
   },
-  // 25b. 指导教师视角 —— 所指导队伍被队长解散通知
+  // 25b. 指导教师视角 —— 所指导队伍被队长解散通知（归类到“组队邀请”）
   {
     id: 'msg-tea-team-disbanded',
     title: '所指导队伍已解散通知',
     shortTitle: '所指导队伍已被队长解散',
-    desc: '您受邀担任指导教师的【2026“XX杯”云原生与零信任架构安全攻防挑战赛】参赛队伍【北航星云二进制攻防队】已被队长【韩子墨】解散，您在【我的报名 -> 我参与的】中对应的报名记录状态已更新为【已解散】。',
+    desc: '您受邀担任指导教师的【2026“XX杯”云原生与零信任架构安全攻防挑战赛】参赛队伍【北航星云二进制攻防队】已被队长【韩子墨】解散，对应的报名数据已从【我的报名】中删除。',
     time: '昨天 17:45',
     unread: false,
-    category: 'system',
+    category: 'invite',
     rolePerspective: '指导教师视角',
     scenarioType: 'team_status_change',
     messageTypeLabel: '队伍解散通知',
     iconStyle: 'warning',
     actionType: 'view_detail',
-    relatedParticipatedTeamId: 'part-team-13',
   },
   // 26. 指导教师视角 —— 所指导队伍已正式提交高校资格审核
   {
@@ -6428,7 +6426,6 @@ export const StandaloneUserCenterPage: React.FC<{
                             // 3. 入队邀请（含催办确认提醒）：只保留一个“去处理”按钮，点击后跳转到【我的报名的我参与的】页面
                             if (
                               msg.scenarioType === 'team_invite' ||
-                              msg.category === 'invite' ||
                               msg.actionType === 'invite_actions'
                             ) {
                               return (

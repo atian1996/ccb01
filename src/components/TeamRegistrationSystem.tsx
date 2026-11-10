@@ -444,7 +444,6 @@ export type ParticipatedInviteStatus =
   | 'pending_invite' // 待处理邀请（高亮）
   | 'joined' // 已加入（队伍组建中）
   | 'declined' // 已拒绝
-  | 'team_disbanded' // 已解散（队长解散队伍）
   | 'team_pending_review' // 队伍已提交审核（待高校审核）
   | 'team_school_rejected' // 高校审核已驳回（显示驳回原因）
   | 'team_wait_school_match' // 高校审核已通过（待校赛提报）
@@ -3599,24 +3598,6 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
       ],
     },
   },
-  // 13. 已解散（队长在组建中/邀请中/已驳回阶段解散了队伍，状态变为“已解散”，查看详情按钮置灰）
-  {
-    id: 'part-team-13',
-    competitionId: 'comp-2026-cloud-def',
-    competitionTitle: '2026“XX杯”云原生与零信任架构安全攻防挑战赛',
-    subTrackName: 'Kubernetes容器逃逸与云原生微服务网格防御赛道',
-    teamName: '北航星云二进制攻防队',
-    teamLogo: 'default-logo',
-    teamIntro: '专注容器运行时逃逸与eBPF安全监控（状态：队长已解散该队伍，相关报名与邀请已终止）。',
-    captainName: '韩子墨',
-    captainPhone: '138****9201',
-    university: '北京航空航天大学',
-    myRoleInTeam: '参赛队员',
-    myCtfRoles: ['Pwn手', '逆向手'],
-    status: 'team_disbanded',
-    invitedAt: '2026-10-14 15:20',
-    teammatesSummary: ['韩子墨（队长 · 北京航空航天大学）', '林远航（队员）', '赵振宇 教授（指导教师）'],
-  },
 ];
 
 // 计算队伍成员确认进度：固定显示格式为“邀请X人，X人已同意，X人已拒绝”
@@ -5255,9 +5236,8 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                 您确定要解散当前组建中的队伍 <strong>【{teamName || editingDraftTeam.teamName}】</strong> 吗？
               </p>
               <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 space-y-1.5 leading-relaxed">
-                <div>1. 解散后，该队伍将从“我发起的”报名列表中移除；</div>
-                <div>2. 系统将向已邀请的队员和指导教师发送【队伍已解散】站内消息通知；</div>
-                <div>3. 队员和指导教师在“我参与的”列表中对应报名记录状态将变为「已解散」，操作栏「查看详情」按钮置灰。</div>
+                <div>1. 解散后，该队伍对应的报名数据将在“我的报名”（含“我发起的”及队员/指导教师“我参与的”）中直接删除，不再显示；</div>
+                <div>2. 系统将向已邀请的队员和指导教师发送【队伍已解散】站内消息通知（归入“组队邀请”分类）。</div>
               </div>
               <div className="flex justify-end gap-3 pt-1">
                 <button
@@ -6040,51 +6020,17 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
 
   // 5c. 队长点击【解散队伍】确认后执行解散（仅组建中、邀请中、已驳回状态支持）
   const handleConfirmDisbandTeam = (team: CaptainTeamRecord) => {
-    // 1. 从“我发起的”列表中移除该队伍
+    // 1. 从“我发起的”列表中直接删除该队伍报名数据
     onUpdateCaptainTeams(captainTeams.filter((t) => t.id !== team.id));
 
-    // 2. 将队员和指导教师在“我参与的”中对应的报名数据状态改为“已解散（team_disbanded）”
-    const hasMatchInParticipated = participatedTeams.some(
-      (item) => item.id === team.id || item.teamName === team.teamName
+    // 2. 从队员和指导教师“我参与的”列表中直接删除对应的报名数据，不再保留或显示“已解散”状态
+    onUpdateParticipatedTeams(
+      participatedTeams.filter(
+        (item) => item.id !== team.id && item.teamName !== team.teamName
+      )
     );
-    if (hasMatchInParticipated) {
-      onUpdateParticipatedTeams(
-        participatedTeams.map((item) =>
-          item.id === team.id || item.teamName === team.teamName
-            ? {
-                ...item,
-                status: 'team_disbanded',
-                teamIntro: `${team.teamIntro || ''}（队长已解散该队伍）`,
-              }
-            : item
-        )
-      );
-    } else {
-      const disbandedParticipatedRecord: ParticipatedTeamRecord = {
-        id: `part-disbanded-${team.id}`,
-        competitionId: team.competitionId,
-        competitionTitle: team.competitionTitle,
-        subTrackName: team.subTrackName,
-        teamName: team.teamName,
-        teamLogo: team.teamLogo || 'default-logo',
-        teamIntro: team.teamIntro || '队长已解散该队伍，相关组队邀请与报名已终止。',
-        captainName: team.captainName,
-        captainPhone: team.captainPhone || '138****6921',
-        university: team.university,
-        myRoleInTeam: '参赛队员',
-        myCtfRoles: team.members[0]?.ctfRoles || ['Web手'],
-        status: 'team_disbanded',
-        invitedAt: team.createdAt || '2026-10-27 10:00',
-        teammatesSummary: [
-          `${team.captainName}（队长 · ${team.university}）`,
-          ...team.members.map((m) => `${m.name}（队员）`),
-          ...team.advisors.map((a) => `${a.name}（指导教师）`),
-        ],
-      };
-      onUpdateParticipatedTeams([disbandedParticipatedRecord, ...participatedTeams]);
-    }
 
-    // 3. 向已邀请的队员和指导教师发送站内消息通知
+    // 3. 向已邀请的队员和指导教师发送站内消息通知（归类到“组队邀请”）
     if (onDisbandTeamNotify) {
       onDisbandTeamNotify(team);
     }
@@ -6097,9 +6043,9 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
     setManagingTeamId(null);
     setManageFeedback(null);
     setListTopFeedback(
-      `已成功解散队伍【${team.teamName}】！系统已向受邀队员及指导教师（${
+      `已成功解散队伍【${team.teamName}】！该队伍对应的报名数据已从“我的报名”中直接删除；系统已向受邀队员及指导教师（${
         invitedNames.length > 0 ? invitedNames.join('、') : '拟邀成员'
-      }）发送【队伍已解散】消息通知，且“我参与的”对应报名记录状态已更新为「已解散」（查看详情按钮已置灰）。`
+      }）发送【队伍已解散】消息通知。`
     );
   };
 
@@ -7270,7 +7216,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                 </p>
                 <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 space-y-1.5 leading-relaxed">
                   <div>
-                    1. 解散后，该队伍将从您“我发起的”报名列表中移除；
+                    1. 解散后，该队伍对应的报名数据将在“我的报名”（含您“我发起的”及队员/老师“我参与的”）中直接删除，不再显示；
                   </div>
                   <div>
                     2. 系统将自动向已邀请的队员和指导教师（
@@ -7278,10 +7224,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                       ...disbandConfirmModalTeam.members.map((m) => m.name),
                       ...disbandConfirmModalTeam.advisors.map((a) => a.name),
                     ].join('、') || '暂无已邀成员'}
-                    ）发出<strong>【队伍已解散通知】</strong>消息；
-                  </div>
-                  <div>
-                    3. 之前队员和老师在“我参与的”中对应的报名数据状态将改为<strong>「已解散」</strong>，且操作栏「查看详情」按钮置灰禁用。
+                    ）发出<strong>【队伍已解散通知】</strong>消息（归入“组队邀请”分类）。
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-1">
@@ -8219,19 +8162,14 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   <tbody className="divide-y divide-slate-200 text-xs sm:text-sm bg-white">
                     {participatedTeams.map((item) => {
                       const isPendingInvite = item.status === 'pending_invite';
-                      const isDisbanded = item.status === 'team_disbanded';
                       return (
                         <tr
                           key={item.id}
                           onClick={() => {
-                            if (!isDisbanded) {
-                              setViewingParticipatedId(item.id);
-                            }
+                            setViewingParticipatedId(item.id);
                           }}
                           className={`transition-colors ${
-                            isDisbanded
-                              ? 'bg-slate-50/60 text-slate-400 cursor-default'
-                              : isPendingInvite
+                            isPendingInvite
                               ? 'bg-amber-50/40 hover:bg-amber-50/80 cursor-pointer'
                               : 'hover:bg-sky-50/40 cursor-pointer'
                           }`}
@@ -8307,12 +8245,6 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             )}
                             {item.status === 'joined' && (
                               <span className="font-bold text-emerald-700">● 已加入（组建中）</span>
-                            )}
-                            {item.status === 'team_disbanded' && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-xs font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                <span>已解散</span>
-                              </span>
                             )}
                             {item.status === 'declined' && (
                               <div
@@ -8405,19 +8337,14 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                           <td className="py-3.5 px-4 align-middle text-right whitespace-nowrap">
                             <button
                               type="button"
-                              disabled={isDisbanded}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!isDisbanded) {
-                                  setViewingParticipatedId(item.id);
-                                }
+                                setViewingParticipatedId(item.id);
                               }}
-                              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold ${
-                                isDisbanded
-                                  ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
-                                  : isPendingInvite
-                                  ? 'bg-[#0284C7] hover:bg-[#0369A1] text-white cursor-pointer'
-                                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer'
+                              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                                isPendingInvite
+                                  ? 'bg-[#0284C7] hover:bg-[#0369A1] text-white'
+                                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
                               }`}
                             >
                               {isPendingInvite ? '处理邀请' : '查看详情'}
