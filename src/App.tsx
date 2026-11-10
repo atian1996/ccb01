@@ -1264,11 +1264,11 @@ export default function App() {
   // 独立页面路由 3：大赛前台（首页 / 赛事目录 / 赛事详情页）
   // =========================================================================
   return (
-    <div className="min-h-screen flex flex-col bg-[#F2F6FC] text-[#0F172A]">
-      {/* 全局导航栏（顶部） */}
-      <header className="sticky top-0 z-40 bg-white border-b border-blue-100/80 shadow-[0_2px_10px_rgba(22,100,255,0.04)]">
-        <div className="max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
-          {/* 左侧：LOGO + 导航菜单（贴合UI设计图左对齐紧凑布局） */}
+    <div className="min-h-screen flex flex-col aic-canvas text-[#232A65]">
+      {/* 全局导航栏（顶部 - 参考 aicomp.cn 磨砂半透明白底导航栏） */}
+      <header className="sticky top-0 z-40 aic-header">
+        <div className="max-w-[1440px] 2xl:max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 h-[68px] flex items-center justify-between gap-6">
+          {/* 左侧：LOGO + 导航菜单 */}
           <div className="flex items-center gap-8 lg:gap-12">
             <button
               type="button"
@@ -1276,23 +1276,23 @@ export default function App() {
                 setCurrentView('home');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="flex items-center gap-2.5 text-left group cursor-pointer shrink-0 focus:outline-none"
+              className="flex items-center gap-3 text-left group cursor-pointer shrink-0 focus:outline-none"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8F2FF] to-[#CFE4FF] border border-[#99C2FF] flex items-center justify-center text-[#1664FF] shadow-2xs group-hover:scale-105 transition-transform">
-                <Shield className="w-5 h-5 fill-[#1664FF]/15" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#256BF8] via-[#165CCC] to-[#134B91] border border-white/80 flex items-center justify-center text-white shadow-[0_6px_16px_rgba(22,92,204,0.28)] group-hover:scale-105 transition-transform">
+                <Shield className="w-5 h-5 fill-white/20" />
               </div>
               <div className="leading-tight">
-                <div className="text-xs font-extrabold text-[#1664FF] tracking-tight">
+                <div className="text-[11px] font-extrabold text-[#165CCC] tracking-wider">
                   第五届“XX杯”
                 </div>
-                <div className="text-sm sm:text-base font-black tracking-tight text-[#0D3B8C] whitespace-nowrap">
+                <div className="text-sm sm:text-base font-black tracking-tight text-[#134B91] whitespace-nowrap">
                   网数智安全大赛(防护赛)
                 </div>
               </div>
             </button>
 
             {/* 导航菜单：首页、赛事目录、通知公告、赛事动态、赛事新闻、帮助中心 */}
-            <nav className="hidden md:flex items-center gap-7 lg:gap-8 text-sm font-medium text-slate-700 h-16">
+            <nav className="hidden md:flex items-center gap-7 lg:gap-8 text-[15px] font-medium text-[#232A65] h-[68px]">
               <button
                 type="button"
                 onClick={() => {
@@ -1301,8 +1301,8 @@ export default function App() {
                 }}
                 className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   currentView === 'home'
-                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
-                    : 'hover:text-[#1664FF]'
+                    ? 'text-[#165CCC] font-bold after:content-[""] after:absolute after:bottom-3 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#165CCC] after:rounded-full'
+                    : 'hover:text-[#165CCC]'
                 }`}
               >
                 首页
@@ -1315,8 +1315,8 @@ export default function App() {
                 }}
                 className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   currentView === 'directory' || currentView === 'competition-detail'
-                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
-                    : 'hover:text-[#1664FF]'
+                    ? 'text-[#165CCC] font-bold after:content-[""] after:absolute after:bottom-3 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#165CCC] after:rounded-full'
+                    : 'hover:text-[#165CCC]'
                 }`}
               >
                 赛事目录
@@ -1330,8 +1330,8 @@ export default function App() {
                 }}
                 className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   currentView === 'notices' || currentView === 'notice-detail'
-                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
-                    : 'hover:text-[#1664FF]'
+                    ? 'text-[#165CCC] font-bold after:content-[""] after:absolute after:bottom-3 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#165CCC] after:rounded-full'
+                    : 'hover:text-[#165CCC]'
                 }`}
               >
                 通知公告
@@ -1345,8 +1345,8 @@ export default function App() {
                 }}
                 className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   currentView === 'moments' || currentView === 'moment-detail'
-                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
-                    : 'hover:text-[#1664FF]'
+                    ? 'text-[#165CCC] font-bold after:content-[""] after:absolute after:bottom-3 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#165CCC] after:rounded-full'
+                    : 'hover:text-[#165CCC]'
                 }`}
               >
                 赛事动态
@@ -1360,8 +1360,8 @@ export default function App() {
                 }}
                 className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   currentView === 'news' || currentView === 'news-detail'
-                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
-                    : 'hover:text-[#1664FF]'
+                    ? 'text-[#165CCC] font-bold after:content-[""] after:absolute after:bottom-3 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#165CCC] after:rounded-full'
+                    : 'hover:text-[#165CCC]'
                 }`}
               >
                 赛事新闻
@@ -1374,8 +1374,8 @@ export default function App() {
                 }}
                 className={`relative h-full flex items-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   currentView === 'help'
-                    ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-2.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-[2.5px] after:bg-[#1664FF] after:rounded-full'
-                    : 'hover:text-[#1664FF]'
+                    ? 'text-[#165CCC] font-bold after:content-[""] after:absolute after:bottom-3 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#165CCC] after:rounded-full'
+                    : 'hover:text-[#165CCC]'
                 }`}
               >
                 帮助中心
@@ -1394,7 +1394,7 @@ export default function App() {
                     setCurrentView('auth');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-[#1664FF] flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-9 h-9 rounded-full bg-white/80 hover:bg-white border border-blue-100 text-[#232A65] hover:text-[#165CCC] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
                   aria-label="登录入口"
                 >
                   <User className="w-4 h-4" />
@@ -1406,10 +1406,10 @@ export default function App() {
                     setCurrentView('auth');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="px-4 py-1.5 text-xs sm:text-sm font-semibold text-white bg-[#1664FF] hover:bg-[#0E4FD6] rounded-full shadow-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1"
+                  className="px-5 py-2 text-xs sm:text-sm font-semibold text-white aic-btn-gradient rounded-full whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1"
                 >
                   <span>登录 | 注册</span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                  <ChevronDown className="w-3.5 h-3.5 opacity-85" />
                 </button>
               </div>
             ) : (
@@ -1651,7 +1651,7 @@ export default function App() {
                       setUserDropdownOpen((prev) => !prev);
                       setBellDropdownOpen(false);
                     }}
-                    className="w-8 h-8 rounded-full bg-slate-200/80 hover:bg-blue-100 text-slate-600 hover:text-[#1664FF] flex items-center justify-center transition-colors cursor-pointer"
+                    className="w-9 h-9 rounded-full bg-white/90 hover:bg-white border border-blue-200/80 text-[#232A65] hover:text-[#165CCC] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
                     aria-label="个人中心菜单"
                   >
                     <User className="w-4 h-4" />
@@ -1663,7 +1663,7 @@ export default function App() {
                       setUserDropdownOpen((prev) => !prev);
                       setBellDropdownOpen(false);
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1664FF] hover:bg-[#0E4FD6] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full aic-btn-gradient text-white text-xs font-semibold cursor-pointer"
                   >
                     <span className="whitespace-nowrap">
                       {currentUser.name || currentUser.username}
@@ -1855,6 +1855,40 @@ export default function App() {
             setCurrentView('admin');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
+          onDisbandTeamNotify={(disbandedTeam) => {
+            const invitedNames = [
+              ...disbandedTeam.members.map((m) => m.name),
+              ...disbandedTeam.advisors.map((a) => a.name),
+            ];
+            setNotifications((prev) => [
+              {
+                id: `notif-disband-${Date.now()}`,
+                title: `所在队伍【${disbandedTeam.teamName}】已解散通知`,
+                shortTitle: `队伍【${disbandedTeam.teamName}】已解散`,
+                desc: `您受邀参与的【${disbandedTeam.competitionTitle}】参赛队伍【${disbandedTeam.teamName}】已被队长【${disbandedTeam.captainName}】解散（已同步通知受邀队员与指导教师：${
+                  invitedNames.length > 0 ? invitedNames.join('、') : '拟邀成员'
+                }）。之前队员和老师“我参与的”中对应的报名数据状态已更新为【已解散】。`,
+                time: '刚刚',
+                unread: true,
+                category: 'system',
+                rolePerspective: '队员视角',
+                scenarioType: 'team_status_change',
+                messageTypeLabel: '队伍解散通知',
+                iconStyle: 'warning',
+                actionType: 'view_detail',
+              },
+              ...prev,
+            ]);
+            handleAddAuditLog({
+              operator: currentUser.username,
+              ip: currentUser.currentLoginIp,
+              location: currentUser.currentLoginLocation,
+              device: 'Windows 11 / Chrome 130.0',
+              action: `解散报名队伍（${disbandedTeam.teamName}）`,
+              result: '成功',
+              detail: `赛事：${disbandedTeam.competitionTitle}，已通知受邀成员并将“我参与的”状态更新为「已解散」`,
+            });
+          }}
         />
       ) : currentView === 'notices' ? (
         <FrontendNoticesPage
@@ -2035,6 +2069,81 @@ export default function App() {
             setCurrentView('user-center');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
+          onDisbandDraftTeam={(draftTeam) => {
+            setCaptainTeams((prev) => prev.filter((t) => t.id !== draftTeam.id));
+            setParticipatedTeams((prev) => {
+              const hasMatch = prev.some(
+                (item) => item.id === draftTeam.id || item.teamName === draftTeam.teamName
+              );
+              if (hasMatch) {
+                return prev.map((item) =>
+                  item.id === draftTeam.id || item.teamName === draftTeam.teamName
+                    ? { ...item, status: 'team_disbanded' }
+                    : item
+                );
+              }
+              return [
+                {
+                  id: `part-disbanded-${draftTeam.id}`,
+                  competitionId: draftTeam.competitionId,
+                  competitionTitle: draftTeam.competitionTitle,
+                  subTrackName: draftTeam.subTrackName,
+                  teamName: draftTeam.teamName,
+                  teamLogo: draftTeam.teamLogo || 'default-logo',
+                  teamIntro: draftTeam.teamIntro || '队长已解散该队伍，相关组队邀请与报名已终止。',
+                  captainName: draftTeam.captainName,
+                  captainPhone: draftTeam.captainPhone || '138****6921',
+                  university: draftTeam.university,
+                  myRoleInTeam: '参赛队员',
+                  myCtfRoles: draftTeam.members[0]?.ctfRoles || ['Web手'],
+                  status: 'team_disbanded',
+                  invitedAt: draftTeam.createdAt || '2026-10-27 10:00',
+                  teammatesSummary: [
+                    `${draftTeam.captainName}（队长 · ${draftTeam.university}）`,
+                    ...draftTeam.members.map((m) => `${m.name}（队员）`),
+                    ...draftTeam.advisors.map((a) => `${a.name}（指导教师）`),
+                  ],
+                },
+                ...prev,
+              ];
+            });
+            const invitedNames = [
+              ...draftTeam.members.map((m) => m.name),
+              ...draftTeam.advisors.map((a) => a.name),
+            ];
+            setNotifications((prev) => [
+              {
+                id: `notif-disband-${Date.now()}`,
+                title: `所在队伍【${draftTeam.teamName}】已解散通知`,
+                shortTitle: `队伍【${draftTeam.teamName}】已解散`,
+                desc: `您受邀参与的【${draftTeam.competitionTitle}】参赛队伍【${draftTeam.teamName}】已被队长【${draftTeam.captainName}】解散（已同步通知受邀队员与指导教师：${
+                  invitedNames.length > 0 ? invitedNames.join('、') : '拟邀成员'
+                }）。之前队员和老师“我参与的”中对应的报名数据状态已更新为【已解散】。`,
+                time: '刚刚',
+                unread: true,
+                category: 'system',
+                rolePerspective: '队员视角',
+                scenarioType: 'team_status_change',
+                messageTypeLabel: '队伍解散通知',
+                iconStyle: 'warning',
+                actionType: 'view_detail',
+              },
+              ...prev,
+            ]);
+            handleAddAuditLog({
+              operator: currentUser.username,
+              ip: currentUser.currentLoginIp,
+              location: currentUser.currentLoginLocation,
+              device: 'Windows 11 / Chrome 130.0',
+              action: `解散组建中报名队伍（${draftTeam.teamName}）`,
+              result: '成功',
+              detail: `赛事：${draftTeam.competitionTitle}，已通知受邀成员并将“我参与的”状态更新为「已解散」`,
+            });
+            setEditingDraftTeam(null);
+            setUserCenterInitialTab('registrations');
+            setCurrentView('user-center');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       ) : (
         <>
@@ -2070,7 +2179,7 @@ export default function App() {
               );
             })}
 
-            {/* 左右切换箭头 */}
+            {/* 左右切换箭头（参考 aicomp.cn .swiper-button 样式） */}
             <button
               type="button"
               onClick={() =>
@@ -2078,7 +2187,7 @@ export default function App() {
                   (prev) => (prev - 1 + activeHomeBanners.length) % activeHomeBanners.length
                 )
               }
-              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white/70 hover:bg-white border border-blue-200 text-[#1664FF] flex items-center justify-center shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
+              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-2xl bg-[#232A65]/40 hover:bg-[#165CCC] border border-white/30 text-white flex items-center justify-center shadow-sm backdrop-blur-md transition-all cursor-pointer"
               aria-label="上一张海报"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -2088,14 +2197,14 @@ export default function App() {
               onClick={() =>
                 setCurrentBannerIdx((prev) => (prev + 1) % activeHomeBanners.length)
               }
-              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white/70 hover:bg-white border border-blue-200 text-[#1664FF] flex items-center justify-center shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
+              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-2xl bg-[#232A65]/40 hover:bg-[#165CCC] border border-white/30 text-white flex items-center justify-center shadow-sm backdrop-blur-md transition-all cursor-pointer"
               aria-label="下一张海报"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
 
             {/* 底部指示器小圆点 */}
-            <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/65 backdrop-blur-xs px-3 py-1 rounded-full border border-blue-100">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white shadow-sm">
               {activeHomeBanners.map((s, idx) => (
                 <button
                   key={s.id}
@@ -2104,8 +2213,8 @@ export default function App() {
                   aria-label={`切换到第 ${idx + 1} 张轮播图`}
                   className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
                     idx === currentBannerIdx
-                      ? 'w-6 bg-[#1664FF]'
-                      : 'w-1.5 bg-[#1664FF]/30 hover:bg-[#1664FF]/60'
+                      ? 'w-7 bg-[#165CCC]'
+                      : 'w-2 bg-[#232A65]/25 hover:bg-[#165CCC]/60'
                   }`}
                 />
               ))}
@@ -2113,17 +2222,19 @@ export default function App() {
           </section>
 
           {/* Main Content Container */}
-          <main className="max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-8 space-y-6 flex-1 w-full">
+          <main className="max-w-[1440px] 2xl:max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-7 flex-1 w-full">
             {/* 模块二：核心双栏（赛事通道 + 通知公告） */}
             <section id="tracks-notice-section" className="scroll-mt-20">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* 左侧：赛事通道（白色圆角卡片容器，占 7 列） */}
-                <div className="lg:col-span-7 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col">
-                  {/* 卡片头部（蓝标 + 标题 + 底部短横线装饰 + 右侧更多链接） */}
-                  <div className="relative flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-[#1664FF]" />
-                      <h2 className="text-lg font-bold text-slate-900 tracking-tight">赛事通道</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-stretch">
+                {/* 左侧：赛事通道（磨砂白边圆角卡片容器，占 7 列） */}
+                <div className="lg:col-span-7 aic-card p-6 sm:p-7 flex flex-col">
+                  {/* 卡片头部 */}
+                  <div className="relative flex items-center justify-between pb-4 mb-4 border-b border-blue-100/70">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#165CCC]/10 text-[#165CCC] flex items-center justify-center">
+                        <Trophy className="w-4 h-4" />
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] tracking-tight">赛事通道</h2>
                     </div>
                     <button
                       type="button"
@@ -2131,16 +2242,16 @@ export default function App() {
                         setCurrentView('directory');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                      className="px-3.5 py-1 rounded-full bg-white/80 hover:bg-[#165CCC] text-xs font-semibold text-[#232A65]/75 hover:text-white border border-blue-100/80 flex items-center gap-0.5 transition-all cursor-pointer"
                     >
                       <span>更多赛事</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                    <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                    <span className="absolute bottom-0 left-0 w-24 h-[2.5px] bg-gradient-to-r from-[#165CCC] to-[#84AFFF] rounded-full" />
                   </div>
 
-                  {/* 赛事列表（联动后台内容管理 -> 首页配置推荐的 3 个赛事，点击整行直接进入对应赛事详情页） */}
-                  <div className="flex-1 divide-y divide-slate-100 flex flex-col justify-between">
+                  {/* 赛事列表 */}
+                  <div className="flex-1 divide-y divide-blue-100/60 flex flex-col justify-between">
                     {homeRecommendedCompetitions.map((comp) => {
                         const matchedTrack = COMPETITION_TRACKS.find(
                           (t) => t.catalogId === comp.id
@@ -2158,10 +2269,10 @@ export default function App() {
                             : 'ended';
                         const statusBadgeClass =
                           calcStatus === 'ongoing'
-                            ? 'bg-[#00B42A] text-white'
+                            ? 'bg-emerald-500 text-white'
                             : calcStatus === 'upcoming'
-                            ? 'bg-[#FF9A2E] text-white'
-                            : 'bg-[#86909C] text-white';
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-slate-400 text-white';
 
                         return (
                           <div
@@ -2171,10 +2282,10 @@ export default function App() {
                               setCurrentView('competition-detail');
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
-                            className="group py-4 first:pt-1 last:pb-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 cursor-pointer"
+                            className="group py-4 first:pt-1 last:pb-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 cursor-pointer rounded-xl hover:bg-white/60 px-2 -mx-2 transition-colors"
                           >
                             {/* 左侧缩略海报图 */}
-                            <div className="w-full sm:w-[220px] h-[124px] shrink-0 overflow-hidden rounded-lg group-hover:shadow-sm transition-shadow">
+                            <div className="w-full sm:w-[224px] h-[126px] shrink-0 overflow-hidden rounded-[14px] border border-white shadow-xs group-hover:shadow-md transition-all">
                               <TrackCoverIllustration
                                 type={matchedTrack?.visualType || comp.coverTheme}
                                 status={trackVisualStatus}
@@ -2185,25 +2296,25 @@ export default function App() {
                             <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
                               <div>
                                 <div className="flex items-center gap-2.5 mb-2.5">
-                                  <h3 className="text-base font-bold text-slate-900 group-hover:text-[#1664FF] transition-colors truncate">
+                                  <h3 className="text-base font-bold text-[#232A65] group-hover:text-[#165CCC] transition-colors truncate">
                                     {comp.title}
                                   </h3>
                                   <span
-                                    className={`px-2 py-0.5 rounded-xs text-[11px] font-semibold shrink-0 ${statusBadgeClass}`}
+                                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${statusBadgeClass}`}
                                   >
                                     {displayStatusLabel}
                                   </span>
                                 </div>
 
-                                <div className="space-y-1.5 text-xs text-slate-500">
+                                <div className="space-y-1.5 text-xs text-[#232A65]/70">
                                   <div className="flex items-center gap-2">
-                                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <Calendar className="w-3.5 h-3.5 text-[#165CCC]/70 shrink-0" />
                                     <span className="font-mono-num">
                                       {comp.startDate} ~ {comp.endDate}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <Building2 className="w-3.5 h-3.5 text-[#165CCC]/70 shrink-0" />
                                     <span className="truncate" title={comp.organizer}>
                                       主办方：{comp.organizer}
                                     </span>
@@ -2217,13 +2328,15 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 右侧：通知公告（白色圆角卡片容器，占 5 列，实时联动后台已发布通知公告） */}
-                <div className="lg:col-span-5 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col">
+                {/* 右侧：通知公告（磨砂白边圆角卡片容器，占 5 列） */}
+                <div className="lg:col-span-5 aic-card p-6 sm:p-7 flex flex-col">
                   {/* 卡片头部 */}
-                  <div className="relative flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <Volume2 className="w-5 h-5 text-[#1664FF]" />
-                      <h2 className="text-lg font-bold text-slate-900 tracking-tight">通知公告</h2>
+                  <div className="relative flex items-center justify-between pb-4 mb-4 border-b border-blue-100/70">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#165CCC]/10 text-[#165CCC] flex items-center justify-center">
+                        <Volume2 className="w-4 h-4" />
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] tracking-tight">通知公告</h2>
                     </div>
                     <button
                       type="button"
@@ -2232,16 +2345,16 @@ export default function App() {
                         setCurrentView('notices');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                      className="px-3.5 py-1 rounded-full bg-white/80 hover:bg-[#165CCC] text-xs font-semibold text-[#232A65]/75 hover:text-white border border-blue-100/80 flex items-center gap-0.5 transition-all cursor-pointer"
                     >
                       <span>更多公告</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                    <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                    <span className="absolute bottom-0 left-0 w-24 h-[2.5px] bg-gradient-to-r from-[#165CCC] to-[#84AFFF] rounded-full" />
                   </div>
 
-                  {/* 通知公告列表（置顶优先，点击进入通知公告详情二级页） */}
-                  <div className="flex-1 divide-y divide-slate-100 flex flex-col justify-between">
+                  {/* 通知公告列表 */}
+                  <div className="flex-1 divide-y divide-blue-100/60 flex flex-col justify-between">
                     {publishedNotices.slice(0, 6).map((notice, index) => (
                       <div
                         key={notice.id}
@@ -2250,15 +2363,15 @@ export default function App() {
                           setCurrentView('notice-detail');
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="group py-3 first:pt-1 last:pb-1 flex items-start justify-between gap-3 cursor-pointer"
+                        className="group py-3 first:pt-1 last:pb-1 flex items-start justify-between gap-3 cursor-pointer rounded-lg hover:bg-white/60 px-2 -mx-2 transition-colors"
                       >
                         <div className="flex items-start gap-2.5 min-w-0 flex-1">
                           {notice.isPinned ? (
-                            <span className="mt-0.5 px-1.5 py-0.5 rounded-xs bg-red-50 text-[#F53F3F] border border-red-200/80 text-[11px] font-bold leading-none shrink-0">
+                            <span className="mt-0.5 px-2 py-0.5 rounded-full bg-red-50 text-[#F53F3F] border border-red-200/80 text-[11px] font-bold leading-none shrink-0">
                               置顶
                             </span>
                           ) : (
-                            <span className="mt-0.5 px-1.5 py-0.5 rounded-xs bg-blue-50 text-[#1664FF] border border-blue-200/60 text-[11px] font-semibold leading-none shrink-0">
+                            <span className="mt-0.5 px-2 py-0.5 rounded-full bg-[#165CCC]/10 text-[#165CCC] border border-[#165CCC]/20 text-[11px] font-semibold leading-none shrink-0">
                               {notice.category || '通知'}
                             </span>
                           )}
@@ -2266,17 +2379,17 @@ export default function App() {
                             <h3
                               className={`text-sm leading-snug line-clamp-1 transition-colors ${
                                 index === 0 || notice.isPinned
-                                  ? 'font-bold text-slate-900 group-hover:text-[#1664FF]'
-                                  : 'font-medium text-slate-700 group-hover:text-[#1664FF]'
+                                  ? 'font-bold text-[#232A65] group-hover:text-[#165CCC]'
+                                  : 'font-medium text-[#232A65]/85 group-hover:text-[#165CCC]'
                               }`}
                               title={notice.title}
                             >
                               {notice.title}
                             </h3>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-[#232A65]/55">
                               <span className="truncate">{notice.department}</span>
                               {notice.attachments && notice.attachments.length > 0 && (
-                                <span className="text-[#1664FF] shrink-0">
+                                <span className="text-[#165CCC] font-medium shrink-0">
                                   · 含附件
                                 </span>
                               )}
@@ -2284,7 +2397,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        <span className="text-xs text-slate-400 group-hover:text-[#1664FF] font-mono-num shrink-0 pt-0.5 transition-colors">
+                        <span className="text-xs text-[#232A65]/55 group-hover:text-[#165CCC] font-mono-num shrink-0 pt-0.5 transition-colors">
                           {notice.fullDate || notice.date}
                         </span>
                       </div>
@@ -2294,16 +2407,18 @@ export default function App() {
               </div>
             </section>
 
-            {/* 模块三：赛事新闻（单张通栏白色卡片，左图右文列表，点击进入二级详情页） */}
+            {/* 模块三：赛事新闻（磨砂白边通栏卡片，左图右文列表） */}
             <section
               id="news-section"
-              className="scroll-mt-20 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6"
+              className="scroll-mt-20 aic-card p-6 sm:p-7"
             >
               {/* 卡片头部 */}
-              <div className="relative flex items-center justify-between pb-3.5 mb-5 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Newspaper className="w-5 h-5 text-[#1664FF]" />
-                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">赛事新闻</h2>
+              <div className="relative flex items-center justify-between pb-4 mb-5 border-b border-blue-100/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#165CCC]/10 text-[#165CCC] flex items-center justify-center">
+                    <Newspaper className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] tracking-tight">赛事新闻</h2>
                 </div>
                 <button
                   type="button"
@@ -2312,12 +2427,12 @@ export default function App() {
                     setCurrentView('news');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                  className="px-3.5 py-1 rounded-full bg-white/80 hover:bg-[#165CCC] text-xs font-semibold text-[#232A65]/75 hover:text-white border border-blue-100/80 flex items-center gap-0.5 transition-all cursor-pointer"
                 >
                   <span>更多新闻</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
-                <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                <span className="absolute bottom-0 left-0 w-24 h-[2.5px] bg-gradient-to-r from-[#165CCC] to-[#84AFFF] rounded-full" />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -2328,26 +2443,26 @@ export default function App() {
                     setCurrentView('news-detail');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="lg:col-span-5 flex flex-col justify-between cursor-pointer group"
+                  className="lg:col-span-5 flex flex-col justify-between cursor-pointer group bg-white/60 hover:bg-white p-4 rounded-2xl border border-white transition-all shadow-2xs hover:shadow-md"
                 >
-                  <div className="mb-3.5 overflow-hidden rounded-lg">
+                  <div className="mb-3.5 overflow-hidden rounded-[14px]">
                     <FeaturedNewsIllustration />
                   </div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-[#1664FF] transition-colors line-clamp-1 mb-2">
+                  <h3 className="text-base sm:text-lg font-bold text-[#232A65] group-hover:text-[#165CCC] transition-colors line-clamp-1 mb-2">
                     {featuredNews.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 line-clamp-2 leading-relaxed mb-3">
+                  <p className="text-xs sm:text-sm text-[#232A65]/70 line-clamp-2 leading-relaxed mb-3">
                     {featuredNews.summary}
                   </p>
-                  <div className="text-xs text-slate-400 flex items-center gap-3">
+                  <div className="text-xs text-[#232A65]/55 flex items-center gap-3">
                     <span>来源：{featuredNews.source}</span>
                     <span>|</span>
                     <span className="font-mono-num">{featuredNews.date}</span>
                   </div>
                 </div>
 
-                {/* 右侧：新闻列表（首条带蓝色三角指示标与高亮标题，还原设计图） */}
-                <div className="lg:col-span-7 divide-y divide-slate-100 flex flex-col justify-between">
+                {/* 右侧：新闻列表 */}
+                <div className="lg:col-span-7 divide-y divide-blue-100/60 flex flex-col justify-between">
                   {listNews.slice(0, 3).map((item, idx) => (
                     <article
                       key={item.id}
@@ -2356,29 +2471,29 @@ export default function App() {
                         setCurrentView('news-detail');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="py-4 first:pt-0 last:pb-0 group cursor-pointer"
+                      className="py-4 first:pt-1 last:pb-1 group cursor-pointer rounded-xl hover:bg-white/60 px-3 -mx-3 transition-colors"
                     >
                       <div className="flex items-center gap-2 mb-1.5">
                         {idx === 0 && (
                           <span
-                            className="inline-block w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[#1664FF] shrink-0"
+                            className="inline-block w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[#165CCC] shrink-0"
                             aria-hidden="true"
                           />
                         )}
                         <h3
                           className={`text-base font-bold transition-colors leading-snug truncate ${
                             idx === 0
-                              ? 'text-[#1664FF]'
-                              : 'text-slate-900 group-hover:text-[#1664FF]'
+                              ? 'text-[#165CCC]'
+                              : 'text-[#232A65] group-hover:text-[#165CCC]'
                           }`}
                         >
                           {item.title}
                         </h3>
                       </div>
-                      <p className="text-xs sm:text-sm text-slate-500 line-clamp-1 mb-2">
+                      <p className="text-xs sm:text-sm text-[#232A65]/70 line-clamp-1 mb-2">
                         {item.summary}
                       </p>
-                      <div className="text-xs text-slate-400 flex items-center gap-3">
+                      <div className="text-xs text-[#232A65]/55 flex items-center gap-3">
                         <span>来源：{item.source}</span>
                         <span>|</span>
                         <span className="font-mono-num">{item.date}</span>
@@ -2389,20 +2504,22 @@ export default function App() {
               </div>
             </section>
 
-            {/* 模块四：赛事动态（单张通栏白色卡片，头部居中分类Tab + 5列卡片轮播） */}
+            {/* 模块四：赛事动态（参考 aicomp.cn 胶囊分类切换 + .newsLink 磨砂白边卡片阵列） */}
             <section
               id="moments-section"
-              className="scroll-mt-20 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6"
+              className="scroll-mt-20 aic-card p-6 sm:p-7"
             >
               {/* 卡片头部 */}
-              <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 mb-5 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Film className="w-5 h-5 text-[#1664FF]" />
-                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">赛事动态</h2>
+              <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-6 border-b border-blue-100/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#165CCC]/10 text-[#165CCC] flex items-center justify-center">
+                    <Film className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] tracking-tight">赛事动态</h2>
                 </div>
 
-                {/* 居中分类切换 Tab：进展报道 / 团队风采 / 赛事花絮 / 专家观点（默认展示进展报道） */}
-                <div className="flex flex-wrap items-center gap-5 sm:gap-7 text-xs sm:text-sm">
+                {/* 居中分类切换 Tab：采用 aicomp.cn 的 .sort-list 磨砂胶囊切换栏 */}
+                <div className="aic-sort-list">
                   {(['进展报道', '团队风采', '赛事花絮', '专家观点'] as const).map(
                     (cat) => {
                       const active = activeMomentTab === cat;
@@ -2411,10 +2528,8 @@ export default function App() {
                           key={cat}
                           type="button"
                           onClick={() => handleMomentTabChange(cat)}
-                          className={`relative pb-3.5 -mb-3.5 transition-colors cursor-pointer whitespace-nowrap ${
-                            active
-                              ? 'text-[#1664FF] font-bold after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#1664FF]'
-                              : 'text-slate-600 hover:text-[#1664FF] font-medium'
+                          className={`aic-sort-item !py-1.5 !px-4 !text-xs sm:!text-sm ${
+                            active ? 'aic-sort-item-active' : ''
                           }`}
                         >
                           {cat}
@@ -2431,12 +2546,12 @@ export default function App() {
                     setCurrentView('moments');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer self-end sm:self-auto"
+                  className="px-3.5 py-1 rounded-full bg-white/80 hover:bg-[#165CCC] text-xs font-semibold text-[#232A65]/75 hover:text-white border border-blue-100/80 flex items-center gap-0.5 transition-all cursor-pointer self-end sm:self-auto"
                 >
                   <span>更多动态</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
-                <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                <span className="absolute bottom-0 left-0 w-24 h-[2.5px] bg-gradient-to-r from-[#165CCC] to-[#84AFFF] rounded-full" />
               </div>
 
               {/* 横向卡片轮播区（左右箭头 + 5列卡片） */}
@@ -2508,14 +2623,16 @@ export default function App() {
 
             {/* 模块五：实用服务区（左：帮助中心 Markdown 文档节选 + 右：电子证书查询与验证） */}
             <section id="utility-service-section" className="scroll-mt-20">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* 左卡片：帮助中心（展示帮助中心 Markdown 文档顶部的一部分内容） */}
-                <div className="lg:col-span-6 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col justify-between">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-stretch">
+                {/* 左卡片：帮助中心 */}
+                <div className="lg:col-span-6 aic-card p-6 sm:p-7 flex flex-col justify-between">
                   <div>
-                    <div className="relative flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100">
-                      <div className="flex items-center gap-2">
-                        <HelpCircle className="w-5 h-5 text-[#1664FF]" />
-                        <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+                    <div className="relative flex items-center justify-between pb-4 mb-4 border-b border-blue-100/70">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[#165CCC]/10 text-[#165CCC] flex items-center justify-center">
+                          <HelpCircle className="w-4 h-4" />
+                        </div>
+                        <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] tracking-tight">
                           帮助中心
                         </h2>
                       </div>
@@ -2525,12 +2642,12 @@ export default function App() {
                           setCurrentView('help');
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                        className="px-3.5 py-1 rounded-full bg-white/80 hover:bg-[#165CCC] text-xs font-semibold text-[#232A65]/75 hover:text-white border border-blue-100/80 flex items-center gap-0.5 transition-all cursor-pointer"
                       >
                         <span>阅读完整帮助文档</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
-                      <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                      <span className="absolute bottom-0 left-0 w-24 h-[2.5px] bg-gradient-to-r from-[#165CCC] to-[#84AFFF] rounded-full" />
                     </div>
 
                     <div className="relative max-h-[290px] overflow-hidden pr-1">
@@ -2538,12 +2655,12 @@ export default function App() {
                         content={helpCenterContent}
                         compact
                       />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white via-white/90 to-transparent" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white/95 via-white/80 to-transparent" />
                     </div>
                   </div>
 
-                  <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-xs text-slate-400">
+                  <div className="pt-3.5 mt-2 border-t border-blue-100/60 flex items-center justify-between">
+                    <span className="text-xs text-[#232A65]/55">
                       已为您节选帮助中心文档顶部高频问题指引
                     </span>
                     <button
@@ -2552,7 +2669,7 @@ export default function App() {
                         setCurrentView('help');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="text-xs font-semibold text-[#1664FF] hover:text-[#0E4FD6] inline-flex items-center gap-1 cursor-pointer transition-colors"
+                      className="text-xs font-bold text-[#165CCC] hover:text-[#134B91] inline-flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <span>进入帮助中心查看全文</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -2560,29 +2677,31 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 右卡片：电子证书查询与验证（还原设计图：浅蓝渐变内衬卡片 + 左侧表单 + 右侧3D奖杯证书插画） */}
+                {/* 右卡片：电子证书查询与验证 */}
                 <div
                   id="cert-section"
-                  className="lg:col-span-6 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6 flex flex-col justify-between"
+                  className="lg:col-span-6 aic-card p-6 sm:p-7 flex flex-col justify-between"
                 >
-                  <div className="relative flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-[#1664FF]" />
-                      <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+                  <div className="relative flex items-center justify-between pb-4 mb-4 border-b border-blue-100/70">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#165CCC]/10 text-[#165CCC] flex items-center justify-center">
+                        <CreditCard className="w-4 h-4" />
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] tracking-tight">
                         电子证书查询与验证
                       </h2>
                     </div>
-                    <span className="text-xs text-slate-400">获奖查询</span>
-                    <span className="absolute bottom-0 left-0 w-40 h-[2px] bg-[#1664FF] rounded-full" />
+                    <span className="text-xs font-semibold text-[#165CCC]/75">获奖查询</span>
+                    <span className="absolute bottom-0 left-0 w-40 h-[2.5px] bg-gradient-to-r from-[#165CCC] to-[#84AFFF] rounded-full" />
                   </div>
 
-                  <div className="flex-1 rounded-xl bg-gradient-to-r from-[#F2F7FF] via-[#EBF3FF] to-[#DCEBFF] border border-blue-100/80 p-5 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden">
+                  <div className="flex-1 rounded-2xl bg-gradient-to-br from-[#EDF5FF] via-[#E3EFFF] to-[#D4E6FF] border border-white p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden shadow-inner">
                     <form
                       onSubmit={(e) => handleCertificateSearch(e)}
                       className="flex-1 w-full space-y-3 z-10"
                     >
                       <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                        <label className="block text-xs font-semibold text-[#232A65]/80 mb-1">
                           身份信息（请输入姓名或身份证号）
                         </label>
                         <input
@@ -2593,12 +2712,12 @@ export default function App() {
                             if (certQueryError) setCertQueryError(null);
                           }}
                           placeholder="请填写姓名或身份证号"
-                          className="w-full px-3.5 py-2 bg-white border border-slate-200 focus:border-[#1664FF] rounded-md text-xs sm:text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none transition-colors"
+                          className="w-full px-3.5 py-2 bg-white/95 border border-white focus:border-[#165CCC] rounded-xl text-xs sm:text-sm text-[#232A65] placeholder:text-slate-400 focus:outline-none transition-colors shadow-2xs"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                        <label className="block text-xs font-semibold text-[#232A65]/80 mb-1">
                           证书编号（请输入证书编号）
                         </label>
                         <input
@@ -2609,7 +2728,7 @@ export default function App() {
                             if (certQueryError) setCertQueryError(null);
                           }}
                           placeholder="请填写证书编号"
-                          className="w-full px-3.5 py-2 bg-white border border-slate-200 focus:border-[#1664FF] rounded-md text-xs sm:text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none transition-colors"
+                          className="w-full px-3.5 py-2 bg-white/95 border border-white focus:border-[#165CCC] rounded-xl text-xs sm:text-sm text-[#232A65] placeholder:text-slate-400 focus:outline-none transition-colors shadow-2xs"
                         />
                       </div>
 
@@ -2620,7 +2739,7 @@ export default function App() {
                       <div className="pt-1">
                         <button
                           type="submit"
-                          className="w-full py-2.5 bg-[#1664FF] hover:bg-[#0E4FD6] text-white text-xs sm:text-sm font-semibold rounded-md shadow-xs transition-colors cursor-pointer"
+                          className="w-full py-2.5 aic-btn-gradient text-white text-xs sm:text-sm font-bold rounded-full cursor-pointer"
                         >
                           点击查询
                         </button>
@@ -2628,7 +2747,7 @@ export default function App() {
 
                       {/* 快捷测试样例填入 */}
                       <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
-                        <span className="text-slate-400">示例：</span>
+                        <span className="text-[#232A65]/60">示例：</span>
                         {CERTIFICATE_RECORDS.slice(0, 3).map((rec) => (
                           <button
                             key={rec.certId}
@@ -2639,7 +2758,7 @@ export default function App() {
                                 certNo: rec.certId,
                               })
                             }
-                            className="px-2 py-0.5 rounded bg-white/80 hover:bg-white text-slate-600 hover:text-[#1664FF] border border-blue-200/70 transition-colors cursor-pointer font-mono-num"
+                            className="px-2.5 py-0.5 rounded-full bg-white/85 hover:bg-[#165CCC] text-[#232A65] hover:text-white border border-white transition-colors cursor-pointer font-mono-num"
                           >
                             {rec.holderName}
                           </button>
@@ -2656,24 +2775,26 @@ export default function App() {
               </div>
             </section>
 
-            {/* 模块六：参赛高校（单张通栏白色卡片 + 6列圆形校徽矩阵） */}
+            {/* 模块六：参赛高校（磨砂白边通栏卡片 + 6列圆形校徽矩阵） */}
             <section
               id="universities-section"
-              className="scroll-mt-20 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6"
+              className="scroll-mt-20 aic-card p-6 sm:p-7"
             >
-              <div className="relative flex items-center justify-between pb-3.5 mb-6 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-[#1664FF]" />
-                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">参赛高校</h2>
+              <div className="relative flex items-center justify-between pb-4 mb-6 border-b border-blue-100/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#165CCC]/10 text-[#165CCC] flex items-center justify-center">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] tracking-tight">参赛高校</h2>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs">
+                  <div className="hidden sm:flex items-center gap-1 bg-white/75 border border-white p-1 rounded-full text-xs shadow-2xs">
                     <button
                       type="button"
                       onClick={() => setUniAutoScroll(false)}
-                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                        !uniAutoScroll ? 'bg-white text-[#1664FF] shadow-2xs' : 'text-slate-500'
+                      className={`px-3 py-1 rounded-full font-semibold cursor-pointer transition-colors ${
+                        !uniAutoScroll ? 'bg-[#165CCC] text-white shadow-2xs' : 'text-[#232A65]/70 hover:text-[#165CCC]'
                       }`}
                     >
                       校徽展示
@@ -2681,8 +2802,8 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setUniAutoScroll(true)}
-                      className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                        uniAutoScroll ? 'bg-white text-[#1664FF] shadow-2xs' : 'text-slate-500'
+                      className={`px-3 py-1 rounded-full font-semibold cursor-pointer transition-colors ${
+                        uniAutoScroll ? 'bg-[#165CCC] text-white shadow-2xs' : 'text-[#232A65]/70 hover:text-[#165CCC]'
                       }`}
                     >
                       自动轮播
@@ -2692,13 +2813,13 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setAllUniversitiesModalOpen(true)}
-                    className="text-xs text-slate-400 hover:text-[#1664FF] flex items-center gap-0.5 transition-colors cursor-pointer"
+                    className="px-3.5 py-1 rounded-full bg-white/80 hover:bg-[#165CCC] text-xs font-semibold text-[#232A65]/75 hover:text-white border border-blue-100/80 flex items-center gap-0.5 transition-all cursor-pointer"
                   >
                     <span>更多高校</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                <span className="absolute bottom-0 left-0 w-24 h-[2.5px] bg-gradient-to-r from-[#165CCC] to-[#84AFFF] rounded-full" />
               </div>
 
               {uniAutoScroll ? (
@@ -2710,10 +2831,10 @@ export default function App() {
                         onClick={() => setAllUniversitiesModalOpen(true)}
                         className="group w-44 shrink-0 flex flex-col items-center text-center cursor-pointer"
                       >
-                        <div className="w-28 h-28 rounded-full border border-slate-200/90 bg-white group-hover:border-[#1664FF] group-hover:shadow-md flex items-center justify-center transition-all duration-200 mb-3">
+                        <div className="w-28 h-28 rounded-full border-2 border-white bg-white/90 group-hover:bg-white group-hover:border-[#165CCC] shadow-[0_6px_20px_rgba(19,75,145,0.06)] group-hover:shadow-[0_12px_28px_rgba(22,92,204,0.16)] flex items-center justify-center transition-all duration-200 mb-3">
                           <UniversityCrest uni={uni} />
                         </div>
-                        <div className="text-sm font-bold text-slate-800 group-hover:text-[#1664FF] transition-colors">
+                        <div className="text-sm font-bold text-[#232A65] group-hover:text-[#165CCC] transition-colors">
                           {uni.name}
                         </div>
                       </div>
@@ -2728,10 +2849,10 @@ export default function App() {
                       onClick={() => setAllUniversitiesModalOpen(true)}
                       className="group flex flex-col items-center text-center cursor-pointer"
                     >
-                      <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border border-slate-200/90 bg-white group-hover:border-[#1664FF] group-hover:shadow-md flex items-center justify-center transition-all duration-200 mb-3">
+                      <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-2 border-white bg-white/90 group-hover:bg-white group-hover:border-[#165CCC] shadow-[0_6px_20px_rgba(19,75,145,0.06)] group-hover:shadow-[0_12px_28px_rgba(22,92,204,0.16)] flex items-center justify-center transition-all duration-200 mb-3">
                         <UniversityCrest uni={uni} />
                       </div>
-                      <div className="text-sm font-bold text-slate-800 group-hover:text-[#1664FF] transition-colors">
+                      <div className="text-sm font-bold text-[#232A65] group-hover:text-[#165CCC] transition-colors">
                         {uni.name}
                       </div>
                     </div>
@@ -2740,18 +2861,20 @@ export default function App() {
               )}
             </section>
 
-            {/* 模块七：领导机构（单张通栏白色卡片 + 胶囊形浅蓝边框按钮阵列） */}
+            {/* 模块七：领导机构（磨砂白边卡片 + 胶囊形浅蓝光感按钮阵列） */}
             <section
               id="leadership-section"
-              className="scroll-mt-20 bg-white rounded-xl border border-blue-50/90 shadow-[0_2px_12px_rgba(22,100,255,0.04)] p-6"
+              className="scroll-mt-20 aic-card p-6 sm:p-7"
             >
-              <div className="relative flex items-center justify-between pb-3.5 mb-6 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Landmark className="w-5 h-5 text-[#1664FF]" />
-                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">领导机构</h2>
+              <div className="relative flex items-center justify-between pb-4 mb-6 border-b border-blue-100/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#165CCC]/10 text-[#165CCC] flex items-center justify-center">
+                    <Landmark className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] tracking-tight">领导机构</h2>
                 </div>
-                <span className="text-xs text-slate-400">指导单位 · 主办单位 · 承办与技术支撑</span>
-                <span className="absolute bottom-0 left-0 w-24 h-[2px] bg-[#1664FF] rounded-full" />
+                <span className="text-xs font-medium text-[#232A65]/60">指导单位 · 主办单位 · 承办与技术支撑</span>
+                <span className="absolute bottom-0 left-0 w-24 h-[2.5px] bg-gradient-to-r from-[#165CCC] to-[#84AFFF] rounded-full" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -2760,9 +2883,9 @@ export default function App() {
                     key={org.id}
                     type="button"
                     onClick={() => setSelectedOrgModal(org)}
-                    className="group rounded-full border border-[#BEDAFF] bg-[#F8FBFF] hover:bg-[#EBF3FF] hover:border-[#1664FF] px-6 py-3.5 text-center transition-all duration-150 cursor-pointer flex items-center justify-center"
+                    className="group rounded-full border border-white bg-white/80 hover:bg-white hover:border-[#165CCC]/40 shadow-[0_4px_16px_rgba(19,75,145,0.05)] hover:shadow-[0_12px_28px_rgba(22,92,204,0.14)] px-6 py-4 text-center transition-all duration-200 cursor-pointer flex items-center justify-center"
                   >
-                    <span className="text-sm sm:text-base font-bold text-slate-800 group-hover:text-[#1664FF] truncate">
+                    <span className="text-sm sm:text-base font-bold text-[#232A65] group-hover:text-[#165CCC] truncate">
                       {org.name}
                     </span>
                   </button>
@@ -2773,14 +2896,34 @@ export default function App() {
         </>
       )}
 
-      {/* 页脚（深海藏蓝 Footer，还原设计图多栏导航 + 右侧公众号二维码 + 底部版权栏） */}
-      <footer className="bg-[#06122E] text-slate-300 mt-10">
-        <div className="max-w-[1440px] 2xl:max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-12 gap-8 pb-10 border-b border-white/10">
+      {/* 页脚（参考 aicomp.cn 的 .Str-footer 清透冰蓝科技感建筑波纹页脚，取代沉闷纯黑底色） */}
+      <footer className="aic-footer mt-12">
+        {/* 底部科技几何流线装饰背景 */}
+        <svg
+          className="pointer-events-none absolute inset-0 w-full h-full opacity-55"
+          viewBox="0 0 1920 360"
+          fill="none"
+          preserveAspectRatio="xMidYBottom slice"
+        >
+          <path
+            d="M-100 320 C 380 180, 920 380, 1460 210 C 1690 140, 1840 220, 2020 180 L 2020 360 L -100 360 Z"
+            fill="#FFFFFF"
+            fillOpacity="0.45"
+          />
+          <path
+            d="M-60 260 C 460 360, 1040 120, 1620 280 C 1780 320, 1900 260, 2000 240"
+            stroke="#FFFFFF"
+            strokeWidth="2"
+            strokeOpacity="0.7"
+          />
+        </svg>
+
+        <div className="relative z-10 max-w-[1440px] 2xl:max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-12 gap-8 pb-10 border-b-2 border-[#232A65]/10">
             {/* 第 1 列：关于我们 */}
             <div className="lg:col-span-2 space-y-3">
-              <h3 className="text-sm font-bold text-white">关于我们</h3>
-              <ul className="space-y-2 text-xs text-slate-400">
+              <h3 className="text-sm font-extrabold text-[#134B91]">关于我们</h3>
+              <ul className="space-y-2 text-xs sm:text-sm text-[#232A65]/75">
                 <li>
                   <button
                     type="button"
@@ -2788,7 +2931,7 @@ export default function App() {
                       setCurrentView('directory');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="hover:text-white transition-colors cursor-pointer"
+                    className="hover:text-[#165CCC] transition-colors cursor-pointer"
                   >
                     关于大赛
                   </button>
@@ -2797,7 +2940,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setAllUniversitiesModalOpen(true)}
-                    className="hover:text-white transition-colors cursor-pointer"
+                    className="hover:text-[#165CCC] transition-colors cursor-pointer"
                   >
                     参赛高校名录
                   </button>
@@ -2806,7 +2949,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setSelectedOrgModal(LEADERSHIP_ORGS[0])}
-                    className="hover:text-white transition-colors cursor-pointer"
+                    className="hover:text-[#165CCC] transition-colors cursor-pointer"
                   >
                     组委会架构
                   </button>
@@ -2814,10 +2957,10 @@ export default function App() {
               </ul>
             </div>
 
-            {/* 第 2 列：社区功能 */}
+            {/* 第 2 列：赛事功能 */}
             <div className="lg:col-span-2 space-y-3">
-              <h3 className="text-sm font-bold text-white">赛事功能</h3>
-              <ul className="space-y-2 text-xs text-slate-400">
+              <h3 className="text-sm font-extrabold text-[#134B91]">赛事功能</h3>
+              <ul className="space-y-2 text-xs sm:text-sm text-[#232A65]/75">
                 <li>
                   <button
                     type="button"
@@ -2825,7 +2968,7 @@ export default function App() {
                       setCurrentView('directory');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="hover:text-white transition-colors cursor-pointer"
+                    className="hover:text-[#165CCC] transition-colors cursor-pointer"
                   >
                     赛事目录
                   </button>
@@ -2838,7 +2981,7 @@ export default function App() {
                       setCurrentView('moments');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="hover:text-white transition-colors cursor-pointer"
+                    className="hover:text-[#165CCC] transition-colors cursor-pointer"
                   >
                     赛事动态
                   </button>
@@ -2847,7 +2990,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => scrollToSection('utility-service-section')}
-                    className="hover:text-white transition-colors cursor-pointer"
+                    className="hover:text-[#165CCC] transition-colors cursor-pointer"
                   >
                     电子证书核验
                   </button>
@@ -2855,16 +2998,16 @@ export default function App() {
               </ul>
             </div>
 
-            {/* 第 3 列：社区服务 & 友情链接 */}
+            {/* 第 3 列：权威机构与服务 */}
             <div className="lg:col-span-3 space-y-3">
-              <h3 className="text-sm font-bold text-white">权威机构与服务</h3>
-              <ul className="space-y-2 text-xs text-slate-400">
+              <h3 className="text-sm font-extrabold text-[#134B91]">权威机构与服务</h3>
+              <ul className="space-y-2 text-xs sm:text-sm text-[#232A65]/75">
                 <li>
                   <a
                     href="https://www.cac.gov.cn"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-[#165CCC] transition-colors"
                   >
                     中国网信网 (cac.gov.cn)
                   </a>
@@ -2874,7 +3017,7 @@ export default function App() {
                     href="https://www.moe.gov.cn"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-[#165CCC] transition-colors"
                   >
                     中华人民共和国教育部
                   </a>
@@ -2886,7 +3029,7 @@ export default function App() {
                       setCurrentView('help');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="hover:text-white transition-colors cursor-pointer"
+                    className="hover:text-[#165CCC] transition-colors cursor-pointer"
                   >
                     参赛常见问题 (FAQ)
                   </button>
@@ -2896,8 +3039,8 @@ export default function App() {
 
             {/* 第 4 列：关注大赛 / 联系组委会 */}
             <div className="lg:col-span-3 space-y-3">
-              <h3 className="text-sm font-bold text-white">关注“XX杯”组委会</h3>
-              <div className="space-y-2 text-xs text-slate-400">
+              <h3 className="text-sm font-extrabold text-[#134B91]">关注“XX杯”组委会</h3>
+              <div className="space-y-2 text-xs sm:text-sm text-[#232A65]/75">
                 <div>官方赛事咨询：010-6899-2026</div>
                 <div className="font-mono-num">联赛交流群：271910967</div>
                 <div className="font-mono-num">组委会邮箱：committee@xxcup-sec.org.cn</div>
@@ -2906,17 +3049,17 @@ export default function App() {
 
             {/* 第 5 列：右侧二维码卡片 */}
             <div className="col-span-2 sm:col-span-4 lg:col-span-2 flex flex-col items-start lg:items-center justify-center">
-              <div className="w-24 h-24 rounded-lg bg-white p-2 flex items-center justify-center shadow-md">
-                <QrCode className="w-full h-full text-[#06122E]" />
+              <div className="w-24 h-24 rounded-xl bg-white p-2 border border-white flex items-center justify-center shadow-[0_8px_20px_rgba(19,75,145,0.10)]">
+                <QrCode className="w-full h-full text-[#134B91]" />
               </div>
-              <div className="text-[11px] text-slate-400 text-center mt-2 leading-tight">
+              <div className="text-xs text-[#232A65]/70 font-medium text-center mt-2 leading-tight">
                 <div>扫一扫二维码</div>
                 <div>关注大赛公众号</div>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 text-center text-xs text-slate-500 font-mono-num">
+          <div className="pt-6 text-center text-xs text-[#232A65]/65 font-mono-num">
             Copyright © 2026 “XX杯”全国网数智安全大赛组委会 & 国家信息安全工程技术研究中心 版权所有 · 京ICP备2026008921号-1
           </div>
         </div>

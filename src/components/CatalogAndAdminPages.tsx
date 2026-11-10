@@ -433,20 +433,21 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
   );
 
   return (
-    <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full">
-      {/* 页面头部与筛选检索栏 */}
-      <div className="mb-8 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              赛事目录
-            </h1>
-          </div>
+    <main className="flex-1 w-full">
+      {/* aicomp.cn 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
+      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
+        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
+          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
+            赛事目录
+          </h1>
+          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
         </div>
+      </div>
 
-        {/* 状态筛选与关键词搜索 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg self-start">
+      <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
+        {/* 状态筛选与关键词搜索（参考 aicomp.cn/tracks/tracks-1 的 .sort-list 磨砂胶囊筛选栏） */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="aic-sort-list self-start">
             {(
               [
                 { key: 'all', label: '全部赛事' },
@@ -464,10 +465,8 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
                     setStatusFilter(tab.key);
                     setCurrentPage(1);
                   }}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap ${
-                    active
-                      ? 'bg-[#0284C7] text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                  className={`aic-sort-item whitespace-nowrap ${
+                    active ? 'aic-sort-item-active' : ''
                   }`}
                 >
                   {tab.label}
@@ -476,8 +475,8 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
             })}
           </div>
 
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-[#165CCC]/60 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchKeyword}
@@ -486,153 +485,153 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
                 setCurrentPage(1);
               }}
               placeholder="搜索比赛名称、简介或标签..."
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
+              className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-white/85 backdrop-blur-md border border-white rounded-full shadow-xs focus:bg-white focus:border-[#165CCC] focus:outline-none text-[#232A65]"
             />
           </div>
         </div>
-      </div>
 
-      {/* 一行一个长条形的卡片列表 */}
-      {paginatedCompetitions.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
-          <div className="text-base font-bold text-slate-800">暂无符合筛选条件的公开赛事</div>
-          <p className="text-xs text-slate-500">
-            您可以尝试切换状态筛选，或通过右上角头像菜单「进入后台 &rarr; 赛事管理」将隐藏赛事设为公开或新增赛事。
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {paginatedCompetitions.map((comp) => {
-            const calcStatus = computeCompetitionStatus(comp.startDate, comp.endDate);
-            const statusLabel = getCompetitionStatusLabel(calcStatus);
+        {/* 一行一个长条形的卡片列表 */}
+        {paginatedCompetitions.length === 0 ? (
+          <div className="aic-card rounded-2xl p-12 text-center space-y-3">
+            <div className="text-base font-bold text-[#232A65]">暂无符合筛选条件的公开赛事</div>
+            <p className="text-xs text-slate-500">
+              您可以尝试切换状态筛选，或通过右上角头像菜单「进入后台 &rarr; 赛事管理」将隐藏赛事设为公开或新增赛事。
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {paginatedCompetitions.map((comp) => {
+              const calcStatus = computeCompetitionStatus(comp.startDate, comp.endDate);
+              const statusLabel = getCompetitionStatusLabel(calcStatus);
 
-            return (
-              <article
-                key={comp.id}
-                onClick={() => onSelectCompetition(comp)}
-                className="group bg-white rounded-2xl border border-slate-200/90 hover:border-[#0284C7] shadow-2xs hover:shadow-lg transition-all duration-200 overflow-hidden flex flex-col md:flex-row cursor-pointer"
-              >
-                {/* 左侧：赛事封面 */}
-                <div className="md:w-80 lg:w-96 xl:w-[420px] h-52 md:h-auto shrink-0 relative overflow-hidden">
-                  <CompetitionCoverRender
-                    coverTheme={comp.coverTheme}
-                    customCoverUrl={comp.customCoverUrl}
-                    status={calcStatus}
-                    className="w-full h-full group-hover:scale-[1.03] transition-transform duration-300"
-                  />
-                </div>
+              return (
+                <article
+                  key={comp.id}
+                  onClick={() => onSelectCompetition(comp)}
+                  className="group aic-card rounded-2xl p-3 sm:p-4 transition-all duration-300 overflow-hidden flex flex-col md:flex-row cursor-pointer"
+                >
+                  {/* 左侧：赛事封面（参考 aicomp.cn 卡片内圆角图片风格） */}
+                  <div className="md:w-80 lg:w-96 xl:w-[420px] h-52 md:h-auto shrink-0 relative overflow-hidden rounded-xl">
+                    <CompetitionCoverRender
+                      coverTheme={comp.coverTheme}
+                      customCoverUrl={comp.customCoverUrl}
+                      status={calcStatus}
+                      className="w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
 
-                {/* 右侧：比赛名称/标题、简介、起止时间、状态（根据起止时间判断）、自定义标签 */}
-                <div className="flex-1 p-6 sm:p-7 xl:p-8 flex flex-col justify-between gap-4">
-                  <div>
-                    {/* 顶部状态元信息行 */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${getStatusDotClass(calcStatus)}`} />
-                        <span className={getStatusTextClass(calcStatus)}>状态：{statusLabel}</span>
-                        <span className="text-slate-300" aria-hidden="true">
-                          ·
+                  {/* 右侧：比赛名称/标题、简介、起止时间、状态（根据起止时间判断）、自定义标签 */}
+                  <div className="flex-1 p-4 sm:p-5 xl:p-6 flex flex-col justify-between gap-4">
+                    <div>
+                      {/* 顶部状态元信息行 */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${getStatusDotClass(calcStatus)}`} />
+                          <span className={getStatusTextClass(calcStatus)}>状态：{statusLabel}</span>
+                          <span className="text-slate-300" aria-hidden="true">
+                            ·
+                          </span>
+                          <span className="text-slate-500 font-mono-num">
+                            起止时间：{comp.startDate} 至 {comp.endDate}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 比赛名称/标题 */}
+                      <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] group-hover:text-[#165CCC] transition-colors leading-snug mb-2.5">
+                        {comp.title}
+                      </h2>
+
+                      {/* 赛事简介 */}
+                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-2 mb-4">
+                        {comp.summary}
+                      </p>
+                    </div>
+
+                    {/* 底部：自定义标签 + 查看详情引导 */}
+                    <div className="pt-3.5 border-t border-blue-100/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1 text-slate-400 font-medium">
+                          <Tag className="w-3.5 h-3.5 text-[#165CCC]" />
+                          标签：
                         </span>
-                        <span className="text-slate-500 font-mono-num">
-                          起止时间：{comp.startDate} 至 {comp.endDate}
-                        </span>
+                        {comp.customTags.length > 0 ? (
+                          comp.customTags.map((tag, idx) => (
+                            <React.Fragment key={`${tag}-${idx}`}>
+                              <span className="text-[#165CCC] font-medium">{tag}</span>
+                              {idx < comp.customTags.length - 1 && (
+                                <span className="text-slate-300" aria-hidden="true">
+                                  /
+                                </span>
+                              )}
+                            </React.Fragment>
+                          ))
+                        ) : (
+                          <span className="text-slate-400">官方认证赛事</span>
+                        )}
+                      </div>
+
+                      <div className="text-xs font-bold text-[#165CCC] group-hover:translate-x-1 transition-transform flex items-center gap-1 shrink-0 self-end sm:self-auto">
+                        <span>进入赛事详情</span>
+                        <ArrowRight className="w-4 h-4" />
                       </div>
                     </div>
-
-                    {/* 比赛名称/标题 */}
-                    <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 group-hover:text-[#0284C7] transition-colors leading-snug mb-2.5">
-                      {comp.title}
-                    </h2>
-
-                    {/* 赛事简介 */}
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-2 mb-4">
-                      {comp.summary}
-                    </p>
                   </div>
-
-                  {/* 底部：自定义标签 + 查看详情引导 */}
-                  <div className="pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1 text-slate-400 font-medium">
-                        <Tag className="w-3.5 h-3.5 text-[#0284C7]" />
-                        标签：
-                      </span>
-                      {comp.customTags.length > 0 ? (
-                        comp.customTags.map((tag, idx) => (
-                          <React.Fragment key={`${tag}-${idx}`}>
-                            <span className="text-[#0369A1] font-medium">{tag}</span>
-                            {idx < comp.customTags.length - 1 && (
-                              <span className="text-slate-300" aria-hidden="true">
-                                /
-                              </span>
-                            )}
-                          </React.Fragment>
-                        ))
-                      ) : (
-                        <span className="text-slate-400">官方认证赛事</span>
-                      )}
-                    </div>
-
-                    <div className="text-xs font-bold text-[#0284C7] group-hover:translate-x-0.5 transition-transform flex items-center gap-1 shrink-0 self-end sm:self-auto">
-                      <span>进入赛事详情</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 底部分页器（每页展示 10 个） */}
-      <div className="mt-8 bg-white border border-slate-200/90 rounded-xl px-6 py-4 shadow-2xs flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-slate-600">
-        <div>
-          共 <span className="text-slate-900 font-bold font-mono-num">{filteredCompetitions.length}</span> 项赛事 · 每页展示{' '}
-          <span className="text-slate-900 font-mono-num font-semibold">{pageSize}</span> 项
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={safeCurrentPage <= 1}
-            onClick={() => {
-              setCurrentPage((p) => Math.max(1, p - 1));
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-50 hover:bg-sky-50 hover:text-[#0284C7] hover:border-sky-200 disabled:opacity-40 text-slate-700 border border-slate-200 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
-          >
-            上一页
-          </button>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
-              <button
-                key={pageNum}
-                type="button"
-                onClick={() => {
-                  setCurrentPage(pageNum);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className={`w-8 h-8 rounded-lg font-mono-num text-xs font-bold transition-colors cursor-pointer ${
-                  safeCurrentPage === pageNum
-                    ? 'bg-[#0284C7] text-white shadow-2xs'
-                    : 'bg-slate-50 hover:bg-sky-50 text-slate-700 border border-slate-200'
-                }`}
-              >
-                {pageNum}
-              </button>
-            ))}
+                </article>
+              );
+            })}
           </div>
-          <button
-            type="button"
-            disabled={safeCurrentPage >= totalPages}
-            onClick={() => {
-              setCurrentPage((p) => Math.min(totalPages, p + 1));
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-50 hover:bg-sky-50 hover:text-[#0284C7] hover:border-sky-200 disabled:opacity-40 text-slate-700 border border-slate-200 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
-          >
-            下一页
-          </button>
+        )}
+
+        {/* 底部分页器（每页展示 10 个） */}
+        <div className="mt-8 aic-card rounded-2xl px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-slate-600">
+          <div>
+            共 <span className="text-[#232A65] font-bold font-mono-num">{filteredCompetitions.length}</span> 项赛事 · 每页展示{' '}
+            <span className="text-[#232A65] font-mono-num font-semibold">{pageSize}</span> 项
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={safeCurrentPage <= 1}
+              onClick={() => {
+                setCurrentPage((p) => Math.max(1, p - 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-4 py-1.5 rounded-full bg-white hover:bg-blue-50 hover:text-[#165CCC] hover:border-blue-200 disabled:opacity-40 text-[#232A65] border border-blue-100 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              上一页
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => {
+                    setCurrentPage(pageNum);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`w-8 h-8 rounded-full font-mono-num text-xs font-bold transition-colors cursor-pointer ${
+                    safeCurrentPage === pageNum
+                      ? 'bg-[#165CCC] text-white shadow-xs'
+                      : 'bg-white hover:bg-blue-50 text-[#232A65] border border-blue-100'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={safeCurrentPage >= totalPages}
+              onClick={() => {
+                setCurrentPage((p) => Math.min(totalPages, p + 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-4 py-1.5 rounded-full bg-white hover:bg-blue-50 hover:text-[#165CCC] hover:border-blue-200 disabled:opacity-40 text-[#232A65] border border-blue-100 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              下一页
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -700,22 +699,22 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
         <button
           type="button"
           onClick={onBackToDirectory}
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-[#0284C7] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-[#165CCC] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>返回赛事目录</span>
         </button>
 
         <div className="text-xs text-slate-400 font-mono-num hidden sm:block">
-          赛事目录 &rsaquo; <span className="text-slate-700 font-medium">{competition.title}</span>
+          赛事目录 &rsaquo; <span className="text-[#232A65] font-medium">{competition.title}</span>
         </div>
       </div>
 
       {/* 详情页顶部卡片：左侧封面 + 右侧（标题、简介、起止时间、状态、自定义标签、立即报名按钮） */}
-      <section className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12">
+      <section className="aic-card rounded-2xl p-3 sm:p-4 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
           {/* 左侧：赛事封面 */}
-          <div className="lg:col-span-5 min-h-[260px] sm:min-h-[320px] relative overflow-hidden">
+          <div className="lg:col-span-5 min-h-[260px] sm:min-h-[320px] relative overflow-hidden rounded-xl">
             <CompetitionCoverRender
               coverTheme={competition.coverTheme}
               customCoverUrl={competition.customCoverUrl}
@@ -725,7 +724,7 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
           </div>
 
           {/* 右侧：赛事核心信息 + 立即报名按钮 */}
-          <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between gap-6">
+          <div className="lg:col-span-7 p-4 sm:p-6 flex flex-col justify-between gap-6">
             <div className="space-y-4">
               {/* 状态与起止时间 */}
               <div className="flex flex-wrap items-center gap-3 text-xs">
@@ -737,7 +736,7 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
                   |
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-slate-600 font-mono-num">
-                  <Calendar className="w-3.5 h-3.5 text-[#0284C7]" />
+                  <Calendar className="w-3.5 h-3.5 text-[#165CCC]" />
                   <span>
                     起止时间：{competition.startDate} 至 {competition.endDate}
                   </span>
@@ -745,7 +744,7 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
               </div>
 
               {/* 比赛名称/标题 */}
-              <h1 className="text-xl sm:text-2xl lg:text-[26px] font-extrabold text-slate-900 tracking-tight leading-snug">
+              <h1 className="text-xl sm:text-2xl lg:text-[26px] font-extrabold text-[#232A65] tracking-tight leading-snug">
                 {competition.title}
               </h1>
 
@@ -756,20 +755,20 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
               <div className="pt-2 space-y-2 text-xs text-slate-600">
                 {competition.organizer && (
                   <div className="flex items-center gap-2">
-                    <Building2 className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                    <Building2 className="w-3.5 h-3.5 text-[#165CCC] shrink-0" />
                     <span>主办单位：{competition.organizer}</span>
                   </div>
                 )}
 
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                   <span className="inline-flex items-center gap-1.5 text-slate-500">
-                    <Tag className="w-3.5 h-3.5 text-[#0284C7]" />
+                    <Tag className="w-3.5 h-3.5 text-[#165CCC]" />
                     <span>自定义标签：</span>
                   </span>
                   {competition.customTags.length > 0 ? (
                     competition.customTags.map((tag, idx) => (
                       <React.Fragment key={`${tag}-${idx}`}>
-                        <span className="font-semibold text-[#0369A1]">{tag}</span>
+                        <span className="font-semibold text-[#165CCC]">{tag}</span>
                         {idx < competition.customTags.length - 1 && (
                           <span className="text-slate-300" aria-hidden="true">
                             ·
@@ -785,14 +784,14 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
             </div>
 
             {/* 底部：由后台【报名管理】是否有关联该赛事的报名数据控制显示 */}
-            <div className="pt-5 border-t border-slate-100">
+            <div className="pt-5 border-t border-blue-100/60">
               {!hasAssociatedRegistration ? (
                 /* 无关联赛事的报名数据 -> 前台报名按钮不显示 */
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#F4F8FE] border border-blue-100/80 rounded-xl px-4 py-3">
                   <div className="text-xs text-slate-500">
                     本赛事暂未关联开启在线报名通道，可浏览下方赛事介绍与赛程安排。
                   </div>
-                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-bold shrink-0">
+                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-blue-100 text-[#232A65] text-xs font-bold shrink-0">
                     <span className={`w-2 h-2 rounded-full ${getStatusDotClass(calcStatus)}`} />
                     <span>{statusLabel}</span>
                   </span>
@@ -821,10 +820,10 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
                       <button
                         type="button"
                         onClick={handleClickRegisterButton}
-                        className={`w-full sm:w-auto px-7 py-3 rounded-xl text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                        className={`w-full sm:w-auto px-8 py-3 rounded-full text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                           platformRegStatus === 'open'
-                            ? 'bg-[#0284C7] hover:bg-[#0369A1] text-white'
-                            : 'bg-slate-700 hover:bg-slate-800 text-white'
+                            ? 'aic-btn-gradient'
+                            : 'bg-slate-700 hover:bg-slate-800 text-white shadow-xs'
                         }`}
                       >
                         <span>立即报名</span>
@@ -835,11 +834,11 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
 
                   {/* 平台报名时间窗口与规则摘要条 */}
                   {registrationConfig && (
-                    <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                    <div className="pt-2.5 border-t border-blue-100/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <span className="inline-flex items-center gap-1.5">
                           <span className={`w-1.5 h-1.5 rounded-full ${platformRegMeta.dotClass}`} />
-                          <span className="font-semibold text-slate-700">
+                          <span className="font-semibold text-[#232A65]">
                             报名通道状态：{platformRegMeta.label}
                             {registrationConfig.earlyClosed ? '（管理员已提前关闭）' : ''}
                           </span>
@@ -865,13 +864,13 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
       {/* 下方分两栏：左栏（大部分宽度）显示赛事介绍（Markdown），右栏（较窄）以纵向时间轴显示比赛赛程 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10 items-start">
         {/* 左栏（占 8 列）：赛事介绍（后台 Markdown 自由编辑内容） */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-8 xl:p-10 space-y-8">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="lg:col-span-8 aic-card rounded-2xl p-6 sm:p-8 xl:p-10 space-y-8">
+          <div className="flex items-center justify-between pb-4 border-b border-blue-100/60">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#165CCC] flex items-center justify-center">
                 <FileText className="w-4 h-4" />
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900">赛事介绍</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-[#232A65]">赛事介绍</h2>
             </div>
           </div>
 
@@ -880,9 +879,9 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
 
           {/* 赛事介绍附件下载区 */}
           {competition.attachments && competition.attachments.length > 0 && (
-            <div className="pt-6 border-t border-slate-200/80">
-              <h3 className="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <Paperclip className="w-4 h-4 text-[#0284C7]" />
+            <div className="pt-6 border-t border-blue-100/60">
+              <h3 className="text-base font-bold text-[#232A65] mb-3 flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-[#165CCC]" />
                 <span>赛事相关附件（{competition.attachments.length} 个）</span>
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -906,14 +905,14 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
                         URL.revokeObjectURL(tempUrl);
                       }
                     }}
-                    className="p-3.5 rounded-xl bg-slate-50 hover:bg-sky-50/70 border border-slate-200 hover:border-sky-300 flex items-center justify-between gap-3 transition-colors group"
+                    className="p-3.5 rounded-xl bg-[#F4F8FE] hover:bg-blue-50/70 border border-blue-100 hover:border-[#165CCC]/40 flex items-center justify-between gap-3 transition-colors group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100/70 text-[#165CCC] flex items-center justify-center shrink-0">
                         <FileText className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-800 group-hover:text-[#0284C7] truncate">
+                        <div className="text-xs font-bold text-[#232A65] group-hover:text-[#165CCC] truncate">
                           {att.name}
                         </div>
                         <div className="text-[11px] text-slate-400 font-mono-num">
@@ -922,7 +921,7 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
                         </div>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-[#0284C7] inline-flex items-center gap-1 shrink-0">
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-blue-100 text-[11px] font-bold text-[#165CCC] inline-flex items-center gap-1 shrink-0">
                       <Download className="w-3 h-3" />
                       <span>下载</span>
                     </span>
@@ -935,13 +934,13 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
         </div>
 
         {/* 右栏（占 4 列，较窄）：比赛赛程（纵向时间轴） */}
-        <aside className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sticky top-24">
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+        <aside className="lg:col-span-4 aic-card rounded-2xl p-6 sticky top-24">
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-blue-100/60">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#165CCC] flex items-center justify-center">
                 <Clock className="w-4 h-4" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900">比赛赛程</h2>
+              <h2 className="text-lg font-bold text-[#232A65]">比赛赛程</h2>
             </div>
             <span className="text-xs font-mono-num text-slate-400">
               共 {competition.schedule.length} 个阶段
@@ -951,7 +950,7 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
           {competition.schedule.length === 0 ? (
             <div className="text-xs text-slate-400 py-6 text-center">暂未配置赛程阶段</div>
           ) : (
-            <div className="relative pl-6 border-l-2 border-sky-200 space-y-6 my-2">
+            <div className="relative pl-6 border-l-2 border-blue-200 space-y-6 my-2">
               {competition.schedule.map((item, idx) => {
                 const isFirst = idx === 0;
                 return (
@@ -960,16 +959,16 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
                     <div
                       className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                         isFirst && calcStatus !== 'ended'
-                          ? 'bg-[#0284C7] border-sky-200 ring-4 ring-sky-100'
-                          : 'bg-white border-[#0284C7]'
+                          ? 'bg-[#165CCC] border-blue-200 ring-4 ring-blue-100'
+                          : 'bg-white border-[#165CCC]'
                       }`}
                     />
 
-                    <div className="text-xs font-mono-num font-semibold text-[#0284C7] mb-1">
+                    <div className="text-xs font-mono-num font-semibold text-[#165CCC] mb-1">
                       {item.dateRange}
                     </div>
 
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-sm font-bold text-[#232A65]">
                       0{idx + 1}. {item.stage}
                     </h3>
                   </div>

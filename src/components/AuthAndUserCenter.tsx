@@ -417,6 +417,22 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     iconStyle: 'warning',
     actionType: 'view_detail',
   },
+  // 15b. 队员视角 —— 所在队伍被队长解散通知（对应 part-team-13）
+  {
+    id: 'msg-mem-team-disbanded',
+    title: '所在队伍已解散通知',
+    shortTitle: '所在队伍已被队长解散',
+    desc: '您受邀参与的【2026“XX杯”云原生与零信任架构安全攻防挑战赛】参赛队伍【北航星云二进制攻防队】已被队长【韩子墨】解散，相关组队邀请与报名已终止，您在【我的报名 -> 我参与的】中对应的报名记录状态已更新为【已解散】。',
+    time: '昨天 17:45',
+    unread: false,
+    category: 'system',
+    rolePerspective: '队员视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '队伍解散通知',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-13',
+  },
   // 16. 队员视角 —— 所在队伍已正式提交高校资格审核（对应 part-team-4）
   {
     id: 'msg-mem-team-submitted',
@@ -588,6 +604,22 @@ export const INITIAL_PLATFORM_MESSAGES: PlatformMessageItem[] = [
     messageTypeLabel: '指导变动通知',
     iconStyle: 'warning',
     actionType: 'view_detail',
+  },
+  // 25b. 指导教师视角 —— 所指导队伍被队长解散通知
+  {
+    id: 'msg-tea-team-disbanded',
+    title: '所指导队伍已解散通知',
+    shortTitle: '所指导队伍已被队长解散',
+    desc: '您受邀担任指导教师的【2026“XX杯”云原生与零信任架构安全攻防挑战赛】参赛队伍【北航星云二进制攻防队】已被队长【韩子墨】解散，您在【我的报名 -> 我参与的】中对应的报名记录状态已更新为【已解散】。',
+    time: '昨天 17:45',
+    unread: false,
+    category: 'system',
+    rolePerspective: '指导教师视角',
+    scenarioType: 'team_status_change',
+    messageTypeLabel: '队伍解散通知',
+    iconStyle: 'warning',
+    actionType: 'view_detail',
+    relatedParticipatedTeamId: 'part-team-13',
   },
   // 26. 指导教师视角 —— 所指导队伍已正式提交高校资格审核
   {
@@ -3799,6 +3831,7 @@ export const StandaloneUserCenterPage: React.FC<{
   onAcceptInviteMessage?: (msg: PlatformMessageItem) => void;
   onRejectInviteMessage?: (msg: PlatformMessageItem) => void;
   onGoToAdminBackend?: () => void;
+  onDisbandTeamNotify?: (team: CaptainTeamRecord) => void;
 }> = ({
   user,
   initialTab = 'profile',
@@ -3823,6 +3856,7 @@ export const StandaloneUserCenterPage: React.FC<{
   onAcceptInviteMessage,
   onRejectInviteMessage,
   onGoToAdminBackend,
+  onDisbandTeamNotify,
 }) => {
   const [activeTab, setActiveTab] = useState<
     'profile' | 'certification' | 'registrations' | 'competitions' | 'messages'
@@ -5930,6 +5964,7 @@ export const StandaloneUserCenterPage: React.FC<{
               onJumpToCertification={() => setActiveTab('certification')}
               initialRoleViewTab={registrationRoleTab}
               onRoleViewTabChange={setRegistrationRoleTab}
+              onDisbandTeamNotify={onDisbandTeamNotify}
             />
           )}
 

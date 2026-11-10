@@ -444,6 +444,7 @@ export type ParticipatedInviteStatus =
   | 'pending_invite' // 待处理邀请（高亮）
   | 'joined' // 已加入（队伍组建中）
   | 'declined' // 已拒绝
+  | 'team_disbanded' // 已解散（队长解散队伍）
   | 'team_pending_review' // 队伍已提交审核（待高校审核）
   | 'team_school_rejected' // 高校审核已驳回（显示驳回原因）
   | 'team_wait_school_match' // 高校审核已通过（待校赛提报）
@@ -3598,6 +3599,24 @@ export const INITIAL_PARTICIPATED_TEAMS: ParticipatedTeamRecord[] = [
       ],
     },
   },
+  // 13. 已解散（队长在组建中/邀请中/已驳回阶段解散了队伍，状态变为“已解散”，查看详情按钮置灰）
+  {
+    id: 'part-team-13',
+    competitionId: 'comp-2026-cloud-def',
+    competitionTitle: '2026“XX杯”云原生与零信任架构安全攻防挑战赛',
+    subTrackName: 'Kubernetes容器逃逸与云原生微服务网格防御赛道',
+    teamName: '北航星云二进制攻防队',
+    teamLogo: 'default-logo',
+    teamIntro: '专注容器运行时逃逸与eBPF安全监控（状态：队长已解散该队伍，相关报名与邀请已终止）。',
+    captainName: '韩子墨',
+    captainPhone: '138****9201',
+    university: '北京航空航天大学',
+    myRoleInTeam: '参赛队员',
+    myCtfRoles: ['Pwn手', '逆向手'],
+    status: 'team_disbanded',
+    invitedAt: '2026-10-14 15:20',
+    teammatesSummary: ['韩子墨（队长 · 北京航空航天大学）', '林远航（队员）', '赵振宇 教授（指导教师）'],
+  },
 ];
 
 // 计算队伍成员确认进度：固定显示格式为“邀请X人，X人已同意，X人已拒绝”
@@ -4059,6 +4078,7 @@ interface TeamRegistrationFormPageProps {
   onBack?: () => void;
   onSaveDraft: (draftTeam: CaptainTeamRecord) => void;
   onSendInvitations: (invitingTeam: CaptainTeamRecord) => void;
+  onDisbandDraftTeam?: (draftTeam: CaptainTeamRecord) => void;
 }
 
 export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> = ({
@@ -4073,6 +4093,7 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
   onBack,
   onSaveDraft,
   onSendInvitations,
+  onDisbandDraftTeam,
 }) => {
   const activePlatformUsers = useMemo(
     () =>
@@ -4140,6 +4161,8 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
   const [singleRoleFormWarnModal, setSingleRoleFormWarnModal] = useState<CtfRoleType | null>(
     null
   );
+  // 组建中队伍“解散队伍”二次确认弹窗
+  const [disbandDraftConfirmOpen, setDisbandDraftConfirmOpen] = useState(false);
 
   // 处理本地上传队伍 LOGO 图片
   const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -5171,13 +5194,24 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
             )}
           </section>
 
-          {/* 底部按钮栏：【暂存】 与 【保存并发出邀请】 */}
+          {/* 底部按钮栏：【解散队伍（组建中编辑时）】、【暂存】 与 【保存并发出邀请】 */}
           <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-xs text-slate-500">
               点击【暂存】状态变为“组建中”（不发通知）；点击【保存并发出邀请】将向名单成员发送站内信/短信，状态变为“邀请中”。
             </div>
 
-            <div className="flex items-center justify-end gap-3 shrink-0">
+            <div className="flex flex-wrap items-center justify-end gap-3 shrink-0">
+              {editingDraftTeam && onDisbandDraftTeam && (
+                <button
+                  type="button"
+                  onClick={() => setDisbandDraftConfirmOpen(true)}
+                  className="px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>解散队伍</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleSaveDraftClick}
@@ -5198,6 +5232,56 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
           </div>
         </div>
       </form>
+
+      {/* 组建中队伍【解散队伍】二次确认弹窗 */}
+      {disbandDraftConfirmOpen && editingDraftTeam && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-red-600 text-white font-bold text-sm flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                <span>确认解散队伍</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDisbandDraftConfirmOpen(false)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-800 leading-relaxed">
+                您确定要解散当前组建中的队伍 <strong>【{teamName || editingDraftTeam.teamName}】</strong> 吗？
+              </p>
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 space-y-1.5 leading-relaxed">
+                <div>1. 解散后，该队伍将从“我发起的”报名列表中移除；</div>
+                <div>2. 系统将向已邀请的队员和指导教师发送【队伍已解散】站内消息通知；</div>
+                <div>3. 队员和指导教师在“我参与的”列表中对应报名记录状态将变为「已解散」，操作栏「查看详情」按钮置灰。</div>
+              </div>
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDisbandDraftConfirmOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDisbandDraftConfirmOpen(false);
+                    onDisbandDraftTeam?.(editingDraftTeam);
+                  }}
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg cursor-pointer"
+                >
+                  确认解散队伍
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 防呆弱提示弹窗：角色分配较单一 */}
       {singleRoleFormWarnModal && (
@@ -5329,6 +5413,7 @@ interface MyRegistrationsClosedLoopModuleProps {
   onJumpToCertification: () => void;
   initialRoleViewTab?: 'initiated' | 'participated';
   onRoleViewTabChange?: (tab: 'initiated' | 'participated') => void;
+  onDisbandTeamNotify?: (team: CaptainTeamRecord) => void;
 }
 
 export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoopModuleProps> = ({
@@ -5344,6 +5429,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
   onJumpToCertification,
   initialRoleViewTab = 'initiated',
   onRoleViewTabChange,
+  onDisbandTeamNotify,
 }) => {
   const activePlatformUsers = useMemo(
     () =>
@@ -5403,6 +5489,12 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
     team: CaptainTeamRecord;
     roleName: CtfRoleType;
   } | null>(null);
+  // 队长在组建中、邀请中、已驳回状态详情页点击【解散队伍】二次确认弹窗
+  const [disbandConfirmModalTeam, setDisbandConfirmModalTeam] = useState<CaptainTeamRecord | null>(
+    null
+  );
+  // 列表顶部操作反馈提示条（如解散队伍成功提醒）
+  const [listTopFeedback, setListTopFeedback] = useState<string | null>(null);
 
   // 队员/老师视角（页面4）同意/拒绝前置校验拦截弹窗
   const [participateInterceptModal, setParticipateInterceptModal] = useState<{
@@ -5925,6 +6017,92 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
     });
   };
 
+  // 5b. 队长点击【保存以上修改】（仅保存页面中的字段修改、成员顺位调整、队员的移除和邀请，并不提交审核）
+  const handleSaveManageModifications = (team: CaptainTeamRecord) => {
+    if (!team.teamName.trim()) {
+      setManageFeedback({
+        type: 'error',
+        text: '保存失败：请填写队伍名称（20字以内）！',
+      });
+      return;
+    }
+    updateSingleCaptainTeam(team.id, (prev) => ({
+      ...prev,
+      teamName: prev.teamName.trim(),
+      teamIntro: (prev.teamIntro || '').trim(),
+      updatedAt: '2026-10-28 11:05',
+    }));
+    setManageFeedback({
+      type: 'success',
+      text: '已保存以上修改！当前页面的队伍字段修改、队员顺位调整、成员移除及邀请记录已成功保存（尚未提交高校审核）。',
+    });
+  };
+
+  // 5c. 队长点击【解散队伍】确认后执行解散（仅组建中、邀请中、已驳回状态支持）
+  const handleConfirmDisbandTeam = (team: CaptainTeamRecord) => {
+    // 1. 从“我发起的”列表中移除该队伍
+    onUpdateCaptainTeams(captainTeams.filter((t) => t.id !== team.id));
+
+    // 2. 将队员和指导教师在“我参与的”中对应的报名数据状态改为“已解散（team_disbanded）”
+    const hasMatchInParticipated = participatedTeams.some(
+      (item) => item.id === team.id || item.teamName === team.teamName
+    );
+    if (hasMatchInParticipated) {
+      onUpdateParticipatedTeams(
+        participatedTeams.map((item) =>
+          item.id === team.id || item.teamName === team.teamName
+            ? {
+                ...item,
+                status: 'team_disbanded',
+                teamIntro: `${team.teamIntro || ''}（队长已解散该队伍）`,
+              }
+            : item
+        )
+      );
+    } else {
+      const disbandedParticipatedRecord: ParticipatedTeamRecord = {
+        id: `part-disbanded-${team.id}`,
+        competitionId: team.competitionId,
+        competitionTitle: team.competitionTitle,
+        subTrackName: team.subTrackName,
+        teamName: team.teamName,
+        teamLogo: team.teamLogo || 'default-logo',
+        teamIntro: team.teamIntro || '队长已解散该队伍，相关组队邀请与报名已终止。',
+        captainName: team.captainName,
+        captainPhone: team.captainPhone || '138****6921',
+        university: team.university,
+        myRoleInTeam: '参赛队员',
+        myCtfRoles: team.members[0]?.ctfRoles || ['Web手'],
+        status: 'team_disbanded',
+        invitedAt: team.createdAt || '2026-10-27 10:00',
+        teammatesSummary: [
+          `${team.captainName}（队长 · ${team.university}）`,
+          ...team.members.map((m) => `${m.name}（队员）`),
+          ...team.advisors.map((a) => `${a.name}（指导教师）`),
+        ],
+      };
+      onUpdateParticipatedTeams([disbandedParticipatedRecord, ...participatedTeams]);
+    }
+
+    // 3. 向已邀请的队员和指导教师发送站内消息通知
+    if (onDisbandTeamNotify) {
+      onDisbandTeamNotify(team);
+    }
+
+    const invitedNames = [
+      ...team.members.map((m) => m.name),
+      ...team.advisors.map((a) => a.name),
+    ];
+    setDisbandConfirmModalTeam(null);
+    setManagingTeamId(null);
+    setManageFeedback(null);
+    setListTopFeedback(
+      `已成功解散队伍【${team.teamName}】！系统已向受邀队员及指导教师（${
+        invitedNames.length > 0 ? invitedNames.join('、') : '拟邀成员'
+      }）发送【队伍已解散】消息通知，且“我参与的”对应报名记录状态已更新为「已解散」（查看详情按钮已置灰）。`
+    );
+  };
+
   // 获取赛事报名截止时间
   const resolveRegEndTime = (competitionId: string): string => {
     const cfg = registrationConfigs.find((c) => c.eventId === competitionId);
@@ -6330,7 +6508,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <Award className="w-4 h-4 text-[#0284C7]" />
-                    <span>队伍基本信息修改（实时保存）</span>
+                    <span>队伍基本信息修改</span>
                   </h3>
                   <span className="text-[11px] text-slate-500">
                     所属院校固定为：{team.university}
@@ -6985,38 +7163,50 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
               )}
             </div>
 
-            {/* 4. 底部：队长“正式提交高校审核”核心操作栏 */}
+            {/* 4. 底部：队长“解散队伍”、“保存以上修改”与“正式提交高校审核”核心操作栏 */}
             {!isLocked && (
               <div className="pt-6 border-t border-slate-200 space-y-3">
-                {manageFeedback && manageFeedback.type === 'error' && (
-                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs sm:text-sm font-semibold text-red-700 flex items-center justify-between gap-2">
+                {manageFeedback && (
+                  <div
+                    className={`p-3.5 rounded-xl border text-xs sm:text-sm font-semibold flex items-center justify-between gap-2 ${
+                      manageFeedback.type === 'error'
+                        ? 'bg-red-50 border-red-200 text-red-700'
+                        : manageFeedback.type === 'success'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        : 'bg-sky-50 border-sky-200 text-sky-900'
+                    }`}
+                  >
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                      {manageFeedback.type === 'error' ? (
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      )}
                       <span>{manageFeedback.text}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setManageFeedback(null)}
-                      className="text-red-400 hover:text-red-700 cursor-pointer shrink-0"
+                      className="text-slate-400 hover:text-slate-700 cursor-pointer shrink-0"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="text-xs text-slate-500 space-y-1">
                     {allAccepted ? (
                       <div className="text-emerald-700 font-bold flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
                         <span>
-                          当前队员与指导教师人数符合报名要求且全员均已同意加入！您可以直接点击右侧【正式提交高校审核】。
+                          当前队员与指导教师人数符合报名要求且全员均已同意加入！您可点击【保存以上修改】仅保存当前改动，或点击【{auditStages.isRejectedBySchool ? '重新提交审核' : '正式提交高校审核'}】发起审核。
                         </span>
                       </div>
                     ) : (
                       <div>
-                        点击【正式提交高校审核】时，系统将严格校验队员与指导教师人数是否符合报名要求（队伍总人数 {cfgMinTeamSize}~{cfgMaxTeamSize} 人，指导教师{' '}
-                        {cfgIncludeAdvisor ? `${cfgMinAdvisors}~${cfgMaxAdvisors} 人` : '0 人'}），且所有已邀请人员均须为“已同意”状态，否则无法提交。
+                        点击【保存以上修改】仅保存页面中的字段修改、队员顺位、队员移除与新增邀请，并不提交审核；点击【{auditStages.isRejectedBySchool ? '重新提交审核' : '正式提交高校审核'}】时将校验是否满足提交前置条件（队伍总人数 {cfgMinTeamSize}~{cfgMaxTeamSize} 人，指导教师{' '}
+                        {cfgIncludeAdvisor ? `${cfgMinAdvisors}~${cfgMaxAdvisors} 人` : '0 人'}，且所有已邀请人员均须为“已同意”状态）。
                       </div>
                     )}
                   </div>
@@ -7024,11 +7214,31 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   <div className="flex flex-wrap items-center justify-end gap-3 shrink-0">
                     <button
                       type="button"
+                      onClick={() => setDisbandConfirmModalTeam(team)}
+                      className="px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>解散队伍</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSaveManageModifications(team)}
+                      className="px-5 py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs sm:text-sm font-bold shadow-xs inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>保存以上修改</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => handleFormalSubmitForReview(team)}
-                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-xs inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>正式提交高校审核</span>
+                      <span>
+                        {auditStages.isRejectedBySchool ? '重新提交审核' : '正式提交高校审核'}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -7036,6 +7246,64 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
             )}
           </div>
         </div>
+
+        {/* 弹窗0：解散队伍二次确认弹窗（组建中、邀请中、已驳回状态可用） */}
+        {disbandConfirmModalTeam && (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+              <div className="px-6 py-4 bg-red-600 text-white font-bold text-sm flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>确认解散队伍</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDisbandConfirmModalTeam(null)}
+                  className="text-white/80 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-slate-800 leading-relaxed">
+                  您确定要解散队伍 <strong>【{disbandConfirmModalTeam.teamName}】</strong> 吗？
+                </p>
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 space-y-1.5 leading-relaxed">
+                  <div>
+                    1. 解散后，该队伍将从您“我发起的”报名列表中移除；
+                  </div>
+                  <div>
+                    2. 系统将自动向已邀请的队员和指导教师（
+                    {[
+                      ...disbandConfirmModalTeam.members.map((m) => m.name),
+                      ...disbandConfirmModalTeam.advisors.map((a) => a.name),
+                    ].join('、') || '暂无已邀成员'}
+                    ）发出<strong>【队伍已解散通知】</strong>消息；
+                  </div>
+                  <div>
+                    3. 之前队员和老师在“我参与的”中对应的报名数据状态将改为<strong>「已解散」</strong>，且操作栏「查看详情」按钮置灰禁用。
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setDisbandConfirmModalTeam(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleConfirmDisbandTeam(disbandConfirmModalTeam)}
+                    className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg cursor-pointer"
+                  >
+                    确认解散队伍
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 弹窗1：移除“已同意”成员的二次警告弹窗 */}
         {removeAcceptedConfirmModal && (
@@ -7735,6 +8003,22 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
           </div>
         </div>
 
+        {listTopFeedback && (
+          <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs sm:text-sm font-semibold text-emerald-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{listTopFeedback}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setListTopFeedback(null)}
+              className="text-emerald-600 hover:text-emerald-900 cursor-pointer shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* 列表内容区：常规表格列表 */}
         {roleViewTab === 'initiated' ? (
           /* ------------------------------------------------------------------
@@ -7854,6 +8138,13 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                               <div className="inline-flex items-center gap-2">
                                 <button
                                   type="button"
+                                  onClick={() => setManagingTeamId(team.id)}
+                                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-bold cursor-pointer"
+                                >
+                                  查看详情
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => onContinueEditDraft(team)}
                                   className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold cursor-pointer"
                                 >
@@ -7928,14 +8219,21 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                   <tbody className="divide-y divide-slate-200 text-xs sm:text-sm bg-white">
                     {participatedTeams.map((item) => {
                       const isPendingInvite = item.status === 'pending_invite';
+                      const isDisbanded = item.status === 'team_disbanded';
                       return (
                         <tr
                           key={item.id}
-                          onClick={() => setViewingParticipatedId(item.id)}
-                          className={`transition-colors cursor-pointer ${
-                            isPendingInvite
-                              ? 'bg-amber-50/40 hover:bg-amber-50/80'
-                              : 'hover:bg-sky-50/40'
+                          onClick={() => {
+                            if (!isDisbanded) {
+                              setViewingParticipatedId(item.id);
+                            }
+                          }}
+                          className={`transition-colors ${
+                            isDisbanded
+                              ? 'bg-slate-50/60 text-slate-400 cursor-default'
+                              : isPendingInvite
+                              ? 'bg-amber-50/40 hover:bg-amber-50/80 cursor-pointer'
+                              : 'hover:bg-sky-50/40 cursor-pointer'
                           }`}
                         >
                           {/* 赛事名称 */}
@@ -8009,6 +8307,12 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                             )}
                             {item.status === 'joined' && (
                               <span className="font-bold text-emerald-700">● 已加入（组建中）</span>
+                            )}
+                            {item.status === 'team_disbanded' && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-xs font-bold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                <span>已解散</span>
+                              </span>
                             )}
                             {item.status === 'declined' && (
                               <div
@@ -8101,14 +8405,19 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                           <td className="py-3.5 px-4 align-middle text-right whitespace-nowrap">
                             <button
                               type="button"
+                              disabled={isDisbanded}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setViewingParticipatedId(item.id);
+                                if (!isDisbanded) {
+                                  setViewingParticipatedId(item.id);
+                                }
                               }}
-                              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
-                                isPendingInvite
-                                  ? 'bg-[#0284C7] hover:bg-[#0369A1] text-white'
-                                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold ${
+                                isDisbanded
+                                  ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
+                                  : isPendingInvite
+                                  ? 'bg-[#0284C7] hover:bg-[#0369A1] text-white cursor-pointer'
+                                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer'
                               }`}
                             >
                               {isPendingInvite ? '处理邀请' : '查看详情'}

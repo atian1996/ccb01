@@ -2,26 +2,178 @@
 
 @layer base {
   :root {
-    --font-display: 'Plus Jakarta Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-sans: 'DM Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Open Sans', 'DM Sans', 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+
+    /* Reference Palette from aicomp.cn */
+    --main-color-blue: #165CCC;
+    --main-color-royal: #134B91;
+    --main-color-black: #232A65;
+    --main-color-gray: #4E5878;
+    --main-color-lightgray: #F4F8FE;
+
+    /* Harmonize Tailwind sky palette to aicomp.cn cobalt-blue (#165CCC / #256BF8) */
+    --color-sky-50: #EFF6FF;
+    --color-sky-100: #DBEAFE;
+    --color-sky-200: #BFDBFE;
+    --color-sky-300: #93C5FD;
+    --color-sky-400: #60A5FA;
+    --color-sky-500: #256BF8;
+    --color-sky-600: #165CCC;
+    --color-sky-700: #134B91;
+    --color-sky-800: #1E3A8A;
+    --color-sky-900: #232A65;
+
+    /* Harmonize slate text tones toward deep academic ink-navy (#232A65) */
+    --color-slate-900: #232A65;
+    --color-slate-800: #28306E;
+    --color-slate-700: #3B447A;
   }
 
   body {
     font-family: var(--font-sans);
-    color: #0F172A;
-    background-color: #F8FAFC;
+    color: var(--main-color-black);
+    background-color: #EBF3FE;
+    background-image:
+      radial-gradient(at 12% 8%, rgba(210, 232, 255, 0.85) 0px, transparent 52%),
+      radial-gradient(at 88% 16%, rgba(198, 225, 255, 0.75) 0px, transparent 48%),
+      linear-gradient(180deg, #E2EFFF 0%, #EEF5FF 42%, #F5F9FF 100%);
+    background-attachment: fixed;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  h1, h2, h3, h4, .font-display {
+  h1, h2, h3, h4, h5, .font-display {
     font-family: var(--font-display);
+    color: var(--main-color-black);
   }
 
   .font-mono-num {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* ============================================================================
+   aicomp.cn Signature Visual Components & Surface System
+   ============================================================================ */
+
+/* 1. Airy Ice-Blue Canvas Wrapper (.bgWrap / .bgLight equivalent) */
+.aic-canvas {
+  background:
+    radial-gradient(circle at 15% 12%, rgba(204, 230, 255, 0.72) 0%, transparent 45%),
+    radial-gradient(circle at 85% 24%, rgba(189, 220, 255, 0.65) 0%, transparent 50%),
+    linear-gradient(180deg, #DCEBFE 0%, #EBF4FF 35%, #F4F8FE 75%, #E8F2FF 100%);
+}
+
+/* 2. Translucent Frosted Header (.Str-header) */
+.aic-header {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 24px -4px rgba(19, 75, 145, 0.06);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.aic-header:hover {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 28px -4px rgba(22, 92, 204, 0.09);
+}
+
+/* 3. Signature 45-degree Gradient Pill Button (.homeLink / .moreLink / .show-btn) */
+.aic-btn-gradient {
+  background: linear-gradient(45deg, #256BF8, #3D8AFA 30%, #84AFFF);
+  color: #FFFFFF;
+  box-shadow: 0 6px 18px -4px rgba(37, 107, 248, 0.38);
+  transition: all 0.25s ease;
+}
+
+.aic-btn-gradient:hover {
+  background: linear-gradient(45deg, #165CCC, #256BF8 35%, #6B9DFF);
+  text-shadow: 0 0 6.42px rgba(255, 255, 255, 0.75);
+  box-shadow: 0 10px 24px -4px rgba(22, 92, 204, 0.48);
+  transform: translateY(-1px);
+}
+
+/* 4. Frosted Glass White-Bordered Card (.newsLink / .awardLink) */
+.aic-card {
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid #FFFFFF;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px -8px rgba(19, 75, 145, 0.06);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.aic-card:hover {
+  background: #FFFFFF;
+  border-color: rgba(22, 92, 204, 0.22);
+  box-shadow: 0 18px 42px -10px rgba(22, 92, 204, 0.13);
+}
+
+/* 5. Subpage Architectural Banner (.Str-banner on /tracks/tracks-1) */
+.aic-subpage-banner {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 80% 25%, rgba(132, 175, 255, 0.38) 0%, transparent 55%),
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.85) 0%, transparent 55%),
+    linear-gradient(135deg, #CDE3FF 0%, #DFEEFF 48%, #CCE2FF 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.85);
+}
+
+/* 6. Centered Frosted Capsule Filter Bar (.sortWrap / .sort-list on /tracks/tracks-1) */
+.aic-sort-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  background-color: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0.425rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 24px -6px rgba(19, 75, 145, 0.07);
+}
+
+.aic-sort-item {
+  padding: 0.5rem 1.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  color: #232A65;
+  opacity: 0.75;
+  transition: all 0.22s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aic-sort-item:hover {
+  opacity: 1;
+  color: #165CCC;
+  background-color: rgba(255, 255, 255, 0.55);
+}
+
+.aic-sort-item-active {
+  background: #165CCC;
+  background-image: linear-gradient(45deg, #165CCC, #256BF8 65%, #5C9DFF);
+  color: #FFFFFF !important;
+  opacity: 1;
+  box-shadow: 0 6px 16px -3px rgba(22, 92, 204, 0.35);
+}
+
+/* 7. Luminous Ice-Blue Architectural Footer (.Str-footer) */
+.aic-footer {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #E3EFFF 0%, #D5E7FF 52%, #C5DCFF 100%);
+  color: #232A65;
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
 }
 
 @keyframes marqueeScroll {

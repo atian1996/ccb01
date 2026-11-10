@@ -7687,18 +7687,22 @@ export const FrontendNewsPage: React.FC<FrontendNewsPageProps> = ({
   const paginatedNews = filteredNews.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full">
-      {/* 页面头部与检索栏（精简后仅保留标题与右侧搜索框） */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              赛事新闻
-            </h1>
-          </div>
+    <main className="flex-1 w-full">
+      {/* aicomp.cn 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
+      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
+        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
+          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
+            赛事新闻
+          </h1>
+          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
+        </div>
+      </div>
 
+      <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
+        {/* 顶部右侧检索框 */}
+        <div className="mb-8 flex justify-end">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#165CCC]/60 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={keyword}
@@ -7707,118 +7711,118 @@ export const FrontendNewsPage: React.FC<FrontendNewsPageProps> = ({
                 setCurrentPage(1);
               }}
               placeholder="搜索新闻标题或摘要内容"
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:border-[#0284C7] focus:outline-none text-slate-900 shadow-2xs"
+              className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-white/85 backdrop-blur-md border border-white rounded-full shadow-xs focus:bg-white focus:border-[#165CCC] focus:outline-none text-[#232A65]"
             />
           </div>
         </div>
-      </div>
 
-      {/* 图文列表：每条新闻均有封面（默认显示“赛事新闻”封面）、标题、摘要、来源、发布时间 */}
-      {paginatedNews.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
-          <div className="text-base font-bold text-slate-800">未检索到匹配的赛事新闻</div>
-          <p className="text-xs text-slate-500">
-            请尝试更换搜索关键词。
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {paginatedNews.map((item) => (
-            <article
-              key={item.id}
-              onClick={() => {
-                onSelectNews(item.id);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="group bg-white rounded-2xl border border-slate-200/90 hover:border-[#0284C7] shadow-2xs hover:shadow-lg transition-all duration-200 overflow-hidden p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 cursor-pointer"
-            >
-              {/* 16:9 封面缩略图（始终显示封面，未设置时使用“赛事新闻”默认封面） */}
-              <div className="w-full sm:w-64 lg:w-72 aspect-video rounded-xl overflow-hidden border border-slate-200/80 bg-slate-100 shrink-0 relative">
-                <img
-                  src={item.coverImage || DEFAULT_NEWS_COVER_SVG}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                {item.embeddedVideo && (
-                  <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-slate-950/80 text-white text-[11px] flex items-center gap-1">
-                    <Video className="w-3 h-3 text-sky-400" /> 含视频
-                  </div>
-                )}
-              </div>
-
-              {/* 右侧文字区 */}
-              <div className="flex-1 min-w-0 space-y-2.5 w-full">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {item.isPinned && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        <Pin className="w-3 h-3" /> 置顶
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-slate-400 font-mono-num">
-                    浏览 {item.viewsCount} 次
-                  </span>
+        {/* 图文列表：每条新闻均有封面（默认显示“赛事新闻”封面）、标题、摘要、来源、发布时间 */}
+        {paginatedNews.length === 0 ? (
+          <div className="aic-card rounded-2xl p-12 text-center space-y-3">
+            <div className="text-base font-bold text-[#232A65]">未检索到匹配的赛事新闻</div>
+            <p className="text-xs text-slate-500">
+              请尝试更换搜索关键词。
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {paginatedNews.map((item) => (
+              <article
+                key={item.id}
+                onClick={() => {
+                  onSelectNews(item.id);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="group aic-card rounded-2xl transition-all duration-300 overflow-hidden p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-6 cursor-pointer"
+              >
+                {/* 16:9 封面缩略图（始终显示封面，未设置时使用“赛事新闻”默认封面） */}
+                <div className="w-full sm:w-64 lg:w-72 aspect-video rounded-xl overflow-hidden border border-white bg-slate-100 shrink-0 relative">
+                  <img
+                    src={item.coverImage || DEFAULT_NEWS_COVER_SVG}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  {item.embeddedVideo && (
+                    <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-slate-950/80 text-white text-[11px] flex items-center gap-1">
+                      <Video className="w-3 h-3 text-sky-400" /> 含视频
+                    </div>
+                  )}
                 </div>
 
-                {/* 新闻标题（较醒目字号，最多两行，超出省略） */}
-                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 group-hover:text-[#0284C7] transition-colors line-clamp-2 leading-snug">
-                  {item.title}
-                </h2>
-
-                {/* 摘要/简介（标题下方灰色小字，超出省略） */}
-                {item.summary && (
-                  <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
-                    {item.summary}
-                  </p>
-                )}
-
-                {/* 底部元信息：来源 + 发布时间 YYYY-MM-DD + 查看详情引导 */}
-                <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <span>来源：{item.source}</span>
-                    <span className="text-slate-300" aria-hidden="true">·</span>
-                    <span className="font-mono-num">
-                      发布日期：{item.publishTime.slice(0, 10)}
+                {/* 右侧文字区 */}
+                <div className="flex-1 min-w-0 space-y-2.5 w-full">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {item.isPinned && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <Pin className="w-3 h-3" /> 置顶
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-slate-400 font-mono-num">
+                      浏览 {item.viewsCount} 次
                     </span>
                   </div>
-                  <span className="text-xs font-bold text-[#0284C7] group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
-                    <span>进入新闻详情</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </span>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
 
-      {/* 底部分页组件（每页10-15条） */}
-      <div className="mt-8 bg-white border border-slate-200/90 rounded-xl px-6 py-4 shadow-2xs flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-slate-600">
-        <div>
-          共 <span className="text-slate-900 font-bold font-mono-num">{filteredNews.length}</span> 条新闻资讯 · 每页展示{' '}
-          <span className="text-slate-900 font-mono-num font-semibold">{pageSize}</span> 条
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-50 hover:bg-sky-50 hover:text-[#0284C7] hover:border-sky-200 disabled:opacity-40 text-slate-700 border border-slate-200 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
-          >
-            上一页
-          </button>
-          <span className="px-3 font-mono-num text-slate-700 font-semibold">
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-50 hover:bg-sky-50 hover:text-[#0284C7] hover:border-sky-200 disabled:opacity-40 text-slate-700 border border-slate-200 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
-          >
-            下一页
-          </button>
+                  {/* 新闻标题（较醒目字号，最多两行，超出省略） */}
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] group-hover:text-[#165CCC] transition-colors line-clamp-2 leading-snug">
+                    {item.title}
+                  </h2>
+
+                  {/* 摘要/简介（标题下方灰色小字，超出省略） */}
+                  {item.summary && (
+                    <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      {item.summary}
+                    </p>
+                  )}
+
+                  {/* 底部元信息：来源 + 发布时间 YYYY-MM-DD + 查看详情引导 */}
+                  <div className="pt-3 border-t border-blue-100/60 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <span>来源：{item.source}</span>
+                      <span className="text-slate-300" aria-hidden="true">·</span>
+                      <span className="font-mono-num">
+                        发布日期：{item.publishTime.slice(0, 10)}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-[#165CCC] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                      <span>进入新闻详情</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* 底部分页组件（每页10-15条） */}
+        <div className="mt-8 aic-card rounded-2xl px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-slate-600">
+          <div>
+            共 <span className="text-[#232A65] font-bold font-mono-num">{filteredNews.length}</span> 条新闻资讯 · 每页展示{' '}
+            <span className="text-[#232A65] font-mono-num font-semibold">{pageSize}</span> 条
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="px-4 py-1.5 rounded-full bg-white hover:bg-blue-50 hover:text-[#165CCC] hover:border-blue-200 disabled:opacity-40 text-[#232A65] border border-blue-100 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              上一页
+            </button>
+            <span className="px-3 font-mono-num text-[#232A65] font-semibold">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="px-4 py-1.5 rounded-full bg-white hover:bg-blue-50 hover:text-[#165CCC] hover:border-blue-200 disabled:opacity-40 text-[#232A65] border border-blue-100 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              下一页
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -8217,116 +8221,120 @@ export const FrontendMomentsPage: React.FC<FrontendMomentsPageProps> = ({
   const displayedMoments = filteredMoments.slice(0, visibleCount);
 
   return (
-    <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full">
-      {/* 页面头部（仅保留标题与搜索框，删除类型筛选） */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              赛事动态
-            </h1>
-          </div>
+    <main className="flex-1 w-full">
+      {/* aicomp.cn/tracks/tracks-1 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
+      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
+        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
+          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
+            赛事动态
+          </h1>
+          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
+        </div>
+      </div>
 
+      <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
+        {/* 顶部右侧搜索框 */}
+        <div className="mb-8 flex justify-end">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#165CCC]/60 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="搜索动态标题或摘要内容..."
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:border-[#0284C7] focus:outline-none text-slate-900 shadow-2xs"
+              className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-white/85 backdrop-blur-md border border-white rounded-full shadow-xs focus:bg-white focus:border-[#165CCC] focus:outline-none text-[#232A65]"
             />
           </div>
         </div>
-      </div>
 
-      {/* 卡片网格：图文卡片 + 视频卡片混排（浅色风格） */}
-      {displayedMoments.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
-          <div className="text-base font-bold text-slate-800">暂无符合筛选条件的赛事动态</div>
-          <p className="text-xs text-slate-500">
-            请尝试切换栏目分类或清空搜索关键词。
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {displayedMoments.map((item) => (
-            <article
-              key={item.id}
-              onClick={() => {
-                onSelectMoment(item.id);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="group bg-white rounded-2xl border border-slate-200/90 hover:border-[#0284C7] shadow-2xs hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col justify-between cursor-pointer"
-            >
-              <div>
-                {/* 上方封面图区域 */}
-                <div className="relative aspect-video overflow-hidden bg-slate-100 border-b border-slate-100">
-                  <img
-                    src={item.coverImage}
-                    alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-
-                  {item.isPinned && (
-                    <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded bg-amber-500 text-white text-xs font-bold shadow-xs">
-                      置顶
-                    </span>
-                  )}
-
-                  {/* 视频卡片：居中叠加播放按钮图标，右下角标注视频时长 */}
-                  {item.mediaType === 'video' && (
-                    <>
-                      <div className="absolute inset-0 bg-slate-950/25 group-hover:bg-slate-950/15 transition-colors flex items-center justify-center">
-                        <div className="w-12 h-12 rounded-full bg-white/95 group-hover:bg-[#0284C7] text-[#0284C7] group-hover:text-white shadow-md flex items-center justify-center transition-all duration-200 group-hover:scale-110">
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
-                        </div>
-                      </div>
-                      <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-slate-950/80 text-white font-mono-num text-[11px]">
-                        {item.videoDuration || '04:15'}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* 下方标题与简介（最多两行） */}
-                <div className="p-5">
-                  <h2 className="text-base font-bold text-slate-900 group-hover:text-[#0284C7] transition-colors line-clamp-2 leading-snug mb-2">
-                    {item.title}
-                  </h2>
-                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                    {item.summary}
-                  </p>
-                </div>
-              </div>
-
-              {/* 底部：分类标签 + 媒体类型 + 发布时间 */}
-              <div className="px-5 pb-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                <span className="font-semibold text-[#0284C7]">
-                  {item.category} · {item.mediaType === 'video' ? '视频播报' : '图文报道'}
-                </span>
-                <span className="font-mono-num text-slate-400">{item.publishTime.slice(0, 10)}</span>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {/* 底部“加载更多”与分页统计 */}
-      <div className="mt-10 text-center space-y-3">
-        {visibleCount < filteredMoments.length ? (
-          <button
-            type="button"
-            onClick={() => setVisibleCount((c) => c + 4)}
-            className="px-8 py-3 rounded-xl bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#0284C7] shadow-2xs transition-colors cursor-pointer"
-          >
-            加载更多动态（剩余 {filteredMoments.length - visibleCount} 条）
-          </button>
+        {/* 卡片网格：参考 aicomp.cn/tracks/tracks-1 的 .newsLink 磨砂白边内嵌圆角图卡片风格 */}
+        {displayedMoments.length === 0 ? (
+          <div className="aic-card rounded-2xl p-12 text-center space-y-3">
+            <div className="text-base font-bold text-[#232A65]">暂无符合筛选条件的赛事动态</div>
+            <p className="text-xs text-slate-500">
+              请尝试切换栏目分类或清空搜索关键词。
+            </p>
+          </div>
         ) : (
-          <div className="text-xs text-slate-400">
-            已展示全部 {filteredMoments.length} 条赛事动态
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {displayedMoments.map((item) => (
+              <article
+                key={item.id}
+                onClick={() => {
+                  onSelectMoment(item.id);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="group aic-card rounded-2xl p-3.5 hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer"
+              >
+                <div>
+                  {/* 上方封面图区域（参考 aicomp.cn .newsLink .img rounded-[14px] 内嵌圆角风格） */}
+                  <div className="relative aspect-video overflow-hidden rounded-[14px] bg-slate-100">
+                    <img
+                      src={item.coverImage}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+
+                    {item.isPinned && (
+                      <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-md bg-amber-500 text-white text-xs font-bold shadow-xs">
+                        置顶
+                      </span>
+                    )}
+
+                    {/* 视频卡片：居中叠加播放按钮图标，右下角标注视频时长 */}
+                    {item.mediaType === 'video' && (
+                      <>
+                        <div className="absolute inset-0 bg-slate-950/25 group-hover:bg-slate-950/15 transition-colors flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-white/95 group-hover:bg-[#165CCC] text-[#165CCC] group-hover:text-white shadow-md flex items-center justify-center transition-all duration-200 group-hover:scale-110">
+                            <Play className="w-5 h-5 fill-current ml-0.5" />
+                          </div>
+                        </div>
+                        <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-slate-950/80 text-white font-mono-num text-[11px]">
+                          {item.videoDuration || '04:15'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* 下方标题与简介（最多两行） */}
+                  <div className="px-2 pt-4 pb-3">
+                    <h2 className="text-base font-bold text-[#232A65] group-hover:text-[#165CCC] transition-colors line-clamp-2 leading-snug mb-2">
+                      {item.title}
+                    </h2>
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      {item.summary}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 底部：分类标签 + 媒体类型 + 发布时间 */}
+                <div className="px-2 pb-1.5 pt-3 border-t border-blue-100/60 flex items-center justify-between text-xs text-slate-500">
+                  <span className="font-semibold text-[#165CCC]">
+                    {item.category} · {item.mediaType === 'video' ? '视频播报' : '图文报道'}
+                  </span>
+                  <span className="font-mono-num text-slate-400">{item.publishTime.slice(0, 10)}</span>
+                </div>
+              </article>
+            ))}
           </div>
         )}
+
+        {/* 底部“加载更多”与分页统计 */}
+        <div className="mt-10 text-center space-y-3">
+          {visibleCount < filteredMoments.length ? (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((c) => c + 4)}
+              className="px-8 py-3 rounded-full bg-white hover:bg-blue-50 border border-white hover:border-blue-200 text-xs sm:text-sm font-bold text-[#232A65] hover:text-[#165CCC] shadow-xs transition-colors cursor-pointer"
+            >
+              加载更多动态（剩余 {filteredMoments.length - visibleCount} 条）
+            </button>
+          ) : (
+            <div className="text-xs text-slate-400">
+              已展示全部 {filteredMoments.length} 条赛事动态
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
@@ -8809,20 +8817,21 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
   );
 
   return (
-    <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full">
-      {/* 页面头部与筛选检索栏（仅保留标题） */}
-      <div className="mb-8 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              通知公告
-            </h1>
-          </div>
+    <main className="flex-1 w-full">
+      {/* aicomp.cn 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
+      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
+        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
+          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
+            通知公告
+          </h1>
+          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
         </div>
+      </div>
 
-        {/* 分类标签筛选与关键词搜索 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-lg self-start">
+      <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
+        {/* 分类标签筛选与关键词搜索（参考 aicomp.cn/tracks/tracks-1 胶囊筛选条） */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="aic-sort-list self-start">
             {(['ALL', ...NOTICE_CATEGORY_OPTIONS] as const).map((cat) => {
               const active = activeCategory === cat;
               return (
@@ -8833,10 +8842,8 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
                     setActiveCategory(cat);
                     setCurrentPage(1);
                   }}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap ${
-                    active
-                      ? 'bg-[#0284C7] text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                  className={`aic-sort-item whitespace-nowrap ${
+                    active ? 'aic-sort-item-active' : ''
                   }`}
                 >
                   {cat === 'ALL' ? '全部通知' : cat}
@@ -8845,8 +8852,8 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
             })}
           </div>
 
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-[#165CCC]/60 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={keyword}
@@ -8855,123 +8862,123 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
                 setCurrentPage(1);
               }}
               placeholder="搜索通知标题"
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#0284C7] focus:outline-none text-slate-900"
+              className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-white/85 backdrop-blur-md border border-white rounded-full shadow-xs focus:bg-white focus:border-[#165CCC] focus:outline-none text-[#232A65]"
             />
           </div>
         </div>
-      </div>
 
-      {/* 通知公告列表 */}
-      {paginatedNotices.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
-          <div className="text-base font-bold text-slate-800">未检索到匹配的通知公告</div>
-          <p className="text-xs text-slate-500">
-            请尝试更换搜索关键词或切换上方的通知分类标签。
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {paginatedNotices.map((item) => {
-            const summaryText = item.summary || item.content[1] || item.content[0] || '';
-            return (
-              <article
-                key={item.id}
-                onClick={() => {
-                  onSelectNotice(item.id);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="group bg-white rounded-2xl border border-slate-200/90 hover:border-[#0284C7] shadow-2xs hover:shadow-lg transition-all duration-200 overflow-hidden p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 cursor-pointer"
-              >
-                {/* 左侧日期牌 */}
-                <div className="hidden sm:flex w-24 h-24 rounded-2xl bg-gradient-to-br from-sky-50 to-slate-50 border border-sky-200/80 group-hover:border-[#0284C7] group-hover:from-[#0284C7] group-hover:to-[#0369A1] flex-col items-center justify-center shrink-0 transition-all duration-200">
-                  <span className="text-2xl font-extrabold font-mono-num text-[#0284C7] group-hover:text-white leading-none">
-                    {item.date}
-                  </span>
-                  <span className="text-xs font-mono-num text-slate-400 group-hover:text-sky-100 mt-1.5">
-                    {item.fullDate.slice(0, 4)}
-                  </span>
-                </div>
+        {/* 通知公告列表 */}
+        {paginatedNotices.length === 0 ? (
+          <div className="aic-card rounded-2xl p-12 text-center space-y-3">
+            <div className="text-base font-bold text-[#232A65]">未检索到匹配的通知公告</div>
+            <p className="text-xs text-slate-500">
+              请尝试更换搜索关键词或切换上方的通知分类标签。
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {paginatedNotices.map((item) => {
+              const summaryText = item.summary || item.content[1] || item.content[0] || '';
+              return (
+                <article
+                  key={item.id}
+                  onClick={() => {
+                    onSelectNotice(item.id);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="group aic-card rounded-2xl transition-all duration-300 overflow-hidden p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 cursor-pointer"
+                >
+                  {/* 左侧日期牌 */}
+                  <div className="hidden sm:flex w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-50/90 to-white border border-blue-200/70 group-hover:border-[#165CCC] group-hover:from-[#165CCC] group-hover:to-[#256BF8] flex-col items-center justify-center shrink-0 transition-all duration-200">
+                    <span className="text-2xl font-extrabold font-mono-num text-[#165CCC] group-hover:text-white leading-none">
+                      {item.date}
+                    </span>
+                    <span className="text-xs font-mono-num text-slate-400 group-hover:text-blue-100 mt-1.5">
+                      {item.fullDate.slice(0, 4)}
+                    </span>
+                  </div>
 
-                {/* 右侧正文内容（已移除发文字号展示） */}
-                <div className="flex-1 min-w-0 space-y-2.5 w-full">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {item.isPinned && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-50 text-red-600 border border-red-200">
-                          <Pin className="w-3 h-3" /> 置顶
+                  {/* 右侧正文内容（已移除发文字号展示） */}
+                  <div className="flex-1 min-w-0 space-y-2.5 w-full">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {item.isPinned && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-50 text-red-600 border border-red-200">
+                            <Pin className="w-3 h-3" /> 置顶
+                          </span>
+                        )}
+                        <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-blue-50 text-[#165CCC] border border-blue-200/80">
+                          {item.category || '通知'}
                         </span>
-                      )}
-                      <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-sky-50 text-[#0369A1] border border-sky-200/80">
-                        {item.category || '通知'}
+                        {item.attachments && item.attachments.length > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <Download className="w-3 h-3" /> 含 {item.attachments.length} 份附件
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-slate-400 font-mono-num">
+                        查阅 {item.viewsCount || 8560} 次
                       </span>
-                      {item.attachments && item.attachments.length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <Download className="w-3 h-3" /> 含 {item.attachments.length} 份附件
-                        </span>
-                      )}
                     </div>
-                    <span className="text-slate-400 font-mono-num">
-                      查阅 {item.viewsCount || 8560} 次
-                    </span>
-                  </div>
 
-                  {/* 标题（两行截断） */}
-                  <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 group-hover:text-[#0284C7] transition-colors line-clamp-2 leading-snug">
-                    {item.title}
-                  </h2>
+                    {/* 标题（两行截断） */}
+                    <h2 className="text-lg sm:text-xl font-extrabold text-[#232A65] group-hover:text-[#165CCC] transition-colors line-clamp-2 leading-snug">
+                      {item.title}
+                    </h2>
 
-                  {/* 简介/摘要 */}
-                  {summaryText && (
-                    <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
-                      {summaryText}
-                    </p>
-                  )}
+                    {/* 简介/摘要 */}
+                    {summaryText && (
+                      <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                        {summaryText}
+                      </p>
+                    )}
 
-                  {/* 底部元信息：发文部门 + 发布日期 + 进入详情 */}
-                  <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
-                    <div className="flex flex-wrap items-center gap-4">
-                      <span>发文机构：{item.department}</span>
-                      <span className="text-slate-300" aria-hidden="true">·</span>
-                      <span className="font-mono-num">发布日期：{item.fullDate}</span>
+                    {/* 底部元信息：发文部门 + 发布日期 + 进入详情 */}
+                    <div className="pt-3 border-t border-blue-100/60 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <span>发文机构：{item.department}</span>
+                        <span className="text-slate-300" aria-hidden="true">·</span>
+                        <span className="font-mono-num">发布日期：{item.fullDate}</span>
+                      </div>
+                      <span className="text-xs font-bold text-[#165CCC] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                        <span>进入通知详情</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </span>
                     </div>
-                    <span className="text-xs font-bold text-[#0284C7] group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
-                      <span>进入通知详情</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </span>
                   </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+                </article>
+              );
+            })}
+          </div>
+        )}
 
-      {/* 底部分页器 */}
-      <div className="mt-8 bg-white border border-slate-200/90 rounded-xl px-6 py-4 shadow-2xs flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-slate-600">
-        <div>
-          共 <span className="text-slate-900 font-bold font-mono-num">{filteredNotices.length}</span> 份通知公告 · 每页展示{' '}
-          <span className="text-slate-900 font-mono-num font-semibold">{pageSize}</span> 份
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-50 hover:bg-sky-50 hover:text-[#0284C7] hover:border-sky-200 disabled:opacity-40 text-slate-700 border border-slate-200 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
-          >
-            上一页
-          </button>
-          <span className="px-3 font-mono-num text-slate-700 font-semibold">
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-50 hover:bg-sky-50 hover:text-[#0284C7] hover:border-sky-200 disabled:opacity-40 text-slate-700 border border-slate-200 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
-          >
-            下一页
-          </button>
+        {/* 底部分页器 */}
+        <div className="mt-8 aic-card rounded-2xl px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-slate-600">
+          <div>
+            共 <span className="text-[#232A65] font-bold font-mono-num">{filteredNotices.length}</span> 份通知公告 · 每页展示{' '}
+            <span className="text-[#232A65] font-mono-num font-semibold">{pageSize}</span> 份
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="px-4 py-1.5 rounded-full bg-white hover:bg-blue-50 hover:text-[#165CCC] hover:border-blue-200 disabled:opacity-40 text-[#232A65] border border-blue-100 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              上一页
+            </button>
+            <span className="px-3 font-mono-num text-[#232A65] font-semibold">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="px-4 py-1.5 rounded-full bg-white hover:bg-blue-50 hover:text-[#165CCC] hover:border-blue-200 disabled:opacity-40 text-[#232A65] border border-blue-100 font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              下一页
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -9466,18 +9473,23 @@ export const FrontendHelpCenterPage: React.FC<FrontendHelpCenterPageProps> = ({
   markdownContent,
 }) => {
   return (
-    <main className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 sm:py-12 flex-1 w-full space-y-6">
-      {/* 页面头部（仅保留“帮助中心”标题） */}
-      <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          帮助中心
-        </h1>
+    <main className="flex-1 w-full">
+      {/* aicomp.cn 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
+      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
+        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
+          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
+            帮助中心
+          </h1>
+          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
+        </div>
       </div>
 
       {/* 单篇 Markdown 文档汇总展示所有常见问题与解答 */}
-      <article className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 sm:p-10">
-        <HelpMarkdownDocumentView content={markdownContent ?? HELP_CENTER_MARKDOWN_DOC} />
-      </article>
+      <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
+        <article className="aic-card rounded-2xl p-6 sm:p-10">
+          <HelpMarkdownDocumentView content={markdownContent ?? HELP_CENTER_MARKDOWN_DOC} />
+        </article>
+      </div>
     </main>
   );
 };

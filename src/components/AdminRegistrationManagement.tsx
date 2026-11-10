@@ -59,6 +59,8 @@ import {
   resolveTeamCaptainContact,
   buildApprovedSnapshotFromCaptainTeam,
   insertCaptainAtOrderIndex,
+  reorderContestantsWithCaptain,
+  removeMemberAdjustingCaptainOrder,
   AuditStageBadgeWithTooltip,
 } from './TeamRegistrationSystem';
 import type { AuditLogEntry } from './AuthAndUserCenter';
@@ -2089,7 +2091,13 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       JSON.stringify({
         teamName: team.teamName,
         captainName: team.captainName,
+        captainOrderIndex: team.captainOrderIndex ?? 0,
         captainRoles: formatCtfRolesText(team.captainCtfRoles, false),
+        orderedContestants: insertCaptainAtOrderIndex(
+          `${team.captainName}[队长]`,
+          team.members.map((m) => `${m.name}[队员]`),
+          team.captainOrderIndex
+        ),
         members: team.members.map(
           (m) => `${m.name}(${formatCtfRolesText(m.ctfRoles, false)})`
         ),
@@ -2227,12 +2235,17 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         m.phone !== chosenCandidate!.phone &&
         m.email.toLowerCase() !== chosenCandidate!.email.toLowerCase()
     );
+    const nextCapOrderIdx = Math.min(
+      Math.max(0, editTeamDraft.captainOrderIndex ?? 0),
+      nextMembers.length
+    );
 
     setEditTeamDraft({
       ...editTeamDraft,
       captainName: chosenCandidate.name,
       captainUniversity: chosenCandidate.university,
       captainVerified: chosenCandidate.isVerified,
+      captainOrderIndex: nextCapOrderIdx,
       members: nextMembers,
     });
     setRemoveCaptainModalOpen(false);
@@ -2327,7 +2340,13 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     const afterSnapshot = JSON.stringify({
       teamName: editTeamDraft.teamName,
       captainName: editTeamDraft.captainName,
+      captainOrderIndex: editTeamDraft.captainOrderIndex ?? 0,
       captainRoles: formatCtfRolesText(editTeamDraft.captainCtfRoles, false),
+      orderedContestants: insertCaptainAtOrderIndex(
+        `${editTeamDraft.captainName}[队长]`,
+        editTeamDraft.members.map((m) => `${m.name}[队员]`),
+        editTeamDraft.captainOrderIndex
+      ),
       members: editTeamDraft.members.map(
         (m) => `${m.name}(${formatCtfRolesText(m.ctfRoles, false)})`
       ),
@@ -2335,15 +2354,31 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       status: editTeamDraft.status,
     });
 
-    // 状态保持：编辑保存后，队伍状态不变（若已报名成功则同步更新快照）
+    // 状态保持：编辑保存后，队伍状态不变（若已报名成功或含快照则同步按最新顺位更新快照）
+    const editStages = resolveTeamAuditStages(editTeamDraft);
+    const shouldRebuildSnapshot =
+      editTeamDraft.status === 'approved' ||
+      editStages.regStatusKey === 'approved' ||
+      Boolean(editTeamDraft.approvedSnapshot);
+
+    const rebuiltSnapshot = shouldRebuildSnapshot
+      ? {
+          ...buildApprovedSnapshotFromCaptainTeam(
+            editTeamDraft,
+            editTeamDraft.approvedSnapshot?.approvedAt || '2026-10-28 12:20'
+          ),
+          schoolRank:
+            editTeamDraft.approvedSnapshot?.schoolRank ||
+            editTeamDraft.schoolRank ||
+            editStages.schoolRank,
+        }
+      : editTeamDraft.approvedSnapshot;
+
     const updated = captainTeams.map((t) =>
       t.id === editTeamDraft.id
         ? {
             ...editTeamDraft,
-            approvedSnapshot:
-              editTeamDraft.status === 'approved'
-                ? buildApprovedSnapshotFromCaptainTeam(editTeamDraft, '2026-10-28 12:20')
-                : editTeamDraft.approvedSnapshot,
+            approvedSnapshot: rebuiltSnapshot,
             updatedAt: '2026-10-28 12:20',
           }
         : t
@@ -2975,164 +3010,451 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
             </div>
           </section>
 
-          {/* 2. 成员修改（含移除队长强制指定新队长、点击【编辑】增删角色标签、添加成员直接分配角色与 [√] 强行特批加入后门） */}
+          {/* 2. 成员修改（含队长与队员顺位排序[上移/下移]、移除队长强制指定新队长、点击【编辑】增删角色标签、添加成员直接分配角色与 [√] 强行特批加入后门） */}
           <section className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900">
-                二、成员与队内角色修改（支持点击【编辑】增删角色标签 · 特权添加或替换队员时可直接分配角色）
+                二、成员、顺位排序与队内角色修改（支持【上移/下移】调整队长与队员顺位 · 点击【编辑】增删角色标签）
               </h3>
               <span className="text-xs text-slate-500">
-                管理员可在此直接调整已锁定队伍的成员名单及队内 CTF 角色
+                管理员可在此直接调整已锁定队伍的队长与队员顺位、成员名单及队内 CTF 角色
               </span>
             </div>
 
-            {/* 队长行（支持点击【编辑】修改队长角色标签） */}
-            <div className="p-4 rounded-xl bg-sky-50/60 border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1.5">
-                <div className="text-sm font-bold text-slate-900 flex flex-wrap items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-[#0284C7] text-white text-xs">
-                    当前队长
-                  </span>
-                  <span>{editTeamDraft.captainName}</span>
-                  <span className="text-xs text-slate-500">
-                    （{editTeamDraft.captainUniversity}）
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-500 font-semibold">队内角色：</span>
-                  <CtfRoleBadges roles={editTeamDraft.captainCtfRoles} emptyText="待分配" />
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-center shrink-0">
-                <CtfRoleSelectorDropdown
-                  selectedRoles={editTeamDraft.captainCtfRoles || []}
-                  onChange={(nextRoles) =>
-                    setEditTeamDraft({
-                      ...editTeamDraft,
-                      captainCtfRoles: nextRoles,
-                    })
-                  }
-                  isOpen={backdoorRolePopoverId === 'captain'}
-                  onToggleOpen={() =>
-                    setBackdoorRolePopoverId((prev) =>
-                      prev === 'captain' ? null : 'captain'
-                    )
-                  }
-                  onClose={() => setBackdoorRolePopoverId(null)}
-                  triggerLabel="编辑"
-                  compactTrigger
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewCaptainSearchQuery('');
-                    setNewCaptainSearchError(null);
-                    setSelectedNewCaptainMemberId(
-                      editTeamDraft.members[0]?.id || newCaptainCandidates[0]?.id || ''
-                    );
-                    setRemoveCaptainModalOpen(true);
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>移除队长（需指定新队长）</span>
-                </button>
+            {/* 获奖证书打印顺序醒目提醒（与前台完全一致） */}
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/90 flex items-start gap-2.5 text-xs text-amber-900">
+              <Award className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <span className="font-bold">获奖证书打印顺序提醒：</span>
+                管理员可通过卡片右侧【上移 / 下移】自由调整包括队长本人在内的所有参赛队员的排序（第 1 顺位、第 2 顺位……），
+                <strong className="text-amber-800 underline underline-offset-2">
+                  该报名人员顺序即为最终获奖证书上的姓名打印顺序
+                </strong>
+                。
               </div>
             </div>
 
-            {/* 队员与指导教师列表（支持点击某队员旁的【编辑】为其增删角色标签） */}
+            {/* 1. 参赛队员名单与证书打印顺位（含队长本人 + 团队成员，支持上移/下移排序） */}
             <div className="space-y-2.5">
-              {[...editTeamDraft.members, ...editTeamDraft.advisors].map((person) => (
-                <div
-                  key={person.id}
-                  className="p-3.5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="space-y-1.5">
-                    <div className="text-sm font-bold text-slate-900 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          person.role === 'advisor'
-                            ? 'bg-sky-100 text-[#0369A1]'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {person.role === 'advisor' ? '指导教师' : '队员'}
-                      </span>
-                      <span>{person.name}</span>
-                      <span className="text-xs text-slate-500">（{person.university}）</span>
-                      {!person.isVerified && (
-                        <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          特批免认证加入
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-500 font-semibold">
-                        队内角色：
-                      </span>
-                      <CtfRoleBadges
-                        roles={person.ctfRoles}
-                        isAdvisor={person.role === 'advisor'}
-                        emptyText="待分配"
-                      />
-                    </div>
-                    <div className="text-xs text-slate-500 font-mono-num">
-                      手机：{maskPhone(person.phone)} | 邮箱：{maskEmail(person.email)}
-                    </div>
-                  </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-sm font-bold text-slate-900">
+                  参赛队员名单与证书打印顺位（含队长共 {1 + editTeamDraft.members.length} 人，其中队员 {editTeamDraft.members.length} 人）
+                </h4>
+                <span className="text-xs text-slate-500">
+                  点击右侧【上移 / 下移】即可调整队长与队员的先后顺位
+                </span>
+              </div>
 
-                  <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
-                    {person.role === 'member' && (
-                      <CtfRoleSelectorDropdown
-                        selectedRoles={person.ctfRoles || []}
-                        onChange={(nextRoles) =>
-                          setEditTeamDraft({
-                            ...editTeamDraft,
-                            members: editTeamDraft.members.map((m) =>
-                              m.id === person.id ? { ...m, ctfRoles: nextRoles } : m
-                            ),
-                          })
-                        }
-                        isOpen={backdoorRolePopoverId === person.id}
-                        onToggleOpen={() =>
-                          setBackdoorRolePopoverId((prev) =>
-                            prev === person.id ? null : person.id
-                          )
-                        }
-                        onClose={() => setBackdoorRolePopoverId(null)}
-                        triggerLabel="编辑"
-                        compactTrigger
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (backdoorRolePopoverId === person.id) {
-                          setBackdoorRolePopoverId(null);
-                        }
-                        const nextMembers = editTeamDraft.members.filter(
-                          (m) => m.id !== person.id
+              {(() => {
+                const combinedContestants = insertCaptainAtOrderIndex(
+                  { kind: 'captain' as const },
+                  editTeamDraft.members.map((m) => ({
+                    kind: 'member' as const,
+                    person: m,
+                  })),
+                  editTeamDraft.captainOrderIndex
+                );
+                const totalContestants = combinedContestants.length;
+                const capContact = resolveTeamCaptainContact(
+                  editTeamDraft,
+                  platformUsers
+                );
+
+                return (
+                  <div className="space-y-2.5">
+                    {combinedContestants.map((entry, idx) => {
+                      const isFirst = idx === 0;
+                      const isLast = idx === totalContestants - 1;
+
+                      if (entry.kind === 'captain') {
+                        return (
+                          <div
+                            key="admin-edit-captain-row"
+                            className="p-4 rounded-xl bg-sky-50/60 border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
+                                <span className="px-2 py-0.5 rounded-md bg-[#0284C7] text-white text-[11px] font-mono-num font-bold">
+                                  第 {idx + 1} 顺位
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded bg-sky-100 text-[#0369A1] text-[10px] font-bold">
+                                  队长
+                                </span>
+                              </div>
+                              <div className="space-y-1.5">
+                                <div className="text-sm font-bold text-slate-900 flex flex-wrap items-center gap-2">
+                                  <span>{editTeamDraft.captainName}</span>
+                                  <span className="px-2 py-0.5 rounded bg-[#0284C7]/10 text-[#0369A1] text-[11px] font-bold">
+                                    当前队长
+                                  </span>
+                                  <span className="text-xs text-slate-500">
+                                    （{editTeamDraft.captainUniversity}）
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-500 font-semibold">
+                                    队内角色：
+                                  </span>
+                                  <CtfRoleBadges
+                                    roles={editTeamDraft.captainCtfRoles}
+                                    emptyText="待分配"
+                                  />
+                                </div>
+                                <div className="text-xs text-slate-500 font-mono-num">
+                                  手机：{maskPhone(capContact.phone)} | 邮箱：{maskEmail(capContact.email)}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-center shrink-0">
+                              {totalContestants > 1 && (
+                                <div className="inline-flex items-center gap-1 mr-1 pr-2 border-r border-sky-200">
+                                  <button
+                                    type="button"
+                                    disabled={isFirst}
+                                    onClick={() => {
+                                      const {
+                                        nextMembers,
+                                        nextCaptainOrderIndex,
+                                      } = reorderContestantsWithCaptain(
+                                        editTeamDraft.members,
+                                        editTeamDraft.captainOrderIndex,
+                                        idx,
+                                        -1
+                                      );
+                                      setEditTeamDraft({
+                                        ...editTeamDraft,
+                                        members: nextMembers,
+                                        captainOrderIndex: nextCaptainOrderIndex,
+                                      });
+                                      setBackdoorFeedback(
+                                        '已上移队长顺位！请注意：当前的报名人员顺序即为最终获奖证书的打印顺序。'
+                                      );
+                                    }}
+                                    title="上移顺位（调整获奖证书打印顺序）"
+                                    className={`px-2 py-1 rounded-lg border text-xs font-bold inline-flex items-center gap-1 transition-colors ${
+                                      isFirst
+                                        ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
+                                        : 'border-sky-200 bg-white hover:bg-sky-100 text-[#0284C7] cursor-pointer'
+                                    }`}
+                                  >
+                                    <ArrowUp className="w-3.5 h-3.5" />
+                                    <span>上移</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isLast}
+                                    onClick={() => {
+                                      const {
+                                        nextMembers,
+                                        nextCaptainOrderIndex,
+                                      } = reorderContestantsWithCaptain(
+                                        editTeamDraft.members,
+                                        editTeamDraft.captainOrderIndex,
+                                        idx,
+                                        1
+                                      );
+                                      setEditTeamDraft({
+                                        ...editTeamDraft,
+                                        members: nextMembers,
+                                        captainOrderIndex: nextCaptainOrderIndex,
+                                      });
+                                      setBackdoorFeedback(
+                                        '已下移队长顺位！请注意：当前的报名人员顺序即为最终获奖证书的打印顺序。'
+                                      );
+                                    }}
+                                    title="下移顺位（调整获奖证书打印顺序）"
+                                    className={`px-2 py-1 rounded-lg border text-xs font-bold inline-flex items-center gap-1 transition-colors ${
+                                      isLast
+                                        ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
+                                        : 'border-sky-200 bg-white hover:bg-sky-100 text-[#0284C7] cursor-pointer'
+                                    }`}
+                                  >
+                                    <ArrowDown className="w-3.5 h-3.5" />
+                                    <span>下移</span>
+                                  </button>
+                                </div>
+                              )}
+
+                              <CtfRoleSelectorDropdown
+                                selectedRoles={editTeamDraft.captainCtfRoles || []}
+                                onChange={(nextRoles) =>
+                                  setEditTeamDraft({
+                                    ...editTeamDraft,
+                                    captainCtfRoles: nextRoles,
+                                  })
+                                }
+                                isOpen={backdoorRolePopoverId === 'captain'}
+                                onToggleOpen={() =>
+                                  setBackdoorRolePopoverId((prev) =>
+                                    prev === 'captain' ? null : 'captain'
+                                  )
+                                }
+                                onClose={() => setBackdoorRolePopoverId(null)}
+                                triggerLabel="编辑"
+                                compactTrigger
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewCaptainSearchQuery('');
+                                  setNewCaptainSearchError(null);
+                                  setSelectedNewCaptainMemberId(
+                                    editTeamDraft.members[0]?.id ||
+                                      newCaptainCandidates[0]?.id ||
+                                      ''
+                                  );
+                                  setRemoveCaptainModalOpen(true);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>移除队长（需指定新队长）</span>
+                              </button>
+                            </div>
+                          </div>
                         );
-                        const nextAdvisors = editTeamDraft.advisors.filter(
-                          (a) => a.id !== person.id
-                        );
-                        setEditTeamDraft({
-                          ...editTeamDraft,
-                          members: nextMembers,
-                          advisors: nextAdvisors,
-                        });
-                        setBackdoorFeedback(
-                          `已将「${person.name}」移出队伍（保存后系统将自动向其发送站内信通知）。`
-                        );
-                      }}
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>移除</span>
-                    </button>
+                      }
+
+                      const person = entry.person;
+                      return (
+                        <div
+                          key={person.id}
+                          className="p-3.5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[11px] font-mono-num font-bold">
+                                第 {idx + 1} 顺位
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold">
+                                队员
+                              </span>
+                            </div>
+                            <div className="space-y-1.5">
+                              <div className="text-sm font-bold text-slate-900 flex flex-wrap items-center gap-2">
+                                <span>{person.name}</span>
+                                <span className="text-xs text-slate-500">
+                                  （{person.university}）
+                                </span>
+                                {!person.isVerified && (
+                                  <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                    特批免认证加入
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-slate-500 font-semibold">
+                                  队内角色：
+                                </span>
+                                <CtfRoleBadges
+                                  roles={person.ctfRoles}
+                                  emptyText="待分配"
+                                />
+                              </div>
+                              <div className="text-xs text-slate-500 font-mono-num">
+                                手机：{maskPhone(person.phone)} | 邮箱：{maskEmail(person.email)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                            {totalContestants > 1 && (
+                              <div className="inline-flex items-center gap-1 mr-1 pr-2 border-r border-slate-200">
+                                <button
+                                  type="button"
+                                  disabled={isFirst}
+                                  onClick={() => {
+                                    const {
+                                      nextMembers,
+                                      nextCaptainOrderIndex,
+                                    } = reorderContestantsWithCaptain(
+                                      editTeamDraft.members,
+                                      editTeamDraft.captainOrderIndex,
+                                      idx,
+                                      -1
+                                    );
+                                    setEditTeamDraft({
+                                      ...editTeamDraft,
+                                      members: nextMembers,
+                                      captainOrderIndex: nextCaptainOrderIndex,
+                                    });
+                                    setBackdoorFeedback(
+                                      `已上移队员「${person.name}」的顺位！当前的报名人员顺序即为最终获奖证书的打印顺序。`
+                                    );
+                                  }}
+                                  title="上移顺位（调整获奖证书打印顺序）"
+                                  className={`px-2 py-1 rounded-lg border text-xs font-bold inline-flex items-center gap-1 transition-colors ${
+                                    isFirst
+                                      ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
+                                      : 'border-slate-300 bg-white hover:bg-sky-50 text-slate-700 hover:text-[#0284C7] cursor-pointer'
+                                  }`}
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                  <span>上移</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isLast}
+                                  onClick={() => {
+                                    const {
+                                      nextMembers,
+                                      nextCaptainOrderIndex,
+                                    } = reorderContestantsWithCaptain(
+                                      editTeamDraft.members,
+                                      editTeamDraft.captainOrderIndex,
+                                      idx,
+                                      1
+                                    );
+                                    setEditTeamDraft({
+                                      ...editTeamDraft,
+                                      members: nextMembers,
+                                      captainOrderIndex: nextCaptainOrderIndex,
+                                    });
+                                    setBackdoorFeedback(
+                                      `已下移队员「${person.name}」的顺位！当前的报名人员顺序即为最终获奖证书的打印顺序。`
+                                    );
+                                  }}
+                                  title="下移顺位（调整获奖证书打印顺序）"
+                                  className={`px-2 py-1 rounded-lg border text-xs font-bold inline-flex items-center gap-1 transition-colors ${
+                                    isLast
+                                      ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
+                                      : 'border-slate-300 bg-white hover:bg-sky-50 text-slate-700 hover:text-[#0284C7] cursor-pointer'
+                                  }`}
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                  <span>下移</span>
+                                </button>
+                              </div>
+                            )}
+
+                            <CtfRoleSelectorDropdown
+                              selectedRoles={person.ctfRoles || []}
+                              onChange={(nextRoles) =>
+                                setEditTeamDraft({
+                                  ...editTeamDraft,
+                                  members: editTeamDraft.members.map((m) =>
+                                    m.id === person.id
+                                      ? { ...m, ctfRoles: nextRoles }
+                                      : m
+                                  ),
+                                })
+                              }
+                              isOpen={backdoorRolePopoverId === person.id}
+                              onToggleOpen={() =>
+                                setBackdoorRolePopoverId((prev) =>
+                                  prev === person.id ? null : person.id
+                                )
+                              }
+                              onClose={() => setBackdoorRolePopoverId(null)}
+                              triggerLabel="编辑"
+                              compactTrigger
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (backdoorRolePopoverId === person.id) {
+                                  setBackdoorRolePopoverId(null);
+                                }
+                                const { nextMembers, nextCaptainOrderIndex } =
+                                  removeMemberAdjustingCaptainOrder(
+                                    editTeamDraft.members,
+                                    editTeamDraft.captainOrderIndex,
+                                    person.id
+                                  );
+                                setEditTeamDraft({
+                                  ...editTeamDraft,
+                                  members: nextMembers,
+                                  captainOrderIndex: nextCaptainOrderIndex,
+                                });
+                                setBackdoorFeedback(
+                                  `已将「${person.name}」移出队伍（保存后系统将自动向其发送站内信通知）。`
+                                );
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>移除</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+                );
+              })()}
+            </div>
+
+            {/* 2. 指导教师列表（指导教师不参与参赛队员顺位排序） */}
+            <div className="space-y-2.5 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-sm font-bold text-slate-900">
+                  指导教师名单（共 {editTeamDraft.advisors.length} 人，不参与参赛队员顺位排序与 CTF 角色分配）
+                </h4>
+              </div>
+
+              {editTeamDraft.advisors.length === 0 ? (
+                <div className="p-3.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 text-xs text-slate-400 text-center">
+                  当前队伍未配置指导教师
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-2.5">
+                  {editTeamDraft.advisors.map((advisor) => (
+                    <div
+                      key={advisor.id}
+                      className="p-3.5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="text-sm font-bold text-slate-900 flex flex-wrap items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-sky-100 text-[#0369A1]">
+                            指导教师
+                          </span>
+                          <span>{advisor.name}</span>
+                          <span className="text-xs text-slate-500">
+                            （{advisor.university}）
+                          </span>
+                          {!advisor.isVerified && (
+                            <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              特批免认证加入
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-slate-500 font-semibold">
+                            队内角色：
+                          </span>
+                          <CtfRoleBadges isAdvisor emptyText="-" />
+                        </div>
+                        <div className="text-xs text-slate-500 font-mono-num">
+                          手机：{maskPhone(advisor.phone)} | 邮箱：{maskEmail(advisor.email)}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextAdvisors = editTeamDraft.advisors.filter(
+                              (a) => a.id !== advisor.id
+                            );
+                            setEditTeamDraft({
+                              ...editTeamDraft,
+                              advisors: nextAdvisors,
+                            });
+                            setBackdoorFeedback(
+                              `已将指导教师「${advisor.name}」移出队伍（保存后系统将自动向其发送站内信通知）。`
+                            );
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>移除</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 管理员后门添加成员搜索框（添加队员时可直接分配角色） */}
