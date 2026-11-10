@@ -7688,16 +7688,6 @@ export const FrontendNewsPage: React.FC<FrontendNewsPageProps> = ({
 
   return (
     <main className="flex-1 w-full">
-      {/* aicomp.cn 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
-      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
-        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
-          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
-            赛事新闻
-          </h1>
-          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
-        </div>
-      </div>
-
       <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
         {/* 顶部右侧检索框 */}
         <div className="mb-8 flex justify-end">
@@ -8222,16 +8212,6 @@ export const FrontendMomentsPage: React.FC<FrontendMomentsPageProps> = ({
 
   return (
     <main className="flex-1 w-full">
-      {/* aicomp.cn/tracks/tracks-1 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
-      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
-        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
-          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
-            赛事动态
-          </h1>
-          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
-        </div>
-      </div>
-
       <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
         {/* 顶部右侧搜索框 */}
         <div className="mb-8 flex justify-end">
@@ -8818,16 +8798,6 @@ export const FrontendNoticesPage: React.FC<FrontendNoticesPageProps> = ({
 
   return (
     <main className="flex-1 w-full">
-      {/* aicomp.cn 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
-      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
-        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
-          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
-            通知公告
-          </h1>
-          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
-        </div>
-      </div>
-
       <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
         {/* 分类标签筛选与关键词搜索（参考 aicomp.cn/tracks/tracks-1 胶囊筛选条） */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -9474,16 +9444,6 @@ export const FrontendHelpCenterPage: React.FC<FrontendHelpCenterPageProps> = ({
 }) => {
   return (
     <main className="flex-1 w-full">
-      {/* aicomp.cn 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
-      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
-        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
-          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
-            帮助中心
-          </h1>
-          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
-        </div>
-      </div>
-
       {/* 单篇 Markdown 文档汇总展示所有常见问题与解答 */}
       <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
         <article className="aic-card rounded-2xl p-6 sm:p-10">

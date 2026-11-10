@@ -3030,7 +3030,7 @@ export default function App() {
           </div>
 
           <div className="pt-6 text-center text-xs text-[#232A65]/65 font-mono-num">
-            Copyright © 2026 “XX杯”全国网数智安全大赛组委会 & 国家信息安全工程技术研究中心 版权所有 · 京ICP备2026008921号-1
+            Copyright © 中国信息安全测评中心 版权所有 · 京ICP备14044185号-4
           </div>
         </div>
       </footer>

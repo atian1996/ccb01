@@ -434,16 +434,6 @@ export const CompetitionDirectoryPage: React.FC<CompetitionDirectoryPageProps> =
 
   return (
     <main className="flex-1 w-full">
-      {/* aicomp.cn 风格二级页面顶部冰蓝横幅 (.aic-subpage-banner) */}
-      <div className="aic-subpage-banner py-9 sm:py-11 border-b border-white/80">
-        <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10 text-center">
-          <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-black text-[#134B91] tracking-tight">
-            赛事目录
-          </h1>
-          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-[#256BF8] to-[#84AFFF] mx-auto mt-3" />
-        </div>
-      </div>
-
       <div className="max-w-[1600px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10">
         {/* 状态筛选与关键词搜索（参考 aicomp.cn/tracks/tracks-1 的 .sort-list 磨砂胶囊筛选栏） */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
