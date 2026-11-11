@@ -648,37 +648,42 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
 }) => {
   const calcStatus = computeCompetitionStatus(competition.startDate, competition.endDate);
   const statusLabel = getCompetitionStatusLabel(calcStatus);
-  const [selectedSubTrack, setSelectedSubTrack] = useState<string>(
+  const [selectedSubTrack] = useState<string>(
     competition.tracks[0]?.name || ''
   );
-  const [regNotOpenPrompt, setRegNotOpenPrompt] = useState<string | null>(null);
 
-  // 是否存在关联且启用中的报名管理配置数据
-  const hasAssociatedRegistration = Boolean(
-    registrationConfig && !registrationConfig.isDisabled
-  );
+  // 是否已在后台【报名管理】建立该赛事关联的报名数据
+  const hasAssociatedRegistration = Boolean(registrationConfig);
   const platformRegStatus = registrationConfig
     ? computeRegistrationConfigStatus(registrationConfig)
     : 'not_started';
-  const platformRegMeta = getRegistrationStatusMeta(
-    platformRegStatus,
-    registrationConfig?.earlyClosed
+
+  // 2.报名未开始 -> 按钮直接显示“报名未开始”并置灰
+  // 3.报名已截止 -> 按钮直接显示“报名已截止”并置灰
+  // 4.报名已关闭 -> 按钮直接显示“报名已关闭”并置灰
+  const isRegClosed = Boolean(
+    registrationConfig?.earlyClosed || registrationConfig?.isDisabled || platformRegStatus === 'disabled'
   );
+  const isRegOpen = platformRegStatus === 'open' && !isRegClosed;
+  const registerButtonLabel = isRegClosed
+    ? '报名已关闭'
+    : platformRegStatus === 'not_started'
+    ? '报名未开始'
+    : platformRegStatus === 'ended'
+    ? '报名已截止'
+    : '立即报名';
+
+  const leftPromptTitle = isRegClosed
+    ? '本赛事在线报名通道已关闭，当前暂停接收报名申请，可浏览下方赛事介绍与赛程安排。'
+    : platformRegStatus === 'not_started'
+    ? '本赛事在线报名尚未开始，请于报名开放时间内发起报名。'
+    : platformRegStatus === 'ended'
+    ? '本赛事在线报名已截止，不再接收新的报名申请，可浏览下方赛事介绍与赛程安排。'
+    : '本赛事在线报名通道正在开放中，请于截止时间前完成队伍组建与报名提交。';
 
   const handleClickRegisterButton = () => {
     if (!hasAssociatedRegistration || !registrationConfig) return;
-    if (platformRegStatus !== 'open') {
-      setRegNotOpenPrompt(
-        `报名未开启：当前赛事不在报名开放时段内（报名时间：${registrationConfig.regStartTime.replace(
-          'T',
-          ' '
-        )} 至 ${registrationConfig.regEndTime.replace('T', ' ')}${
-          registrationConfig.earlyClosed ? '，管理员已关闭报名通道' : ''
-        }）。`
-      );
-      return;
-    }
-    setRegNotOpenPrompt(null);
+    if (!isRegOpen) return;
     onRegisterClick(competition, selectedSubTrack);
   };
 
@@ -773,77 +778,53 @@ export const CompetitionDetailPage: React.FC<CompetitionDetailPageProps> = ({
               </div>
             </div>
 
-            {/* 底部：由后台【报名管理】是否有关联该赛事的报名数据控制显示 */}
+            {/* 底部：由后台【报名管理】是否已建立该赛事关联的报名数据控制显示 */}
             <div className="pt-5 border-t border-blue-100/60">
-              {!hasAssociatedRegistration ? (
-                /* 无关联赛事的报名数据 -> 前台报名按钮不显示 */
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#F4F8FE] border border-blue-100/80 rounded-xl px-4 py-3">
+              {!hasAssociatedRegistration || !registrationConfig ? (
+                /* 尚未在后台建立该赛事关联的报名数据 -> 仅展示左侧提示，右侧报名按钮区域不显示任何内容 */
+                <div className="flex items-center justify-between bg-[#F4F8FE] border border-blue-100/80 rounded-xl px-4 py-3.5">
                   <div className="text-xs text-slate-500">
                     本赛事暂未关联开启在线报名通道，可浏览下方赛事介绍与赛程安排。
                   </div>
-                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-blue-100 text-[#232A65] text-xs font-bold shrink-0">
-                    <span className={`w-2 h-2 rounded-full ${getStatusDotClass(calcStatus)}`} />
-                    <span>{statusLabel}</span>
-                  </span>
                 </div>
               ) : (
-                /* 有关联的报名数据 -> 显示【立即报名】按钮；若报名未开启，点击提示“报名未开启” */
-                <div className="space-y-3">
-                  {regNotOpenPrompt && (
-                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>{regNotOpenPrompt}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setRegNotOpenPrompt(null)}
-                        className="text-amber-600 hover:text-amber-900 cursor-pointer shrink-0"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                /* 已在后台建立关联的报名数据 -> 左侧根据实际报名状态展示提示与时间规则，右侧显示【立即报名】或置灰状态按钮 */
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#F4F8FE] border border-blue-100/80 rounded-xl px-4 py-3.5">
+                  <div className="space-y-1 min-w-0">
+                    <div className="text-xs font-semibold text-[#232A65] leading-relaxed">
+                      {leftPromptTitle}
                     </div>
-                  )}
-
-                  <div className="flex items-center justify-end">
-                    <div className="shrink-0 w-full sm:w-auto">
-                      <button
-                        type="button"
-                        onClick={handleClickRegisterButton}
-                        className={`w-full sm:w-auto px-8 py-3 rounded-full text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                          platformRegStatus === 'open'
-                            ? 'aic-btn-gradient'
-                            : 'bg-slate-700 hover:bg-slate-800 text-white shadow-xs'
-                        }`}
-                      >
-                        <span>立即报名</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 font-mono-num">
+                      <span>
+                        报名时间：{registrationConfig.regStartTime.replace('T', ' ')} 至{' '}
+                        {registrationConfig.regEndTime.replace('T', ' ')}
+                      </span>
+                      <span className="text-slate-300">|</span>
+                      <span className="font-sans">
+                        队伍限制：
+                        {registrationConfig.minTeamSize === registrationConfig.maxTeamSize
+                          ? `${registrationConfig.minTeamSize}人（单人赛）`
+                          : `${registrationConfig.minTeamSize}-${registrationConfig.maxTeamSize}人`}{' '}
+                        · {registrationConfig.allowCrossSchool ? '支持跨校组队' : '仅限同校组队'}
+                      </span>
                     </div>
                   </div>
 
-                  {/* 平台报名时间窗口与规则摘要条 */}
-                  {registrationConfig && (
-                    <div className="pt-2.5 border-t border-blue-100/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full ${platformRegMeta.dotClass}`} />
-                          <span className="font-semibold text-[#232A65]">
-                            报名通道状态：{platformRegMeta.label}
-                            {registrationConfig.earlyClosed ? '（管理员已提前关闭）' : ''}
-                          </span>
-                        </span>
-                        <span className="text-slate-300">|</span>
-                        <span className="font-mono-num">
-                          报名起止：{registrationConfig.regStartTime.replace('T', ' ')} 至{' '}
-                          {registrationConfig.regEndTime.replace('T', ' ')}
-                        </span>
-                      </div>
-                      <div className="text-slate-400">
-                        队伍限制：{registrationConfig.minTeamSize}-{registrationConfig.maxTeamSize}人 · 仅限同校组队
-                      </div>
-                    </div>
-                  )}
+                  <div className="shrink-0 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      disabled={!isRegOpen}
+                      onClick={handleClickRegisterButton}
+                      className={`w-full sm:w-auto px-8 py-3 rounded-full text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                        isRegOpen
+                          ? 'aic-btn-gradient cursor-pointer'
+                          : 'bg-slate-200 text-slate-400 border border-slate-300/80 cursor-not-allowed shadow-none'
+                      }`}
+                    >
+                      <span>{registerButtonLabel}</span>
+                      {isRegOpen && <ArrowRight className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

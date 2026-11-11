@@ -440,9 +440,22 @@ export default function App() {
     email: string;
   } | null>(null);
 
-  // 未完成实名/学籍认证时点击“立即报名”的拦截弹窗
+  // 1、未登录时点击“立即报名”的拦截弹窗与登录成功后返回赛事详情页标记
+  const [unloggedInterceptModal, setUnloggedInterceptModal] = useState<{
+    competitionId: string;
+    competitionTitle: string;
+  } | null>(null);
+  const [postLoginRedirectView, setPostLoginRedirectView] = useState<'competition-detail' | null>(
+    null
+  );
+  // 5、教师误点“立即报名”的拦截弹窗
+  const [teacherInterceptModal, setTeacherInterceptModal] = useState<{
+    competitionId: string;
+    competitionTitle: string;
+  } | null>(null);
+  // 6、学生认证未完成（未实名、未申请、审核中、已驳回）时点击“立即报名”的拦截弹窗
   const [unverifiedInterceptModal, setUnverifiedInterceptModal] = useState<CompetitionTrack | null>(null);
-  // 点击拦截逻辑③：已在该赛事下有队伍 -> 弹窗提示已有队伍，并提供【前往我的报名】按钮
+  // 7、学生已有报名队伍 -> 弹窗提示已有队伍，并提供【取消】【前往我的报名】按钮
   const [existingTeamInterceptModal, setExistingTeamInterceptModal] = useState<{
     competitionId: string;
     competitionTitle: string;
@@ -718,20 +731,45 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 在「赛事详情页」点击“立即报名” -> 严格执行4步点击拦截逻辑（校验顺序：①未登录 -> ②未实名/学籍认证 -> ③已在该赛事下有队伍 -> ④进入报名表单填写页）
+  // 在「赛事详情页」点击“立即报名”（仅报名在期限内可点击） -> 严格按7种用户情形方案执行：
+  // 1、未登录 -> 弹窗提示去登录（登录成功后返回当前赛事详情页）
+  // 5、教师误点报名 -> 弹窗提示仅支持学生创建队伍
+  // 6、学生认证未完成（含未实名、未申请、审核中、已驳回） -> 弹窗提示前往用户认证
+  // 7、学生已有报名队伍 -> 弹窗提示前往我的报名
   const handleCatalogCompetitionRegister = (
     comp: CompetitionCatalogItem,
     selectedSubTrackName?: string
   ) => {
-    // ① 未登录 -> 拦截跳转登录页
+    // 1、未登录 -> 弹窗提示：“您尚未登录，请先登录后再报名。”，操作：【稍后再说】/【去登录】
     if (!isLoggedIn) {
-      setAuthInitialTab('login');
-      setCurrentView('auth');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setUnloggedInterceptModal({
+        competitionId: comp.id,
+        competitionTitle: comp.title,
+      });
       return;
     }
-    // ② 个人未实名/学籍认证 -> 拦截引导去认证
-    if (!currentUser.isVerified) {
+
+    // 5、报名在期限内，教师误点报名
+    const isCertifiedTeacher =
+      (currentUser.identityType === 'teacher' &&
+        currentUser.academicStatus === 'verified' &&
+        currentUser.realNameStatus === 'verified') ||
+      currentUser.role === 'teacher';
+    if (isCertifiedTeacher) {
+      setTeacherInterceptModal({
+        competitionId: comp.id,
+        competitionTitle: comp.title,
+      });
+      return;
+    }
+
+    // 6、报名在期限内，学生认证未完成（包含：未实名、未完成学生认证（未申请、审核中、已驳回））
+    const isVerifiedStudent =
+      currentUser.realNameStatus === 'verified' &&
+      currentUser.identityType === 'student' &&
+      currentUser.academicStatus === 'verified' &&
+      currentUser.isVerified;
+    if (!isVerifiedStudent) {
       const calcStatus = computeCompetitionStatus(comp.startDate, comp.endDate);
       const statusLabel = getCompetitionStatusLabel(calcStatus);
       setUnverifiedInterceptModal({
@@ -761,7 +799,8 @@ export default function App() {
       });
       return;
     }
-    // ③ 已在该赛事下有队伍 -> 弹窗提示已有队伍，并提供【前往我的报名】按钮
+
+    // 7、报名在期限内，学生已有报名队伍 -> 弹窗提示已有队伍，并提供【取消】【前往我的报名】按钮
     const isDefaultDemoStudent =
       currentUser.username === 'linyuanhang' || currentUser.name === '林远航';
     const existingAsCaptain = captainTeams.find(
@@ -786,7 +825,7 @@ export default function App() {
       return;
     }
 
-    // ④ 全部通过 -> 进入“报名表单填写页”
+    // 全部通过 -> 进入“报名表单填写页”
     setSelectedCompetitionId(comp.id);
     setRegInitialSubTrack(selectedSubTrackName);
     setEditingDraftTeam(null);
@@ -929,16 +968,26 @@ export default function App() {
       <StandaloneAuthPage
         initialTab={authInitialTab}
         onBackHome={() => {
-          setCurrentView('home');
+          if (postLoginRedirectView === 'competition-detail') {
+            setPostLoginRedirectView(null);
+            setCurrentView('competition-detail');
+          } else {
+            setCurrentView('home');
+          }
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onLoginSuccess={(user, redirectTarget, options) => {
           setCurrentUser(user);
           setIsLoggedIn(true);
-          if (redirectTarget === 'user-center') {
-            setUserCenterInitialTab('profile');
+          if (postLoginRedirectView === 'competition-detail') {
+            setPostLoginRedirectView(null);
+            setCurrentView('competition-detail');
+          } else {
+            if (redirectTarget === 'user-center') {
+              setUserCenterInitialTab('profile');
+            }
+            setCurrentView(redirectTarget);
           }
-          setCurrentView(redirectTarget);
           window.scrollTo({ top: 0, behavior: 'smooth' });
 
           if (options?.abnormalLocationAlert) {
@@ -3082,7 +3131,102 @@ export default function App() {
       )}
 
       {/* =====================================================================
-          报名拦截校验弹窗（新注册未完成实名与学籍认证时点击“立即报名”触发）
+          情形 1：未登录时点击“立即报名”拦截弹窗
+          提示：“您尚未登录，请先登录后再报名。”
+          操作：【稍后再说】/【去登录】（跳转登录页，登录成功后返回当前赛事详情页）
+         ===================================================================== */}
+      {unloggedInterceptModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#134B91] to-[#165CCC] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-blue-200" />
+                <span className="font-bold text-base">登录提示</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUnloggedInterceptModal(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <p className="text-sm font-semibold text-slate-800 leading-relaxed">
+                您尚未登录，请先登录后再报名。
+              </p>
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setUnloggedInterceptModal(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  稍后再说
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const compId = unloggedInterceptModal.competitionId;
+                    setUnloggedInterceptModal(null);
+                    setSelectedCompetitionId(compId);
+                    setPostLoginRedirectView('competition-detail');
+                    setAuthInitialTab('login');
+                    setCurrentView('auth');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-5 py-2.5 aic-btn-gradient text-white text-xs font-bold rounded-lg cursor-pointer"
+                >
+                  去登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          情形 5：报名在期限内，教师误点报名拦截弹窗
+          提示：本赛事仅支持学生创建队伍。您当前的认证身份为教师，请等待学生队长向您发起组队邀请。
+          按钮：【我知道了】（点击后关闭弹窗）
+         ===================================================================== */}
+      {teacherInterceptModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#134B91] to-[#165CCC] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-300" />
+                <span className="font-bold text-base">报名提示</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTeacherInterceptModal(null)}
+                className="text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <p className="text-sm font-semibold text-slate-800 leading-relaxed">
+                本赛事仅支持学生创建队伍。您当前的认证身份为教师，请等待学生队长向您发起组队邀请。
+              </p>
+              <div className="flex items-center justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => setTeacherInterceptModal(null)}
+                  className="px-5 py-2.5 aic-btn-gradient text-white text-xs font-bold rounded-lg cursor-pointer"
+                >
+                  我知道了
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          情形 6：报名在期限内，学生认证未完成（包含：未实名、未完成学生认证（未申请、审核中、已驳回））
+          提示：“报名参赛需完成【学生认证】。请前往个人中心完成认证或查看审核进度，审核通过后方可发起报名。”
+          操作：【稍后再说】/【前往用户认证】（点击后进入个人中心用户认证）
          ===================================================================== */}
       {unverifiedInterceptModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -3097,18 +3241,15 @@ export default function App() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <p className="text-sm font-semibold text-slate-900">
-                您当前尚未完成【实名认证与学籍/教师认证】，暂无法报名《{unverifiedInterceptModal.title}》。
+            <div className="p-6 space-y-5">
+              <p className="text-sm font-semibold text-slate-900 leading-relaxed">
+                报名参赛需完成【学生认证】。请前往个人中心完成认证或查看审核进度，审核通过后方可发起报名。
               </p>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                为保障国家级赛事公平性，所有参赛队员与指导教师在提交赛道报名表前，须先在个人中心完成实名与高校学籍核验。
-              </p>
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => setUnverifiedInterceptModal(null)}
-                  className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   稍后再说
                 </button>
@@ -3122,7 +3263,7 @@ export default function App() {
                   }}
                   className="px-5 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg cursor-pointer"
                 >
-                  前往个人中心完成认证 &rarr;
+                  前往用户认证
                 </button>
               </div>
             </div>
@@ -3131,7 +3272,7 @@ export default function App() {
       )}
 
       {/* =====================================================================
-          点击拦截校验③：已在该赛事下有队伍 -> 弹窗提示已有队伍，并提供【前往我的报名】按钮
+          情形 7：报名在期限内，学生已有报名队伍 -> 弹窗提示已有队伍，并提供【取消】【前往我的报名】按钮
          ===================================================================== */}
       {existingTeamInterceptModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -3200,7 +3341,7 @@ export default function App() {
                     }}
                     className="px-5 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer"
                   >
-                    前往我的报名 &rarr;
+                    前往我的报名
                   </button>
                 </div>
               </div>

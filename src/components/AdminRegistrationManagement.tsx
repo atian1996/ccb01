@@ -236,7 +236,9 @@ export const INITIAL_REGISTRATION_CONFIGS: EventRegistrationConfig[] = [
     maxAdvisors: 1,
     minTeamSize: 2,
     maxTeamSize: 4,
-    isDisabled: true, // 已停用（含保留队伍数据，测试【删除】时的拦截保护）
+    isDisabled: false,
+    schoolAuditEnabled: true,
+    secretariatAuditEnabled: true,
     createdAt: '2026-10-12 16:40:00',
     updatedAt: '2026-10-25 15:20:00',
   },
@@ -251,7 +253,9 @@ export const INITIAL_REGISTRATION_CONFIGS: EventRegistrationConfig[] = [
     maxAdvisors: 2,
     minTeamSize: 2,
     maxTeamSize: 4,
-    isDisabled: true, // 已停用（当前0支队伍，可用于直接测试无队伍时的【删除】操作）
+    isDisabled: false,
+    schoolAuditEnabled: false,
+    secretariatAuditEnabled: false,
     createdAt: '2026-10-20 13:15:00',
     updatedAt: '2026-10-26 09:40:00',
   },
@@ -813,8 +817,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         return;
       }
     }
-    if (cfgMinTeamSize < 1 || cfgMinTeamSize > 5) {
-      setCfgFormError('队伍最少人数（含队长）须限制在 1 - 5 人之间');
+    if (cfgMinTeamSize < 1 || cfgMinTeamSize > 20) {
+      setCfgFormError('队伍最少人数（含队长）须限制在 1 - 20 人之间');
       return;
     }
     if (cfgMaxTeamSize < 1 || cfgMaxTeamSize > 20) {
@@ -1755,8 +1759,19 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
       device: 'Admin Console',
       action: `导出报名队伍Excel（共 ${targetTeams.length} 支队伍）`,
       result: '成功',
-      detail: `文件：${exportFileName}，包含 Sheet1(队伍汇总·含校内排名) 与 Sheet2(成员明细)，手机号与身份证号已执行默认脱敏保护`,
+      detail: `文件：${exportFileName}，包含 Sheet1(队伍汇总·含报名状态/高校审核状态/秘书处审核状态) 与 Sheet2(成员明细)，手机号与身份证号已执行默认脱敏保护`,
     });
+  };
+
+  const formatAuditStageExportText = (
+    status: TwoStageAuditStatus,
+    customLabel?: string
+  ) => {
+    if (status === 'none') return '—';
+    if (customLabel) return customLabel;
+    if (status === 'pending') return '待审核';
+    if (status === 'approved') return '已通过';
+    return '已驳回';
   };
 
   // 解析队员/队长/指导教师的完整导出档案信息（手机号、邮箱、身份证号、学历、队内角色、院校所在地、所属赛区）
@@ -1828,6 +1843,14 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     const sheet1Rows = teams
       .map((t) => {
         const stages = resolveTeamAuditStages(t);
+        const schoolAuditText = formatAuditStageExportText(
+          stages.schoolStatus,
+          stages.schoolBadgeLabel
+        );
+        const secretariatAuditText = formatAuditStageExportText(
+          stages.secretariatStatus,
+          stages.secretariatBadgeLabel
+        );
         const totalMembers = 1 + t.members.length;
         const capContact = resolveTeamCaptainContact(t, platformUsers);
         const capInfo = resolvePersonFullExportInfo({
@@ -1838,7 +1861,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           roleType: 'captain',
           ctfRoles: t.captainCtfRoles,
         });
-        const rankText = stages.schoolRank ? `校内第${stages.schoolRank}名` : '-';
         const allMemberSummary = insertCaptainAtOrderIndex(
           `${capInfo.name}(队长/${capInfo.educationLevel}/${capInfo.inTeamRoleText}/${capInfo.phone})`,
           t.members.map((m) => {
@@ -1858,7 +1880,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         return `<Row>
           <Cell><Data ss:Type="String">${t.teamName}</Data></Cell>
           <Cell><Data ss:Type="String">${t.competitionTitle}</Data></Cell>
-          <Cell><Data ss:Type="String">${rankText}</Data></Cell>
           <Cell><Data ss:Type="String">${t.university}</Data></Cell>
           <Cell><Data ss:Type="String">${capInfo.universityLocation}</Data></Cell>
           <Cell><Data ss:Type="String">${capInfo.divisionName}</Data></Cell>
@@ -1872,6 +1893,8 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           <Cell><Data ss:Type="Number">${totalMembers}</Data></Cell>
           <Cell><Data ss:Type="String">${allMemberSummary}</Data></Cell>
           <Cell><Data ss:Type="String">${stages.regStatusLabel}</Data></Cell>
+          <Cell><Data ss:Type="String">${schoolAuditText}</Data></Cell>
+          <Cell><Data ss:Type="String">${secretariatAuditText}</Data></Cell>
           <Cell><Data ss:Type="String">${t.createdAt}</Data></Cell>
         </Row>`;
       })
@@ -1880,7 +1903,14 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     const sheet2Rows = teams
       .flatMap((t) => {
         const stages = resolveTeamAuditStages(t);
-        const rankText = stages.schoolRank ? `校内第${stages.schoolRank}名` : '-';
+        const schoolAuditText = formatAuditStageExportText(
+          stages.schoolStatus,
+          stages.schoolBadgeLabel
+        );
+        const secretariatAuditText = formatAuditStageExportText(
+          stages.secretariatStatus,
+          stages.secretariatBadgeLabel
+        );
         const capContact = resolveTeamCaptainContact(t, platformUsers);
         const capInfo = resolvePersonFullExportInfo({
           name: t.captainName,
@@ -1894,7 +1924,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
         const makeXmlRow = (pInfo: ReturnType<typeof resolvePersonFullExportInfo>) => `<Row>
           <Cell><Data ss:Type="String">${t.teamName}</Data></Cell>
           <Cell><Data ss:Type="String">${t.competitionTitle}</Data></Cell>
-          <Cell><Data ss:Type="String">${rankText}</Data></Cell>
           <Cell><Data ss:Type="String">${t.teamIntro || ''}</Data></Cell>
           <Cell><Data ss:Type="String">${pInfo.university}</Data></Cell>
           <Cell><Data ss:Type="String">${pInfo.universityLocation}</Data></Cell>
@@ -1906,6 +1935,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
           <Cell><Data ss:Type="String">${pInfo.phone}</Data></Cell>
           <Cell><Data ss:Type="String">${pInfo.email}</Data></Cell>
           <Cell><Data ss:Type="String">${pInfo.idCard}</Data></Cell>
+          <Cell><Data ss:Type="String">${stages.regStatusLabel}</Data></Cell>
+          <Cell><Data ss:Type="String">${schoolAuditText}</Data></Cell>
+          <Cell><Data ss:Type="String">${secretariatAuditText}</Data></Cell>
         </Row>`;
 
         const orderedContestantInfos = insertCaptainAtOrderIndex(
@@ -1945,7 +1977,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
    <Row>
     <Cell><Data ss:Type="String">队伍名称</Data></Cell>
     <Cell><Data ss:Type="String">参赛赛事</Data></Cell>
-    <Cell><Data ss:Type="String">校内选拔排名</Data></Cell>
     <Cell><Data ss:Type="String">所属院校</Data></Cell>
     <Cell><Data ss:Type="String">院校所在地</Data></Cell>
     <Cell><Data ss:Type="String">所属赛区</Data></Cell>
@@ -1958,7 +1989,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     <Cell><Data ss:Type="String">队长队内角色</Data></Cell>
     <Cell><Data ss:Type="String">队伍人数</Data></Cell>
     <Cell><Data ss:Type="String">全队成员汇总</Data></Cell>
-    <Cell><Data ss:Type="String">报名与晋级状态</Data></Cell>
+    <Cell><Data ss:Type="String">报名状态</Data></Cell>
+    <Cell><Data ss:Type="String">高校审核状态</Data></Cell>
+    <Cell><Data ss:Type="String">秘书处审核状态</Data></Cell>
     <Cell><Data ss:Type="String">报名时间</Data></Cell>
    </Row>
    ${sheet1Rows}
@@ -1969,7 +2002,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
    <Row>
     <Cell><Data ss:Type="String">所属队伍</Data></Cell>
     <Cell><Data ss:Type="String">参赛赛事</Data></Cell>
-    <Cell><Data ss:Type="String">校内选拔排名</Data></Cell>
     <Cell><Data ss:Type="String">队伍简介</Data></Cell>
     <Cell><Data ss:Type="String">所属院校</Data></Cell>
     <Cell><Data ss:Type="String">院校所在地</Data></Cell>
@@ -1981,6 +2013,9 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
     <Cell><Data ss:Type="String">手机号</Data></Cell>
     <Cell><Data ss:Type="String">邮箱</Data></Cell>
     <Cell><Data ss:Type="String">身份证号</Data></Cell>
+    <Cell><Data ss:Type="String">报名状态</Data></Cell>
+    <Cell><Data ss:Type="String">高校审核状态</Data></Cell>
+    <Cell><Data ss:Type="String">秘书处审核状态</Data></Cell>
    </Row>
    ${sheet2Rows}
   </Table>
@@ -2565,7 +2600,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                 <div className="p-4 rounded-xl bg-white border border-slate-200/90 flex flex-col justify-between gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-2">
-                      1. 队伍人数限制（最少含队长 1-5 人，最多 1-20 人）{' '}
+                      1. 队伍人数限制（最少含队长 1人，最多20 人）{' '}
                       <span className="text-red-500">*</span>
                     </label>
                     <div className="flex items-center gap-2.5">
@@ -2574,7 +2609,7 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                         <input
                           type="number"
                           min={1}
-                          max={5}
+                          max={20}
                           required
                           value={cfgMinTeamSize}
                           onChange={(e) => setCfgMinTeamSize(Number(e.target.value))}
@@ -4260,21 +4295,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       {!isCurrentStageSwitchEnabled ? ' [阶段已关闭]' : ''}
                     </span>
                   </button>
-
-                  {adminRole === 'super_admin' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImportErrorReport(null);
-                        setImportSuccessMsg(null);
-                        setImportModalOpen(true);
-                      }}
-                      className="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
-                      <span>导入线下数据</span>
-                    </button>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -6202,7 +6222,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600 whitespace-nowrap">
                           <th className="py-2.5 px-3">队伍名</th>
-                          <th className="py-2.5 px-3">校内排名</th>
                           <th className="py-2.5 px-3">所属院校</th>
                           <th className="py-2.5 px-3">院校所在地</th>
                           <th className="py-2.5 px-3">所属赛区</th>
@@ -6213,11 +6232,22 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           <th className="py-2.5 px-3">队长邮箱</th>
                           <th className="py-2.5 px-3">队长身份证号</th>
                           <th className="py-2.5 px-3">人数</th>
+                          <th className="py-2.5 px-3">报名状态</th>
+                          <th className="py-2.5 px-3">高校审核状态</th>
+                          <th className="py-2.5 px-3">秘书处审核状态</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 whitespace-nowrap">
                         {exportPreviewModal.teams.map((t) => {
                           const st = resolveTeamAuditStages(t);
+                          const schoolAuditText = formatAuditStageExportText(
+                            st.schoolStatus,
+                            st.schoolBadgeLabel
+                          );
+                          const secretariatAuditText = formatAuditStageExportText(
+                            st.secretariatStatus,
+                            st.secretariatBadgeLabel
+                          );
                           const capContact = resolveTeamCaptainContact(t, platformUsers);
                           const capInfo = resolvePersonFullExportInfo({
                             name: t.captainName,
@@ -6230,9 +6260,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           return (
                             <tr key={t.id}>
                               <td className="py-2 px-3 font-bold">{t.teamName}</td>
-                              <td className="py-2 px-3 font-mono-num font-bold text-amber-700">
-                                {st.schoolRank ? `校内第${st.schoolRank}名` : '-'}
-                              </td>
                               <td className="py-2 px-3">{t.university}</td>
                               <td className="py-2 px-3">{capInfo.universityLocation}</td>
                               <td className="py-2 px-3 font-semibold text-[#0284C7]">
@@ -6245,6 +6272,15 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                               <td className="py-2 px-3 font-mono-num">{capInfo.email}</td>
                               <td className="py-2 px-3 font-mono-num">{capInfo.idCard}</td>
                               <td className="py-2 px-3 font-mono-num">{1 + t.members.length}</td>
+                              <td className="py-2 px-3 font-semibold text-slate-800">
+                                {st.regStatusLabel}
+                              </td>
+                              <td className="py-2 px-3 font-semibold text-slate-700">
+                                {schoolAuditText}
+                              </td>
+                              <td className="py-2 px-3 font-semibold text-slate-700">
+                                {secretariatAuditText}
+                              </td>
                             </tr>
                           );
                         })}
@@ -6255,7 +6291,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600 whitespace-nowrap">
                           <th className="py-2.5 px-3">所属队伍</th>
-                          <th className="py-2.5 px-3">校内排名</th>
                           <th className="py-2.5 px-3">姓名</th>
                           <th className="py-2.5 px-3">队内身份</th>
                           <th className="py-2.5 px-3">队内角色</th>
@@ -6266,12 +6301,22 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           <th className="py-2.5 px-3">所属院校</th>
                           <th className="py-2.5 px-3">院校所在地</th>
                           <th className="py-2.5 px-3">所属赛区</th>
+                          <th className="py-2.5 px-3">报名状态</th>
+                          <th className="py-2.5 px-3">高校审核状态</th>
+                          <th className="py-2.5 px-3">秘书处审核状态</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 whitespace-nowrap">
                         {exportPreviewModal.teams.flatMap((t) => {
                           const st = resolveTeamAuditStages(t);
-                          const rankText = st.schoolRank ? `校内第${st.schoolRank}名` : '-';
+                          const schoolAuditText = formatAuditStageExportText(
+                            st.schoolStatus,
+                            st.schoolBadgeLabel
+                          );
+                          const secretariatAuditText = formatAuditStageExportText(
+                            st.secretariatStatus,
+                            st.secretariatBadgeLabel
+                          );
                           const capContact = resolveTeamCaptainContact(t, platformUsers);
                           const capInfo = resolvePersonFullExportInfo({
                             name: t.captainName,
@@ -6284,9 +6329,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                           return [
                             <tr key={`${t.id}-cap`}>
                               <td className="py-2 px-3 font-bold">{t.teamName}</td>
-                              <td className="py-2 px-3 font-mono-num font-bold text-amber-700">
-                                {rankText}
-                              </td>
                               <td className="py-2 px-3 font-bold">{capInfo.name}</td>
                               <td className="py-2 px-3">队长</td>
                               <td className="py-2 px-3 font-semibold text-[#0284C7]">
@@ -6301,6 +6343,15 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                               <td className="py-2 px-3 font-semibold text-emerald-700">
                                 {capInfo.divisionName}
                               </td>
+                              <td className="py-2 px-3 font-semibold text-slate-800">
+                                {st.regStatusLabel}
+                              </td>
+                              <td className="py-2 px-3 font-semibold text-slate-700">
+                                {schoolAuditText}
+                              </td>
+                              <td className="py-2 px-3 font-semibold text-slate-700">
+                                {secretariatAuditText}
+                              </td>
                             </tr>,
                             ...[...t.members, ...t.advisors].map((p) => {
                               const pInfo = resolvePersonFullExportInfo({
@@ -6314,9 +6365,6 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                               return (
                                 <tr key={`${t.id}-${p.id}`}>
                                   <td className="py-2 px-3 font-bold">{t.teamName}</td>
-                                  <td className="py-2 px-3 font-mono-num font-bold text-amber-700">
-                                    {rankText}
-                                  </td>
                                   <td className="py-2 px-3 font-semibold">{pInfo.name}</td>
                                   <td className="py-2 px-3">{pInfo.identityLabel}</td>
                                   <td className="py-2 px-3 font-semibold text-[#0284C7]">
@@ -6330,6 +6378,15 @@ export const AdminRegistrationManagement: React.FC<AdminRegistrationManagementPr
                                   <td className="py-2 px-3">{pInfo.universityLocation}</td>
                                   <td className="py-2 px-3 font-semibold text-emerald-700">
                                     {pInfo.divisionName}
+                                  </td>
+                                  <td className="py-2 px-3 font-semibold text-slate-800">
+                                    {st.regStatusLabel}
+                                  </td>
+                                  <td className="py-2 px-3 font-semibold text-slate-700">
+                                    {schoolAuditText}
+                                  </td>
+                                  <td className="py-2 px-3 font-semibold text-slate-700">
+                                    {secretariatAuditText}
                                   </td>
                                 </tr>
                               );

@@ -5134,6 +5134,8 @@ export const StandaloneUserCenterPage: React.FC<{
                       setSelectedIdentityRadio('student');
                       onUpdateUser({
                         ...user,
+                        role: 'student',
+                        roleLabel: '参赛学生',
                         name: '林远航',
                         idCard: '110108200305162819',
                         realNameStatus: 'verified',
@@ -5159,6 +5161,8 @@ export const StandaloneUserCenterPage: React.FC<{
                       setSelectedIdentityRadio('teacher');
                       onUpdateUser({
                         ...user,
+                        role: 'student',
+                        roleLabel: '参赛学生',
                         name: '沈星河',
                         realNameStatus: 'verified',
                         identityType: 'teacher',
@@ -5168,6 +5172,7 @@ export const StandaloneUserCenterPage: React.FC<{
                         educationLevel: '博士及以上',
                         academicStatus: 'pending',
                         academicSubmittedAt: '2026-10-28 10:30:00',
+                        isVerified: false,
                       });
                     }}
                     className="px-2.5 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 border border-amber-300/30 text-amber-100 cursor-pointer"
@@ -5180,6 +5185,8 @@ export const StandaloneUserCenterPage: React.FC<{
                       setSelectedIdentityRadio('teacher');
                       onUpdateUser({
                         ...user,
+                        role: 'teacher',
+                        roleLabel: '指导教师',
                         name: '沈星河',
                         realNameStatus: 'verified',
                         identityType: 'teacher',
@@ -5190,6 +5197,7 @@ export const StandaloneUserCenterPage: React.FC<{
                         academicStatus: 'verified',
                         academicVerifiedAt: '2026-10-28',
                         univAdminStatus: 'unverified',
+                        isVerified: true,
                       });
                     }}
                     className="px-2.5 py-1 rounded bg-sky-500/30 hover:bg-sky-500/50 border border-sky-300/30 text-white cursor-pointer"
@@ -5202,6 +5210,8 @@ export const StandaloneUserCenterPage: React.FC<{
                       setSelectedIdentityRadio('teacher');
                       onUpdateUser({
                         ...user,
+                        role: 'student',
+                        roleLabel: '参赛学生',
                         name: '沈星河',
                         realNameStatus: 'verified',
                         identityType: 'teacher',
@@ -5211,6 +5221,7 @@ export const StandaloneUserCenterPage: React.FC<{
                         educationLevel: '博士及以上',
                         academicStatus: 'rejected',
                         academicRejectReason: '院系部门与教工人事库信息不匹配，请补充工作证照片',
+                        isVerified: false,
                       });
                     }}
                     className="px-2.5 py-1 rounded bg-red-500/25 hover:bg-red-500/40 border border-red-300/30 text-red-100 cursor-pointer"
@@ -5223,6 +5234,8 @@ export const StandaloneUserCenterPage: React.FC<{
                       setSelectedIdentityRadio('teacher');
                       onUpdateUser({
                         ...user,
+                        role: 'teacher',
+                        roleLabel: '指导教师',
                         name: '沈星河',
                         realNameStatus: 'verified',
                         identityType: 'teacher',
@@ -5233,6 +5246,7 @@ export const StandaloneUserCenterPage: React.FC<{
                         academicStatus: 'verified',
                         univAdminStatus: 'pending',
                         univAdminSubmittedAt: '2026-10-28 16:10:00',
+                        isVerified: true,
                       });
                     }}
                     className="px-2.5 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 border border-amber-300/30 text-amber-100 cursor-pointer"
@@ -5245,6 +5259,8 @@ export const StandaloneUserCenterPage: React.FC<{
                       setSelectedIdentityRadio('teacher');
                       onUpdateUser({
                         ...user,
+                        role: 'teacher',
+                        roleLabel: '指导教师',
                         name: '沈星河',
                         realNameStatus: 'verified',
                         identityType: 'teacher',
@@ -5255,6 +5271,7 @@ export const StandaloneUserCenterPage: React.FC<{
                         academicStatus: 'verified',
                         univAdminStatus: 'rejected',
                         univAdminRejectReason: '未提供加盖高校官方教务处或院系公章的管理授权委托证明',
+                        isVerified: true,
                       });
                     }}
                     className="px-2.5 py-1 rounded bg-red-500/25 hover:bg-red-500/40 border border-red-300/30 text-red-100 cursor-pointer"
@@ -5267,6 +5284,8 @@ export const StandaloneUserCenterPage: React.FC<{
                       setSelectedIdentityRadio('teacher');
                       onUpdateUser({
                         ...user,
+                        role: 'teacher',
+                        roleLabel: '指导教师',
                         name: '沈星河',
                         realNameStatus: 'verified',
                         identityType: 'teacher',
@@ -5277,6 +5296,7 @@ export const StandaloneUserCenterPage: React.FC<{
                         academicStatus: 'verified',
                         univAdminStatus: 'verified',
                         univAdminVerifiedAt: '2026-10-28 16:30:00',
+                        isVerified: true,
                       });
                     }}
                     className="px-2.5 py-1 rounded bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-300/30 text-emerald-100 cursor-pointer"

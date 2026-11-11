@@ -4725,8 +4725,8 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
                   1. 参赛队员名单与证书打印顺位（含队长共 {1 + (maxTeamSize === 1 ? 0 : members.length)}/
                   {maxTeamSize} 人，最少需 {minTeamSize} 人）
                 </div>
-                <span className="text-[11px] text-slate-500">
-                  点击右侧【上移 / 下移】可调整包含队长在内的所有队员顺位 · 队内角色为选填项
+                <span className="text-xs text-slate-500">
+                  赛事报名要求：队伍总人数 {minTeamSize}~{maxTeamSize} 人（含队长）
                 </span>
               </div>
 
@@ -5058,8 +5058,13 @@ export const TeamRegistrationFormPage: React.FC<TeamRegistrationFormPageProps> =
             {/* 2. 指导教师（当后台配置开启“包含指导教师”时展示；不参与排序） */}
             {includeAdvisor && (
               <div className="space-y-3">
-                <div className="text-xs font-bold text-slate-700">
-                  2. 指导教师（已添加 {advisors.length}/{maxAdvisors} 人，要求已完成本校教师认证）
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-bold text-slate-700">
+                    2. 指导教师（已添加 {advisors.length}/{maxAdvisors} 人，要求已完成本校教师认证）
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    赛事报名要求：可邀请 {minAdvisors}~{maxAdvisors} 名指导教师
+                  </span>
                 </div>
 
                 {advisors.length > 0 && (
@@ -6963,9 +6968,7 @@ export const MyRegistrationsClosedLoopModule: React.FC<MyRegistrationsClosedLoop
                 <span className="text-xs text-slate-500">
                   赛事报名要求：
                   {cfgIncludeAdvisor
-                    ? cfgMinAdvisors > 0
-                      ? `需邀请 ${cfgMinAdvisors}~${cfgMaxAdvisors} 名指导教师`
-                      : `可邀请 0~${cfgMaxAdvisors} 名指导教师`
+                    ? `可邀请 ${cfgMinAdvisors}~${cfgMaxAdvisors} 名指导教师`
                     : '本赛事无需指导教师'}
                 </span>
               </div>
