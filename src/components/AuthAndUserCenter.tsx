@@ -4368,8 +4368,6 @@ export const StandaloneUserCenterPage: React.FC<{
   const isAcademicPrereqMet = isRealNameDone && isPhoneBound && isEmailBound;
 
   const ALLOWED_CERT_EXTS = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'ppt', 'pptx', 'zip', 'rar'];
-  const ALLOWED_STUDENT_PROOF_EXTS = ['jpg', 'jpeg', 'png', 'pdf'];
-  const MAX_STUDENT_PROOF_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
   const handleAddCertFiles = (
     fileList: FileList | null,
@@ -4412,46 +4410,6 @@ export const StandaloneUserCenterPage: React.FC<{
     }
 
     setFiles((prev) => [...prev, ...nextItems]);
-  };
-
-  // 学生认证：身份辅助证明（选填，限制 jpg/png/pdf，限制 5MB 以内）
-  const handleAddStudentProofFiles = (fileList: FileList | null) => {
-    if (!fileList || fileList.length === 0) return;
-    setStuFormError(null);
-    const incoming = Array.from(fileList);
-
-    const nextItems: VerificationAttachmentItem[] = [];
-    for (const file of incoming) {
-      const ext = file.name.split('.').pop()?.toLowerCase() || '';
-      if (!ALLOWED_STUDENT_PROOF_EXTS.includes(ext)) {
-        setStuFormError(
-          `文件「${file.name}」格式不支持，身份辅助证明仅支持上传 jpg / png / pdf 格式`
-        );
-        return;
-      }
-      if (file.size > MAX_STUDENT_PROOF_SIZE_BYTES) {
-        setStuFormError(
-          `文件「${file.name}」超过 5MB 大小限制，请上传 5MB 以内的学生证内页或证明材料`
-        );
-        return;
-      }
-      const sizeKb = Math.max(1, Math.round(file.size / 1024));
-      const sizeStr =
-        sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(2)} MB` : `${sizeKb} KB`;
-      const isImage = ['jpg', 'jpeg', 'png'].includes(ext);
-      const url = isImage
-        ? URL.createObjectURL(file)
-        : 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80';
-      nextItems.push({
-        id: `stu-proof-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        name: file.name,
-        size: sizeStr,
-        url,
-        fileType: ext,
-      });
-    }
-
-    setStuManualFiles((prev) => [...prev, ...nextItems]);
   };
 
   // 点击模块二【去验证】或驳回后的【重新验证】（带着原数据回显到表单）
@@ -4530,6 +4488,10 @@ export const StandaloneUserCenterPage: React.FC<{
     }
     if (stuGradDate <= stuEnrollDate) {
       setStuFormError('毕业时间（预计）必须晚于入学时间，请核对后重新选择');
+      return;
+    }
+    if (stuManualFiles.length > 10) {
+      setStuFormError('上传的附件最多不超过 10 个');
       return;
     }
 
@@ -5696,12 +5658,6 @@ export const StandaloneUserCenterPage: React.FC<{
                             <span className="text-slate-500 w-28 shrink-0">专业：</span>
                             <span className="font-bold text-slate-900">
                               {user.majorOrDept || '网络空间安全'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-slate-500 w-28 shrink-0">学号：</span>
-                            <span className="font-mono-num font-bold text-slate-900">
-                              {user.studentId || '—'}
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
@@ -7296,73 +7252,106 @@ export const StandaloneUserCenterPage: React.FC<{
                   </div>
                 </div>
 
-                {/* 6. 身份辅助证明（选填：支持上传学生证内页或其他证明材料，非必填，限制格式 jpg/png/pdf，限制大小 5MB 以内） */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700">
-                      身份辅助证明（选填）
-                    </label>
-                    <span className="text-[11px] text-slate-400">
-                      非必填 · 格式 jpg/png/pdf · 5MB 以内
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    支持上传学生证内页或其他证明材料
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-3 pt-1">
-                    <label className="px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors">
-                      <Upload className="w-3.5 h-3.5 text-[#0284C7]" />
-                      <span>上传辅助证明材料（选填）</span>
-                      <input
-                        type="file"
-                        multiple
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        className="hidden"
-                        onChange={(e) => {
-                          handleAddStudentProofFiles(e.target.files);
-                          e.target.value = '';
-                        }}
-                      />
-                    </label>
-                    {stuManualFiles.length > 0 && (
-                      <span className="text-[11px] font-mono text-slate-500">
-                        已选 {stuManualFiles.length} 份文件
+                {/* 证明材料：[ 上传附件 ]（最多不超过10个，样式与教师认证一致） */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    证明材料（选填，支持上传学生证内页或学信网在线验证报告等证明材料，仅用于审核）
+                  </label>
+                  <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 space-y-3">
+                    <div className="text-[11px] text-slate-500 leading-relaxed">
+                      支持上传最多不超过 <strong>10 个</strong>附件，格式支持：<strong>jpg、jpeg、png、pdf、doc、docx、ppt、pptx、zip、rar</strong> 等常见文件格式。
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <label
+                          className={`px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:border-[#0284C7] text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            stuManualFiles.length >= 10 ? 'opacity-50 pointer-events-none' : ''
+                          }`}
+                        >
+                          <Upload className="w-4 h-4 text-[#0284C7]" />
+                          <span>上传附件（可多选）</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.ppt,.pptx,.zip,.rar"
+                            className="hidden"
+                            onChange={(e) => {
+                              handleAddCertFiles(
+                                e.target.files,
+                                stuManualFiles,
+                                setStuManualFiles,
+                                setStuFormError
+                              );
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStuFormError(null);
+                            if (!stuSchool) setStuSchool('北京航空航天大学');
+                            if (!stuEducation) setStuEducation('本科');
+                            if (!stuMajor) setStuMajor('网络空间安全');
+                            if (!stuStudentId) setStuStudentId('BUAA20240108');
+                            setStuManualFiles([
+                              {
+                                id: `demo-stu-1-${Date.now()}`,
+                                name: '学生证内页注册章高清扫描件.jpg',
+                                size: '1.08 MB',
+                                url: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80',
+                                fileType: 'jpg',
+                              },
+                              {
+                                id: `demo-stu-2-${Date.now()}`,
+                                name: '教育部学籍在线验证报告.pdf',
+                                size: '1.42 MB',
+                                url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80',
+                                fileType: 'pdf',
+                              },
+                            ]);
+                          }}
+                          className="text-xs text-[#0284C7] underline cursor-pointer"
+                        >
+                          一键填入演示学生材料
+                        </button>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-600">
+                        已上传 <strong>{stuManualFiles.length}</strong> / 10 个附件
                       </span>
+                    </div>
+                    {stuManualFiles.length > 0 && (
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        {stuManualFiles.map((f, idx) => (
+                          <div
+                            key={f.id}
+                            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2 text-xs"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="text-[11px] font-mono text-[#0284C7] font-bold">
+                                #{idx + 1}
+                              </span>
+                              <FileText className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                              <span className="text-slate-800 font-medium truncate">{f.name}</span>
+                              <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                                ({f.size})
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setStuManualFiles((prev) => prev.filter((item) => item.id !== f.id))
+                              }
+                              className="text-slate-400 hover:text-red-600 cursor-pointer p-0.5"
+                              title="移除该附件"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-
-                  {stuManualFiles.length > 0 && (
-                    <div className="space-y-1.5 max-h-32 overflow-y-auto pt-1">
-                      {stuManualFiles.map((f, idx) => (
-                        <div
-                          key={f.id}
-                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2 text-xs"
-                        >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="text-[11px] font-mono text-[#0284C7] font-bold">
-                              #{idx + 1}
-                            </span>
-                            <FileText className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
-                            <span className="text-slate-800 font-medium truncate">{f.name}</span>
-                            <span className="text-[11px] text-slate-400 font-mono shrink-0">
-                              ({f.size})
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setStuManualFiles((prev) => prev.filter((item) => item.id !== f.id))
-                            }
-                            className="text-slate-400 hover:text-red-600 cursor-pointer p-0.5"
-                            title="移除该附件"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex justify-end gap-3 pt-2">
