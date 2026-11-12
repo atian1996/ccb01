@@ -1245,6 +1245,7 @@ export default function App() {
                   ? record.levelOrTitle || prev.educationLevel
                   : prev.educationLevel,
               majorOrDept: record.majorOrDept || prev.majorOrDept,
+              studentId: record.studentOrStaffId || prev.studentId,
               enrollmentDate: record.enrollmentDate || prev.enrollmentDate,
               graduationDate: record.graduationDate || prev.graduationDate,
               academicStatus: 'rejected',

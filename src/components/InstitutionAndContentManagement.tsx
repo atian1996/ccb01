@@ -5570,11 +5570,12 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
 
-  // 查看材料与审核详情弹窗
+  // 查看材料与审核详情弹窗 + 独立附件预览弹窗
   const [inspectingRecord, setInspectingRecord] = useState<VerificationApplicationRecord | null>(
     null
   );
-  const [activeAttachmentIdx, setActiveAttachmentIdx] = useState(0);
+  const [previewingAttachment, setPreviewingAttachment] =
+    useState<VerificationAttachmentItem | null>(null);
 
   // 驳回原因填写弹窗
   const [rejectingRecord, setRejectingRecord] = useState<VerificationApplicationRecord | null>(
@@ -5698,7 +5699,7 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
 
   const handleOpenInspectModal = (rec: VerificationApplicationRecord) => {
     setInspectingRecord(rec);
-    setActiveAttachmentIdx(0);
+    setPreviewingAttachment(null);
   };
 
   const handleDownloadAttachment = (att: VerificationAttachmentItem) => {
@@ -5940,6 +5941,10 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
         setCertFormError('请填写就读的专业名称');
         return;
       }
+      if (!formStaffId.trim()) {
+        setCertFormError('请填写学号');
+        return;
+      }
       if (!/^\d{4}-\d{2}$/.test(formEnrollDate)) {
         setCertFormError('请选择有效的入学时间（格式 YYYY-MM）');
         return;
@@ -5981,16 +5986,14 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
         teacherMajor: isTeacherMode ? formMajor.trim() : editingCertRecord.teacherMajor,
         educationLevel: formEducation,
         levelOrTitle: formEducation,
-        studentOrStaffId: isTeacherMode
-          ? formStaffId.trim()
-          : editingCertRecord.studentOrStaffId,
+        studentOrStaffId: formStaffId.trim() || editingCertRecord.studentOrStaffId,
         enrollmentDate: isStudentMode ? formEnrollDate : editingCertRecord.enrollmentDate,
         graduationDate: isStudentMode ? formGradDate : editingCertRecord.graduationDate,
         attachments: formFiles,
         materialFileName: firstFile?.name || editingCertRecord.materialFileName,
         materialPreviewUrl: firstFile?.url || editingCertRecord.materialPreviewUrl,
         applicantNote: isStudentMode
-          ? `学历：${formEducation}，专业：${formMajor.trim()}，就读周期：${formEnrollDate} 至 ${formGradDate}`
+          ? `学历：${formEducation}，专业：${formMajor.trim()}，学号：${formStaffId.trim()}，就读周期：${formEnrollDate} 至 ${formGradDate}`
           : `院系：${formDept.trim()}，专业：${formMajor.trim()}，学历层次：${formEducation}`,
       };
 
@@ -6028,9 +6031,7 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
         teacherMajor: isTeacherMode ? formMajor.trim() : undefined,
         educationLevel: formEducation,
         levelOrTitle: formEducation,
-        studentOrStaffId: isTeacherMode
-          ? formStaffId.trim()
-          : `STU${String(Date.now()).slice(-6)}`,
+        studentOrStaffId: formStaffId.trim(),
         enrollmentDate: isStudentMode ? formEnrollDate : undefined,
         graduationDate: isStudentMode ? formGradDate : undefined,
         submitChannel: isStudentMode
@@ -6040,7 +6041,7 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
         materialPreviewUrl: firstFile?.url,
         attachments: formFiles,
         applicantNote: isStudentMode
-          ? `学历：${formEducation}，专业：${formMajor.trim()}，就读周期：${formEnrollDate} 至 ${formGradDate}`
+          ? `学历：${formEducation}，专业：${formMajor.trim()}，学号：${formStaffId.trim()}，就读周期：${formEnrollDate} 至 ${formGradDate}`
           : `院系：${formDept.trim()}，专业：${formMajor.trim()}，学历层次：${formEducation}`,
         submittedAt: nowTime,
         reviewStatus: 'approved',
@@ -6111,9 +6112,6 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
     }
     return [];
   }, [inspectingRecord]);
-
-  const activeAttachment =
-    inspectingAttachments[activeAttachmentIdx] || inspectingAttachments[0] || null;
 
   return (
     <div className="space-y-5">
@@ -6677,172 +6675,211 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
         </div>
       </div>
 
-      {/* 弹窗 1：查看认证申请详情弹窗 */}
+      {/* 弹窗 1：查看认证申请详情弹窗（紧凑规整纵向排版，无内嵌大图预览，点击【预览】打开独立预览弹窗） */}
       {inspectingRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-5 my-8">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-              <div>
-                <div className="text-xs text-[#0284C7] font-bold">
-                  {inspectingRecord.applicantType === 'student'
-                    ? '学生认证核验详情单（高校管理员端）'
-                    : inspectingRecord.applicantType === 'univ_admin'
-                    ? '高校管理员资质认证核验单（组委会/秘书处端）'
-                    : '高校指导教师资格人工认证核验单'}
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl my-8">
+            {/* 顶部弹窗标题栏 */}
+            <div className="px-6 py-4 bg-gradient-to-r from-slate-50 via-sky-50/50 to-slate-50 border-b border-slate-200 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-[#0284C7] font-bold">
+                    {inspectingRecord.applicantType === 'student'
+                      ? '学生认证核验详情单（高校管理员端）'
+                      : inspectingRecord.applicantType === 'univ_admin'
+                      ? '高校管理员资质认证核验单（组委会/秘书处端）'
+                      : '高校指导教师资格人工认证核验单'}
+                  </span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                      inspectingRecord.reviewStatus === 'approved'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : inspectingRecord.reviewStatus === 'pending'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-red-50 text-red-600 border-red-200'
+                    }`}
+                  >
+                    {inspectingRecord.reviewStatus === 'approved'
+                      ? '已通过'
+                      : inspectingRecord.reviewStatus === 'pending'
+                      ? '待审核'
+                      : '已驳回'}
+                  </span>
                 </div>
-                <h3 className="text-lg font-extrabold text-slate-900 mt-0.5">
-                  申请人：{inspectingRecord.realName}（{inspectingRecord.university} · {
-                    inspectingRecord.applicantType === 'univ_admin'
-                      ? '高校管理员认证'
-                      : inspectingRecord.applicantType === 'student'
-                      ? '学生认证'
-                      : '教师认证'
-                  }）
+                <h3 className="text-base sm:text-lg font-extrabold text-slate-900 mt-1 truncate">
+                  申请人：{inspectingRecord.realName}（{inspectingRecord.university} ·{' '}
+                  {inspectingRecord.applicantType === 'univ_admin'
+                    ? '高校管理员认证'
+                    : inspectingRecord.applicantType === 'student'
+                    ? '学生认证'
+                    : '教师认证'}
+                  ）
                 </h3>
               </div>
               <button
                 type="button"
-                onClick={() => setInspectingRecord(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                onClick={() => {
+                  setPreviewingAttachment(null);
+                  setInspectingRecord(null);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-              {/* 左侧：申报核心字段明细（含手机号、邮箱、身份证号等全部完整信息） */}
-              <div className="md:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 text-xs">
-                <div className="text-slate-800 font-extrabold pb-2 border-b border-slate-200">
-                  一、{inspectingRecord.applicantType === 'student' ? '学生认证完整信息' : inspectingRecord.applicantType === 'univ_admin' ? '高校管理员申请完整信息' : '实名与院校申报完整信息'}
+            {/* 弹窗主体内容区 */}
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto text-xs">
+              {/* 一、申报核心字段明细 */}
+              <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl p-4 sm:p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80">
+                  <span className="text-slate-800 font-extrabold text-xs sm:text-sm">
+                    一、
+                    {inspectingRecord.applicantType === 'student'
+                      ? '学生认证完整信息'
+                      : inspectingRecord.applicantType === 'univ_admin'
+                      ? '高校管理员申请完整信息'
+                      : '实名与院校申报完整信息'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    提交时间：{inspectingRecord.submittedAt}
+                  </span>
                 </div>
+
                 {inspectingRecord.applicantType === 'student' ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-slate-400 block">真实姓名</span>
-                      <span className="text-emerald-600 font-bold">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-5 gap-y-3.5">
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">真实姓名</span>
+                      <span className="text-emerald-600 font-bold text-xs sm:text-sm">
                         {inspectingRecord.realName} ✓
                       </span>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block">居民身份证号</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">居民身份证号</span>
                       <span className="text-slate-800 font-mono font-bold">
                         {inspectingRecord.idCard}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block">绑定手机号</span>
-                      <span className="text-slate-800 font-mono font-bold">
-                        {inspectingRecord.phone}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block">电子邮箱</span>
-                      <span className="text-slate-800 font-mono font-bold truncate block">
-                        {inspectingRecord.email}
-                      </span>
-                    </div>
-                    <div className="col-span-2 pt-2 border-t border-slate-200">
-                      <span className="text-slate-400 block">所属院校</span>
-                      <span className="text-slate-900 font-extrabold text-sm">
-                        {inspectingRecord.university}（院校代码：{inspectingRecord.institutionCode}）
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block">学历</span>
-                      <span className="text-[#0284C7] font-bold">
-                        {resolveRecordTrainingLevel(inspectingRecord)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block">专业</span>
-                      <span className="text-slate-800 font-bold">
-                        {inspectingRecord.majorOrDept}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block">学号</span>
-                      <span className="text-slate-800 font-mono font-bold">
-                        {inspectingRecord.studentOrStaffId}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block">申请人账号</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">申请人账号</span>
                       <span className="text-slate-800 font-mono font-bold">
                         {inspectingRecord.username}
                       </span>
                     </div>
-                    <div className="col-span-2">
-                      <span className="text-slate-400 block">入学时间 - 毕业时间（预计）</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">绑定手机号</span>
+                      <span className="text-slate-800 font-mono font-bold">
+                        {inspectingRecord.phone}
+                      </span>
+                    </div>
+                    <div className="sm:col-span-2 bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">电子邮箱</span>
+                      <span className="text-slate-800 font-mono font-bold truncate block">
+                        {inspectingRecord.email}
+                      </span>
+                    </div>
+                    <div className="sm:col-span-2 bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">所属院校</span>
+                      <span className="text-slate-900 font-extrabold text-xs sm:text-sm">
+                        {inspectingRecord.university}（院校代码：{inspectingRecord.institutionCode}）
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">学历层次</span>
+                      <span className="text-[#0284C7] font-bold">
+                        {resolveRecordTrainingLevel(inspectingRecord)}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">就读专业</span>
+                      <span className="text-slate-800 font-bold">
+                        {inspectingRecord.majorOrDept}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">学号</span>
+                      <span className="text-slate-800 font-mono font-bold">
+                        {inspectingRecord.studentOrStaffId}
+                      </span>
+                    </div>
+                    <div className=" bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">入学 - 预计毕业时间</span>
                       <span className="text-slate-900 font-mono font-bold">
-                        {inspectingRecord.enrollmentDate || '2024-09'} -{' '}
+                        {inspectingRecord.enrollmentDate || '2024-09'} 至{' '}
                         {inspectingRecord.graduationDate || '2028-06'}
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-slate-400 block">真实姓名</span>
-                      <span className="text-emerald-600 font-bold">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-5 gap-y-3.5">
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">真实姓名</span>
+                      <span className="text-emerald-600 font-bold text-xs sm:text-sm">
                         {inspectingRecord.realName} ✓
                       </span>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block">居民身份证号</span>
-                      <span className="text-slate-800 font-mono font-bold">{inspectingRecord.idCard}</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">居民身份证号</span>
+                      <span className="text-slate-800 font-mono font-bold">
+                        {inspectingRecord.idCard}
+                      </span>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block">绑定手机号</span>
-                      <span className="text-slate-800 font-mono font-bold">{inspectingRecord.phone}</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">申请人账号</span>
+                      <span className="text-slate-900 font-mono font-bold">
+                        {inspectingRecord.username}
+                      </span>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block">电子邮箱</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">绑定手机号</span>
+                      <span className="text-slate-800 font-mono font-bold">
+                        {inspectingRecord.phone}
+                      </span>
+                    </div>
+                    <div className="sm:col-span-2 bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">电子邮箱</span>
                       <span className="text-slate-800 font-mono font-bold truncate block">
                         {inspectingRecord.email}
                       </span>
                     </div>
-                    <div className="col-span-2 pt-2 border-t border-slate-200">
-                      <span className="text-slate-400 block">申报高等院校（含教育部10位标识码）</span>
-                      <span className="text-slate-900 font-extrabold text-sm">
+                    <div className="sm:col-span-2 bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">
+                        申报高等院校（含教育部10位标识码）
+                      </span>
+                      <span className="text-slate-900 font-extrabold text-xs sm:text-sm">
                         {inspectingRecord.university}（{inspectingRecord.institutionCode}）
                       </span>
                     </div>
-                    <div className="col-span-2">
-                      <span className="text-slate-400 block">所属院系/部门</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">教师教工号</span>
+                      <span className="text-[#0284C7] font-mono font-bold">
+                        {inspectingRecord.studentOrStaffId}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">所属院系/部门</span>
                       <span className="text-slate-800 font-bold">
                         {inspectingRecord.majorOrDept}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block">专业</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">专业方向</span>
                       <span className="text-slate-800 font-bold">
                         {inspectingRecord.teacherMajor || '网络空间安全'}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block">学历</span>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200/70">
+                      <span className="text-slate-400 block mb-0.5">学历层次</span>
                       <span className="text-[#0284C7] font-bold">
                         {inspectingRecord.educationLevel ||
                           resolveRecordTrainingLevel(inspectingRecord)}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block">教师教工号</span>
-                      <span className="text-[#0284C7] font-mono font-bold">
-                        {inspectingRecord.studentOrStaffId}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block">申请人账号</span>
-                      <span className="text-slate-900 font-mono font-bold">
-                        {inspectingRecord.username}
-                      </span>
-                    </div>
                     {inspectingRecord.applicantType === 'univ_admin' &&
                       inspectingRecord.applicantNote && (
-                        <div className="col-span-2">
-                          <span className="text-slate-400 block">申请备注</span>
-                          <span className="text-slate-700">
+                        <div className="sm:col-span-3 bg-white p-3 rounded-lg border border-slate-200/70">
+                          <span className="text-slate-400 block mb-0.5">申请备注</span>
+                          <span className="text-slate-700 leading-relaxed">
                             {inspectingRecord.applicantNote}
                           </span>
                         </div>
@@ -6850,190 +6887,117 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
                   </div>
                 )}
 
-                <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500 font-bold">当前审核状态：</span>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                        inspectingRecord.reviewStatus === 'approved'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : inspectingRecord.reviewStatus === 'pending'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                          : 'bg-red-50 text-red-600 border-red-200'
-                      }`}
-                    >
-                      {inspectingRecord.reviewStatus === 'approved'
-                        ? '已通过'
-                        : inspectingRecord.reviewStatus === 'pending'
-                        ? '审核中'
-                        : '已驳回'}
-                    </span>
+                {/* 审核元数据与驳回原因 */}
+                {(inspectingRecord.reviewedAt ||
+                  (inspectingRecord.reviewStatus === 'rejected' &&
+                    inspectingRecord.reviewComment)) && (
+                  <div className="p-3 rounded-xl bg-white border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    {inspectingRecord.reviewedAt && (
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        最近审核：{inspectingRecord.reviewedAt}（审核人：
+                        {inspectingRecord.reviewer || '—'}）
+                      </div>
+                    )}
+                    {inspectingRecord.reviewStatus === 'rejected' &&
+                      inspectingRecord.reviewComment && (
+                        <div className="text-slate-700">
+                          <span className="text-red-600 font-bold">驳回原因：</span>
+                          {inspectingRecord.reviewComment}
+                        </div>
+                      )}
                   </div>
-                  <div className="text-[11px] text-slate-500 font-mono">
-                    提交时间：{inspectingRecord.submittedAt}
-                  </div>
-                  {inspectingRecord.reviewedAt && (
-                    <div className="text-[11px] text-slate-500 font-mono">
-                      审核时间：{inspectingRecord.reviewedAt}（审核人：{inspectingRecord.reviewer || '—'}）
-                    </div>
-                  )}
-                  {inspectingRecord.reviewStatus === 'rejected' && inspectingRecord.reviewComment && (
-                    <div className="text-slate-700 pt-1.5 border-t border-slate-100">
-                      <span className="text-red-500 font-bold">驳回原因：</span>
-                      {inspectingRecord.reviewComment}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
-              {/* 右侧：身份辅助证明（选填）或教师认证材料 */}
-              <div className="md:col-span-7 bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-3 text-xs">
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
-                    <span className="text-slate-800 font-extrabold">
-                      二、
-                      {inspectingRecord.applicantType === 'student'
-                        ? `身份辅助证明（选填，共 ${inspectingAttachments.length} 份）`
-                        : `提交的认证证明材料（共 ${inspectingAttachments.length} 份附件）`}
-                    </span>
-                    <span className="text-[#0284C7] font-mono font-bold">
-                      {inspectingRecord.submitChannel}
-                    </span>
-                  </div>
+              {/* 二、提交的认证证明材料（仅展示附件材料列表，点击【预览】打开独立弹窗） */}
+              <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl p-4 sm:p-5 space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80">
+                  <span className="text-slate-800 font-extrabold text-xs sm:text-sm">
+                    二、
+                    {inspectingRecord.applicantType === 'student'
+                      ? `身份辅助证明（选填，共 ${inspectingAttachments.length} 份附件）`
+                      : `提交的认证证明材料（共 ${inspectingAttachments.length} 份附件）`}
+                  </span>
+                  <span className="text-[#0284C7] font-mono font-bold text-[11px] bg-sky-50 px-2.5 py-0.5 rounded-md border border-sky-200/70">
+                    {inspectingRecord.submitChannel}
+                  </span>
+                </div>
 
-                  {inspectingAttachments.length === 0 ? (
-                    <div className="h-64 rounded-xl border border-dashed border-slate-200 bg-white flex flex-col items-center justify-center p-6 text-center space-y-2">
-                      <CheckCircle2 className="w-9 h-9 text-emerald-500" />
-                      <div className="text-sm font-bold text-slate-800">
+                {inspectingAttachments.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-white p-5 flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="text-xs sm:text-sm font-bold text-slate-800">
                         申请人未上传选填身份辅助证明
                       </div>
-                      <p className="text-xs text-slate-500 max-w-md leading-relaxed">
-                        学生认证默认免除必传附件，高校管理员直接根据左侧【姓名、身份证号、所属院校、学历、专业、入学时间-毕业时间】完成比对审核即可。
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        学生认证默认免除必传附件，高校管理员直接根据上方【姓名、身份证号、所属院校、学历、专业、入学-毕业时间】完成比对审核即可。
                       </p>
                     </div>
-                  ) : (
-                    <>
-                      {activeAttachment && (
-                        <div className="rounded-xl overflow-hidden border border-slate-200 bg-white">
-                          {/\.(jpg|jpeg|png|webp|gif)$/i.test(activeAttachment.name) ||
-                          activeAttachment.url.startsWith('data:image/') ||
-                          activeAttachment.url.includes('images.unsplash.com') ? (
-                            <img
-                              src={activeAttachment.url}
-                              alt={activeAttachment.name}
-                              className="w-full h-56 object-cover bg-slate-100"
-                            />
-                          ) : (
-                            <div className="h-56 flex flex-col items-center justify-center bg-slate-100/80 p-6 text-center space-y-2">
-                              <FileText className="w-10 h-10 text-[#0284C7]" />
-                              <div className="text-sm font-bold text-slate-800">
-                                {activeAttachment.name}
-                              </div>
-                              <div className="text-xs text-slate-500">
-                                文件大小：{activeAttachment.size} · 支持点击下方【下载】按钮保存原件核验
-                              </div>
-                            </div>
-                          )}
-                          <div className="px-3.5 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 gap-2">
+                      {inspectingAttachments.map((att, idx) => (
+                        <div
+                          key={att.id || idx}
+                          className="p-3 rounded-xl border border-slate-200 bg-white hover:border-sky-300/80 hover:bg-sky-50/20 flex items-center justify-between gap-3 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="w-6 h-6 rounded-lg bg-sky-100 text-[#0284C7] font-mono text-xs font-bold flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <FileText className="w-4 h-4 text-[#0284C7] shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <span className="text-slate-800 font-bold truncate block">
-                                当前预览：{activeAttachment.name}
-                              </span>
-                              <span className="text-[11px] text-slate-400 font-mono">
-                                大小：{activeAttachment.size}
-                              </span>
+                              <div className="text-xs sm:text-sm font-bold text-slate-800 truncate">
+                                {att.name}
+                              </div>
+                              <div className="text-[11px] text-slate-400 font-mono">
+                                文件大小：{att.size || '1.0 MB'}
+                              </div>
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
                             <button
                               type="button"
-                              onClick={() => handleDownloadAttachment(activeAttachment)}
-                              className="px-3 py-1.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
+                              onClick={() => setPreviewingAttachment(att)}
+                              className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-[#0284C7] text-[#0284C7] hover:text-white border border-sky-200 hover:border-[#0284C7] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>预览</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadAttachment(att)}
+                              className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <Download className="w-3.5 h-3.5" />
-                              <span>下载当前材料</span>
+                              <span>下载</span>
                             </button>
                           </div>
                         </div>
-                      )}
-
-                      <div className="space-y-2">
-                        <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                          <span>附件材料列表（点击可切换预览或直接下载）：</span>
-                        </div>
-                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-                          {inspectingAttachments.map((att, idx) => {
-                            const isSelected = idx === activeAttachmentIdx;
-                            return (
-                              <div
-                                key={att.id || idx}
-                                onClick={() => setActiveAttachmentIdx(idx)}
-                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                                  isSelected
-                                    ? 'bg-sky-50/90 border-[#0284C7] shadow-2xs'
-                                    : 'bg-white hover:bg-slate-50 border-slate-200'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                  <span className="w-5 h-5 rounded-md bg-sky-100 text-[#0284C7] font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
-                                    {idx + 1}
-                                  </span>
-                                  <FileText className="w-4 h-4 text-[#0284C7] shrink-0" />
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-bold text-slate-800 truncate">
-                                      {att.name}
-                                    </div>
-                                    <div className="text-[11px] text-slate-400 font-mono">
-                                      {att.size || '1.0 MB'}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveAttachmentIdx(idx);
-                                    }}
-                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer ${
-                                      isSelected
-                                        ? 'bg-[#0284C7] text-white'
-                                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                                    }`}
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                    <span>{isSelected ? '预览中' : '预览'}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDownloadAttachment(att);
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 text-[#0284C7] text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Download className="w-3 h-3" />
-                                    <span>下载</span>
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+            {/* 底部操作栏 */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-slate-500">
                 提示：点击【通过】或【驳回】后，结果将立即同步至前台【个人中心 - 用户认证】。
               </span>
               <div className="flex items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setInspectingRecord(null)}
-                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+                  onClick={() => {
+                    setPreviewingAttachment(null);
+                    setInspectingRecord(null);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
                 >
                   关闭窗口
                 </button>
@@ -7056,6 +7020,76 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 弹窗 1B：点击附件【预览】按钮后打开的独立材料预览弹窗 */}
+      {previewingAttachment && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <FileText className="w-4 h-4 text-[#0284C7] shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-slate-900 truncate">
+                    附件预览：{previewingAttachment.name}
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-mono">
+                    文件大小：{previewingAttachment.size || '1.0 MB'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewingAttachment(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 bg-slate-100/70 flex items-center justify-center min-h-[320px] max-h-[70vh] overflow-y-auto">
+              {/\.(jpg|jpeg|png|webp|gif|svg)$/i.test(previewingAttachment.name) ||
+              previewingAttachment.url.startsWith('data:image/') ||
+              previewingAttachment.url.includes('images.unsplash.com') ? (
+                <img
+                  src={previewingAttachment.url}
+                  alt={previewingAttachment.name}
+                  className="max-h-[62vh] w-auto max-w-full object-contain rounded-xl border border-slate-200 bg-white shadow-sm"
+                />
+              ) : (
+                <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center space-y-3 max-w-md w-full shadow-2xs">
+                  <div className="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center mx-auto">
+                    <FileText className="w-7 h-7 text-[#0284C7]" />
+                  </div>
+                  <div className="text-sm font-extrabold text-slate-900 break-all">
+                    {previewingAttachment.name}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    文件大小：{previewingAttachment.size || '1.0 MB'} · 文档类附件支持下载原件核验
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-white border-t border-slate-200 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPreviewingAttachment(null)}
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+              >
+                关闭预览
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownloadAttachment(previewingAttachment)}
+                className="px-4 py-2 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>下载原件</span>
+              </button>
             </div>
           </div>
         </div>
@@ -7454,18 +7488,18 @@ export const AdminVerificationManagement: React.FC<AdminVerificationManagementPr
                 />
               </div>
 
-              {/* 教师认证专属字段：教工号 */}
-              {isTeacherMode && (
+              {/* 学号（学生认证） / 教工号（教师认证） */}
+              {(isStudentMode || isTeacherMode) && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    教工号 <span className="text-red-500">*</span>
+                    {isStudentMode ? '学号' : '教工号'} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formStaffId}
                     onChange={(e) => setFormStaffId(e.target.value)}
-                    placeholder="请输入学校教工号"
+                    placeholder={isStudentMode ? '请输入学校学号' : '请输入学校教工号'}
                     className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm font-mono focus:outline-none"
                   />
                 </div>

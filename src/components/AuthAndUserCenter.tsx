@@ -4339,10 +4339,11 @@ export const StandaloneUserCenterPage: React.FC<{
   );
   const [academicModalOpen, setAcademicModalOpen] = useState<'student' | 'teacher' | null>(null);
 
-  // 学生认证表单状态（所属院校、学历层次、专业、入学时间、毕业时间（预计）、身份辅助证明[选填]）
+  // 学生认证表单状态（所属院校、学历层次、专业、学号、入学时间、毕业时间（预计）、身份辅助证明[选填]）
   const [stuSchool, setStuSchool] = useState(user.university || '');
   const [stuEducation, setStuEducation] = useState<string>(user.educationLevel || '本科');
   const [stuMajor, setStuMajor] = useState(user.majorOrDept || '');
+  const [stuStudentId, setStuStudentId] = useState(user.studentId || '');
   const [stuEnrollDate, setStuEnrollDate] = useState(user.enrollmentDate || '2024-09');
   const [stuGradDate, setStuGradDate] = useState(user.graduationDate || '2028-06');
   const [stuManualFiles, setStuManualFiles] = useState<VerificationAttachmentItem[]>(
@@ -4478,6 +4479,7 @@ export const StandaloneUserCenterPage: React.FC<{
           : '本科'
       );
       setStuMajor(user.majorOrDept || '');
+      setStuStudentId(user.studentId || '');
       setStuEnrollDate(user.enrollmentDate || '2024-09');
       setStuGradDate(user.graduationDate || '2028-06');
       setStuManualFiles(user.studentProofFiles || []);
@@ -4514,6 +4516,10 @@ export const StandaloneUserCenterPage: React.FC<{
       setStuFormError('请填写您就读的专业名称');
       return;
     }
+    if (!stuStudentId.trim()) {
+      setStuFormError('请填写您的学号');
+      return;
+    }
     if (!/^\d{4}-\d{2}$/.test(stuEnrollDate)) {
       setStuFormError('请选择有效的入学时间（格式 YYYY-MM）');
       return;
@@ -4537,6 +4543,7 @@ export const StandaloneUserCenterPage: React.FC<{
       university: stuSchool,
       educationLevel: stuEducation,
       majorOrDept: stuMajor.trim(),
+      studentId: stuStudentId.trim(),
       enrollmentDate: stuEnrollDate,
       graduationDate: stuGradDate,
       studentProofFiles: stuManualFiles,
@@ -4557,7 +4564,7 @@ export const StandaloneUserCenterPage: React.FC<{
       university: stuSchool,
       institutionCode: '4111010006',
       majorOrDept: stuMajor.trim(),
-      studentOrStaffId: user.studentId || 'STU2026001',
+      studentOrStaffId: stuStudentId.trim(),
       levelOrTitle: stuEducation,
       enrollmentDate: stuEnrollDate,
       graduationDate: stuGradDate,
@@ -4565,7 +4572,7 @@ export const StandaloneUserCenterPage: React.FC<{
       materialFileName: firstFile?.name,
       materialPreviewUrl: firstFile?.url,
       attachments: stuManualFiles,
-      applicantNote: `学历：${stuEducation}，专业：${stuMajor.trim()}，就读周期：${stuEnrollDate} 至 ${stuGradDate}`,
+      applicantNote: `学历：${stuEducation}，专业：${stuMajor.trim()}，学号：${stuStudentId.trim()}，就读周期：${stuEnrollDate} 至 ${stuGradDate}`,
       submittedAt: nowStr,
     });
 
@@ -4579,7 +4586,7 @@ export const StandaloneUserCenterPage: React.FC<{
       device: 'Windows 11 / Chrome 130.0',
       action: '提交学生认证审核',
       result: '成功',
-      detail: `院校：${stuSchool}，学历：${stuEducation}，专业：${stuMajor.trim()}，入学-毕业：${stuEnrollDate} 至 ${stuGradDate}`,
+      detail: `院校：${stuSchool}，学历：${stuEducation}，专业：${stuMajor.trim()}，学号：${stuStudentId.trim()}，入学-毕业：${stuEnrollDate} 至 ${stuGradDate}`,
     });
     setAcademicModalOpen(null);
   };
@@ -5602,6 +5609,12 @@ export const StandaloneUserCenterPage: React.FC<{
                               </span>
                             </div>
                             <div>
+                              <span className="text-slate-500">学号：</span>
+                              <span className="font-mono font-bold text-slate-900">
+                                {user.studentId || '—'}
+                              </span>
+                            </div>
+                            <div className="sm:col-span-2">
                               <span className="text-slate-500">入学 - 毕业时间：</span>
                               <span className="font-mono font-bold text-slate-900">
                                 {user.enrollmentDate || '2024-09'} 至{' '}
@@ -5686,6 +5699,12 @@ export const StandaloneUserCenterPage: React.FC<{
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
+                            <span className="text-slate-500 w-28 shrink-0">学号：</span>
+                            <span className="font-mono-num font-bold text-slate-900">
+                              {user.studentId || '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
                             <span className="text-slate-500 w-28 shrink-0">入学/毕业时间：</span>
                             <span className="font-mono-num font-bold text-slate-900">
                               {user.enrollmentDate || '2024-09'} 至{' '}
@@ -5750,6 +5769,7 @@ export const StandaloneUserCenterPage: React.FC<{
                             <span>上次填报院校：{user.university || '—'}</span>
                             <span>学历层次：{user.educationLevel || '本科'}</span>
                             <span>专业：{user.majorOrDept || '—'}</span>
+                            <span>学号：{user.studentId || '—'}</span>
                             <span>
                               入学-毕业：{user.enrollmentDate || '2024-09'} 至{' '}
                               {user.graduationDate || '2028-06'}
@@ -7229,7 +7249,22 @@ export const StandaloneUserCenterPage: React.FC<{
                   />
                 </div>
 
-                {/* 4. 入学时间 & 5. 毕业时间（预计）（年月选择器 YYYY-MM，毕业时间必须晚于入学时间） */}
+                {/* 4. 学号（输入框，必填，对应后台学生认证详情中的学号字段） */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    学号 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={stuStudentId}
+                    onChange={(e) => setStuStudentId(e.target.value)}
+                    placeholder="请输入您的学校学号"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-[#0284C7] rounded-lg text-sm font-mono focus:outline-none"
+                  />
+                </div>
+
+                {/* 5. 入学时间 & 6. 毕业时间（预计）（年月选择器 YYYY-MM，毕业时间必须晚于入学时间） */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
